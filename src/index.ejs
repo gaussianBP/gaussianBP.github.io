@@ -44,17 +44,18 @@
     <p>ElasticFusion, SemanticFusion: how to do it properly?</p>
     <p>Consistency, long term persistence, abstraction and efficiency</p>
     <p>Why? To enable intelligence! A robot will have a model of the world which is a simulation of reality based on all of its prior knowledge and ongoing experience; and be able to use it to make intelligent e.g. causal inferences about action. I believe in persistent scene representation for spatial reasoning. The foundation for higher level AI?</p>
+    <p>Discussion of related work. </p>
 
-    <hr>
+
     <h2 id="gbp">Why Gaussian Belief Propagation? </h2>
 
     <h3>Many types of measurements and priors to combine</h3>
     <p>-> Probabilistic inference</p> 
 
     <h3>Low power requires distributed computation and storage to fit new hardware
-</h3>
-    <p>-> Message passing between processors with local computation and memory, either on a single chip or across multiple simple devices.
-</p> 
+    </h3>
+        <p>-> Message passing between processors with local computation and memory, either on a single chip or across multiple simple devices.
+    </p> 
 
     <h3>Persistent representation from incremental measurements</h3>
     <p>-> Changing, irregular structure of measurements represented by a factor graph
@@ -67,16 +68,29 @@
     <p>-> Gaussian Belief Propagation: messages take the form of small information vectors and matrices; all the same local operations as in Kalman Filtering or non-linear optimisation.
 </p>
 
-    <hr>
-    <h2 id="theory">A brief theoretical background </h2>
+    <h2 id="theory">A quick run through of the maths </h2>
+
+    <h3> Factor Graphs </h3>
+
+    <p>Equivalence of linear equation and factor graph. Topology encodes structure of matrix A. </p>
+
+    <h3> Gaussian Belief Propagation </h3>
+
     <p>Intuition of the algorithm. <a
         href="https://github.com/distillpub/template/wiki/Annotated-Formulas">Annotated formula</a> for message passing.</p>
     <p>Relation to energy based models. </p>
 
-    <hr>
-    <h3 id="simulations">Simulated geometric estimation problems </h3>
+    <p> Visualisation of taking products of 2D Gaussians. </p>
+
+    <p> Computing marginal distribution is equivalent to MAP with Gaussians. Relinearisation. </p>
+
+    <p> Flexibility in message passing schedule. </p>
+
+    <h2 id="simulations">Simulated geometric estimation problems </h2>
 
     <h4 id="1dsurface">1D Surface estimation</h4>
+
+    <p> How to formulate the measurement and smoothness factors. </p>
 
     <figure class="l-page-outset">
       <d-figure id="gbp1d"></d-figure>
@@ -87,23 +101,25 @@
 
     <h4 id="2drobot">2D Robot Simulation </h4>
 
+    <p> How to formulate 2D measurement factors. </p>
+
+    <p> We can add in smoothnes constraints connecting landmarks.</p>
+
     <figure class="l-page-outset">
       <d-figure id="RobotSim"></d-figure>
         <figcaption>Robot simulation. Shaded region is 1 standard deviation around belief mean.</figcaption>
       </figure>
     </figure>
 
+    <h2 id="discussion">Discussion</h2>
 
-
-    <hr>
-    <h2>Bundle Adjustment</h2>
+    <p> Bundle Adjustment <d-cite key="ortiz2020gbp"></d-cite></p>
 
     <d-figure>
       <%= require("../static/diagrams/mapping.svg") %>
       <figcaption>Figure taken from here<d-cite key="ortiz2020gbp"></d-cite>. Shows mapping of bundle adjustment factor graph onto tiles of Graphcore's IPU.</figcaption>
     </d-figure>
 
-    <h2 id="discussion">Discussion</h2>
 
 
   </d-article>

@@ -1,3 +1,6 @@
+Writing
+- panels with images for why gbp
+
 General
 - Look into d3
 
@@ -13,3 +16,4 @@ both
 - shade the 1std
 - change pointer to wasd
 - fullscreen option
+- move landmarks to the edge and add planar factors
