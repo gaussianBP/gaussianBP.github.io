@@ -1,0 +1,15 @@
+General
+- Look into d3
+
+both
+- start when scroll down 
+- move update std in factors to be reactive rather than always running
+
+1d
+-
+
+2d robot sim
+- click to add measurements?
+- shade the 1std
+- change pointer to wasd
+- fullscreen option

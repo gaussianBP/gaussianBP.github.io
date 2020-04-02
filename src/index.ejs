@@ -1,0 +1,134 @@
+<!doctype html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style id="distill-article-specific-styles">
+    <%=require("../static/styles.css") %>
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="https://distill.pub/template.v2.js"></script>
+</head>
+
+<body>
+
+  <d-front-matter>
+    <script type="text/json">
+      <%= JSON.stringify(require("./frontmatter.json"), null, 4) %>
+    </script>
+  </d-front-matter>
+
+  <d-title>
+    <h1>Gaussian Belief Propagation for Spatial AI</h1>
+    <p>A visual introduction to Gaussian Belief Propagation for realtime computer vision. </p>
+  </d-title>
+
+  <d-article>
+    <d-contents>
+      <nav class="l-text toc figcaption">
+        <h3>Contents</h3>
+        <div><a href="#spatialAI">Spatial AI</a></div>
+        <div><a href="#gbp">Gaussian Belief Propagation</a></div>
+        <div><a href="#theory">A brief Theoretical Background</a></div>
+        <div><a href="#simulations">Simulated Geometric Estimation Problems</a></div>
+        <ul>
+          <li><a href="#1dsurface">1D Surface Fitting</a></li>
+          <li><a href="#2drobot">2D Robot Simulation</a></li>
+        </ul>
+        <div><a href="#discussion">Discussion</a></div>
+      </nav>
+    </d-contents>
+
+    <h2 id="spatialAI">Spatial AI </h2>
+    <p>A cornerstone of intelligence.</p>
+    <p>ElasticFusion, SemanticFusion: how to do it properly?</p>
+    <p>Consistency, long term persistence, abstraction and efficiency</p>
+    <p>Why? To enable intelligence! A robot will have a model of the world which is a simulation of reality based on all of its prior knowledge and ongoing experience; and be able to use it to make intelligent e.g. causal inferences about action. I believe in persistent scene representation for spatial reasoning. The foundation for higher level AI?</p>
+
+    <hr>
+    <h2 id="gbp">Why Gaussian Belief Propagation? </h2>
+
+    <h3>Many types of measurements and priors to combine</h3>
+    <p>-> Probabilistic inference</p> 
+
+    <h3>Low power requires distributed computation and storage to fit new hardware
+</h3>
+    <p>-> Message passing between processors with local computation and memory, either on a single chip or across multiple simple devices.
+</p> 
+
+    <h3>Persistent representation from incremental measurements</h3>
+    <p>-> Changing, irregular structure of measurements represented by a factor graph
+</p> 
+    <p>-> Belief propagation: probabilistic message passing for in-place, convergent inference on a factor graph
+</p> 
+
+    <h3>Gaussian: most efficient way to represent probability distributions
+</h3>
+    <p>-> Gaussian Belief Propagation: messages take the form of small information vectors and matrices; all the same local operations as in Kalman Filtering or non-linear optimisation.
+</p>
+
+    <hr>
+    <h2 id="theory">A brief theoretical background </h2>
+    <p>Intuition of the algorithm. <a
+        href="https://github.com/distillpub/template/wiki/Annotated-Formulas">Annotated formula</a> for message passing.</p>
+    <p>Relation to energy based models. </p>
+
+    <hr>
+    <h3 id="simulations">Simulated geometric estimation problems </h3>
+
+    <h4 id="1dsurface">1D Surface estimation</h4>
+
+    <figure class="l-page-outset">
+      <d-figure id="gbp1d"></d-figure>
+        <figcaption>Surface Fitting simulation.</figcaption>
+      </figure>
+    </figure>
+
+
+    <h4 id="2drobot">2D Robot Simulation </h4>
+
+    <figure class="l-page-outset">
+      <d-figure id="RobotSim"></d-figure>
+        <figcaption>Robot simulation. Shaded region is 1 standard deviation around belief mean.</figcaption>
+      </figure>
+    </figure>
+
+
+
+    <hr>
+    <h2>Bundle Adjustment</h2>
+
+    <d-figure>
+      <%= require("../static/diagrams/mapping.svg") %>
+      <figcaption>Figure taken from here<d-cite key="ortiz2020gbp"></d-cite>. Shows mapping of bundle adjustment factor graph onto tiles of Graphcore's IPU.</figcaption>
+    </d-figure>
+
+    <h2 id="discussion">Discussion</h2>
+
+
+  </d-article>
+
+
+  <d-appendix>
+    <h3>Acknowledgments</h3>
+    <p>
+    </p>
+
+    <h3>Author Contributions</h3>
+    <p>
+      <b>Research:</b> 
+    </p>
+
+    <p>
+      <b>Writing & Diagrams:</b> 
+    </p>
+
+
+    <d-footnote-list></d-footnote-list>
+    <d-citation-list></d-citation-list>
+  </d-appendix>
+
+  <!-- bibliography will be inlined during Distill pipeline's pre-rendering -->
+  <d-bibliography src="bibliography.bib"></d-bibliography>
+
+</body>

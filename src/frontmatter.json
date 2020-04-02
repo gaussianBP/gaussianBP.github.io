@@ -1,0 +1,34 @@
+{
+	"title": "Distill Example",
+	"description": "An example project using Webpack, Babel, and Svelte.",
+	"password": "svgs",
+	"authors": [
+		{
+			"author": "Joseph Ortiz",
+			"authorURL": "http://joeaortiz.github.io",
+			"affiliation": "Imperial College London",
+			"affiliationURL": "https://wp.doc.ic.ac.uk/robotvision/"
+		},
+		{
+			"author": "Andrew J. Davison",
+			"authorURL": "https://www.doc.ic.ac.uk/~ajd/",
+			"affiliation": "Imperial College London",
+			"affiliationURL": "https://wp.doc.ic.ac.uk/robotvision/"
+		}
+
+	],
+	"katex": {
+		"delimiters": [
+			{
+				"left": "$",
+				"right": "$",
+				"display": false
+			},
+			{
+				"left": "$$",
+				"right": "$$",
+				"display": true
+			}
+		]
+	}
+}
