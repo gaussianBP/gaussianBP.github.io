@@ -30,11 +30,10 @@
 
   let sync_on = false;
   let n_iters = 0;
-  let iters_per_sec = 25;
+  let iters_per_sec = 60;
   let dist = 0; // Average distance of belief means from MAP solution
 
-  let down1 = false;
-  let down2 = false;
+  let down = [false, false];
 
   onMount(() => {
     const ctx = canvas.getContext("2d");
@@ -48,7 +47,7 @@
     then = Date.now();
   });
 
-	onInterval(() => updateVis(), 25);
+	onInterval(() => updateVis(), 60);
 
 // ******************************* Drawing functions ********************************
 
@@ -368,39 +367,67 @@
   }
 
   	function handleMouseMove(e) {
+        const ctx = canvas.getContext("2d");
   		var rect = canvas.getBoundingClientRect();
-	    var x = canvas.width * (e.clientX - rect.left) / rect.width;
-	    var y = canvas.height * (e.clientY - rect.top) / rect.height;
+	    var mouseX = canvas.width * (e.clientX - rect.left) / rect.width;
+	    var mouseY = canvas.height * (e.clientY - rect.top) / rect.height;
 
-	    if (down1) {
-	    	followMouse(0, x)
-	    } else if (down2) {
-	    	followMouse(1, x)
+	    var on = false
+	    for(var c=0; c<2; c++) {
+	    	var x = cam_locs[c].x;
+	    	var y = cam_locs[c].y;
+	        ctx.beginPath();
+		    ctx.moveTo(x, y+30);
+		    ctx.lineTo(x+20, y-20);
+	  	    ctx.lineTo(x-20, y-20);
+		    ctx.closePath();
+
+		    if (ctx.isPointInPath(mouseX, mouseY)) {
+		    	on = true;
+		    }
+
+		}
+
+		if (on){ 
+		  	canvas.style.cursor = "pointer";
+		} else {
+			canvas.style.cursor = "default";
+		}
+
+	    if (down[0]) {
+	    	cam_locs[0].x = mouseX;
+	    	updateCamPosition(0)
+	    } else if (down[1]) {
+	    	cam_locs[1].x = mouseX;
+	    	updateCamPosition(1)
 	    }
   	}
 
-  	function followMouse(ix, x) {
-    	cam_locs[ix].x = x;
-    	updateCamPosition(ix)
-  	}
 
     function handleMouseDown(e) {
+        const ctx = canvas.getContext("2d");
 	    var rect = canvas.getBoundingClientRect();
-	    var x = canvas.width * (e.clientX - rect.left) / rect.width;
-	    var y = canvas.height * (e.clientY - rect.top) / rect.height;
+	    var mouseX = canvas.width * (e.clientX - rect.left) / rect.width;
+	    var mouseY = canvas.height * (e.clientY - rect.top) / rect.height;
 
-        console.log(x, y)
+	    for(var c=0; c<2; c++) {
+	    	var x = cam_locs[c].x;
+	    	var y = cam_locs[c].y;
+	        ctx.beginPath();
+		    ctx.moveTo(x, y+30);
+		    ctx.lineTo(x+20, y-20);
+	  	    ctx.lineTo(x-20, y-20);
+		    ctx.closePath();
 
-	    if ((x < cam_locs[0].x + 10) && (x > cam_locs[0].x - 10) && (y > cam_locs[0].y-10) && (y < cam_locs[0].y + 10)) {
-	    	down1 = true;
-	    } else if ((x < cam_locs[1].x + 10) && (x > cam_locs[1].x - 10) && (y > cam_locs[1].y-10) && (y < cam_locs[1].y + 10)) {
-	    	down2 = true;
-	    }
+		    if (ctx.isPointInPath(mouseX, mouseY)) {
+		    	down[c] = true;
+		    }
+		}
     }
 
     function handleMouseUp(e) {
-    	down1 = false;
-    	down2 = false;
+    	down[0] = false;
+    	down[1] = false;
     }
 
     function updateCamPosition(cam_ix) {
@@ -412,6 +439,7 @@
         var d = Math.sqrt(Math.pow(lmk_loc.x-cam_locs[cam_ix].x, 2) + Math.pow(lmk_loc.y-cam_locs[cam_ix].y, 2));
         const measurement = new m.Matrix([[(lmk_loc.y - cam_locs[cam_ix].y) / d], [d]]);
         graph.factors[cam_ix].meas[0] = measurement;
+        relinearise();
     }
 
 </script>

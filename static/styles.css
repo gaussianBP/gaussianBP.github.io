@@ -89,6 +89,10 @@ canvas {
   background-color: #D3D3D3	;
 }
 
+#click-canvas {
+  cursor: pointer;
+}
+
 button {
   width: 100px;
   border: none;

@@ -298,7 +298,7 @@
 <div class="demo-container">
 
   <div id="gbp-container">
-    <canvas bind:this={canvas} width={1300} height={640} on:click={addMeasurement}></canvas>
+    <canvas bind:this={canvas} width={1300} height={640} on:click={addMeasurement} id="click-canvas"></canvas>
     <div class="center">
       {#if visible_alert}
         <p transition:fade id="alert">

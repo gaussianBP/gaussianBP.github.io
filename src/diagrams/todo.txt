@@ -7,6 +7,9 @@ General
 both
 - move update std in factors to be reactive rather than always running
 
+gauss prod 
+- what happens when angle -> 0
+
 1d
 -
 
@@ -17,3 +20,4 @@ both
 - shade the 1std
 - change pointer to wasd
 - move landmarks to the edge and add planar factors
+- non-linear measurement functions
