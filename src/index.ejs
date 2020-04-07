@@ -30,6 +30,7 @@
         <h3>Contents</h3>
         <div><a href="#spatialAI">Spatial AI</a></div>
         <div><a href="#gbp">Gaussian Belief Propagation</a></div>
+        <div><a href="#related">Related Work</a></div>
         <div><a href="#theory">A brief Theoretical Background</a></div>
         <div><a href="#simulations">Simulated Geometric Estimation Problems</a></div>
         <ul>
@@ -67,7 +68,10 @@
     <p>-> Gaussian Belief Propagation: messages take the form of small information vectors and matrices; all the same local operations as in Kalman Filtering or non-linear optimisation.
 </p>
 
-    <h2>Related work</h2>
+    <h2 id="related"> Related work</h2>
+
+    <p> Bundle Adjustment <d-cite key="ortiz2020gbp"></d-cite></p>
+
 
     <h2 id="theory">A quick run through of the maths </h2>
 
@@ -115,23 +119,31 @@
 
     <p> How to formulate 2D measurement factors. </p>
 
-    <p> We can add in smoothnes constraints connecting landmarks.</p>
+    <p> We can begin with purely linear measurement factors.</p>
 
     <figure class="l-page-outset" id="robot-container">
       <d-figure id="RobotSim"></d-figure>
-        <figcaption>Robot simulation. Shaded region is 1 standard deviation around belief mean.</figcaption>
+        <figcaption>Robot simulation with linear measurement factors.</figcaption>
+      </figure>
+    </figure>
+
+    <p> We now introduce non-linear measurement factors.</p>
+
+    <figure class="l-page-outset" id="robot-nonlinear-container">
+      <d-figure id="RobotNonlinearSim"></d-figure>
+        <figcaption>Robot simulation with non-linear measurement factors.</figcaption>
+      </figure>
+    </figure>
+
+    <p> Lastly we can introduce smoothness factors, for instance enforcing landmarks to be co-linear.</p>
+
+    <figure class="l-page-outset" id="robot-room-container">
+      <d-figure id="RobotRoomSim"></d-figure>
+        <figcaption>Robot simulation with smoothness constraints between landmarks.</figcaption>
       </figure>
     </figure>
 
     <h2 id="discussion">Discussion</h2>
-
-    <p> Bundle Adjustment <d-cite key="ortiz2020gbp"></d-cite></p>
-
-    <d-figure>
-      <%= require("../static/diagrams/mapping.svg") %>
-      <figcaption>Figure taken from here<d-cite key="ortiz2020gbp"></d-cite>. Shows mapping of bundle adjustment factor graph onto tiles of Graphcore's IPU.</figcaption>
-    </d-figure>
-
 
 
   </d-article>

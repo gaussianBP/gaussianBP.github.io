@@ -21,11 +21,20 @@
   let fullscreen = false;
   let started = false;
 
-  // Measurement model std
-  const meas_jac = new m.Matrix([[-1., 0., 1., 0.], [0., -1., 0., 1.]]);
-  let meas_range = 150;
+  // Measurement model
+  let meas_range = 170;
   let lmk_prior_std = 60;
   let robot_prior_std = 60;
+
+  let odometry_distance_std = 80;
+  let odometry_angle_std = 0.5;
+  let meas_distance_std = 80;
+  let meas_angle_std = 0.5;
+
+  const odometry_angle_noise = r.normal(0, 0.02);
+  const odometry_dist_noise = r.normal(0, 5);
+  const meas_angle_noise = r.normal(0, 0.02);
+  const meas_dist_noise = r.normal(0, 5);
 
   // GBP variables
   let graph;
@@ -42,16 +51,9 @@
 
   // Robot motion params
   let robot_loc = [80, 720];
-  let last_key_pose = [50, 590];
+  let last_key_pose = [80, 720];
   const step = 11;
   let new_pose_dist = 75;
-
-
-  // Measurement models
-  const odometry_noise = r.normal(0, 10);
-  const measurement_noise = r.normal(0, 10);
-  var odometry_std = 50;
-  var meas_std = 50;
 
   onMount(() => {
     const ctx = canvas.getContext("2d");
@@ -266,8 +268,6 @@
       } 
     }
 
-    update_meas_model_std();
-    update_odometry_model_std();
     drawLines();
     drawRobot();
     drawPoseNodes();
@@ -289,28 +289,58 @@
 
   function syncGBP() {
     graph.sync_iter();
+    relinearise();
     if (!(n_iters == 0)) {
       dist = graph.compare_to_MAP(n_landmarks, lmk_graph_ix);   
     }
     n_iters++;
   }
 
-  function get_dist_from_gt() {
-    // distance from gt
-    var lmk_dist_from_gt = 0;
-    var pose_dist_from_gt = 0;
-    for(var j=0; j<graph.lmk_nodes.length; j++) {
-      lmk_dist_from_gt += Math.sqrt(Math.pow(landmarks_gt[j].x - graph.lmk_nodes[j].belief.getMean().get(0, 0), 2) + 
-                          Math.pow(landmarks_gt[j].y - graph.lmk_nodes[j].belief.getMean().get(1, 0), 2));
-    }
-    for(var j=0; j<graph.pose_nodes.length; j++) {
-    pose_dist_from_gt += Math.sqrt(Math.pow(poses_gt[j].x - graph.pose_nodes[j].belief.getMean().get(0, 0), 2) + 
-                          Math.pow(poses_gt[j].y - graph.pose_nodes[j].belief.getMean().get(1, 0), 2));
-    }
-    lmk_dist_from_gt /= graph.lmk_nodes.length;
-    pose_dist_from_gt /= graph.pose_nodes.length;
+  // Jacobian function for nonlinear bearing and distance measurement
+  function getJac(cam_coords, lmk_coords) {
+    var x1 = cam_coords.get(0,0);
+    var y1 = cam_coords.get(1,0);
+    var x2 = lmk_coords.get(0,0);
+    var y2 = lmk_coords.get(1,0);
+    var d = Math.sqrt(Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2));
+    
+    var j00 = (y2-y1)*(x2-x1) / Math.pow(d, 3);
+    var j01 = Math.pow(y2-y1, 2) / Math.pow(d, 3) - 1/d;
+    var j02 = -(y2-y1)*(x2-x1) / Math.pow(d, 3);
+    var j03 = -Math.pow(y2-y1, 2) / Math.pow(d, 3) + 1/d;
+    var j10 = -(x2-x1) / d;
+    var j11 = -(y2-y1) / d;
+    var j12 = (x2-x1) / d;
+    var j13 = (y2-y1) / d;
 
-    return [pose_dist_from_gt, lmk_dist_from_gt]  
+    return new m.Matrix([[j00, j01, j02, j03], [j10, j11, j12, j13]]);
+  }
+
+  function relinearise() {
+    for(var c=0; c<graph.factors.length; c++) {
+      // Compute new jac
+      const cam_coords = graph.factors[c].adj_beliefs[0].getMean();
+      const lmk_coords = graph.factors[c].adj_beliefs[1].getMean();
+      var lin_point = new m.Matrix([[cam_coords.get(0,0)], [cam_coords.get(1,0)], [lmk_coords.get(0,0)], [lmk_coords.get(1,0)]]);
+      let jac = getJac(cam_coords, lmk_coords);
+      graph.factors[c].jacs[0] = jac;
+
+      graph.factors[c].factor.eta = m.Matrix.zeros(graph.factors[c].dofs, 1);
+      graph.factors[c].factor.lam = m.Matrix.zeros(graph.factors[c].dofs, graph.factors[c].dofs);
+
+      if (graph.factors[c].adj_var_ids[1] >= n_landmarks) {
+        var lambda = new m.Matrix([[1 / Math.pow(odometry_angle_std, 2), 0], [0, 1 / Math.pow(odometry_distance_std, 2)]]);
+      } else {
+        var lambda = new m.Matrix([[1 / Math.pow(meas_angle_std, 2), 0], [0, 1 / Math.pow(meas_distance_std, 2)]]);
+      }
+      graph.factors[c].lambdas[0] = lambda;
+
+      var d = Math.sqrt(Math.pow(lmk_coords.get(0,0)-cam_coords.get(0,0), 2) + Math.pow(lmk_coords.get(1,0)-cam_coords.get(1,0), 2));
+      const measurement = new m.Matrix([[(lmk_coords.get(1,0) - cam_coords.get(1,0)) / d], [d]]);
+      const bracket = jac.mmul(lin_point).add(graph.factors[c].meas[0]).sub(measurement);
+      graph.factors[c].factor.eta.add((jac.transpose().mmul(lambda)).mmul(bracket) );
+      graph.factors[c].factor.lam.add((jac.transpose().mmul(lambda)).mmul(jac));
+    }
   }
 
   function addLandmarkNode(ix) {
@@ -328,11 +358,16 @@
     var n_pose_nodes = graph.pose_nodes.length;
 
     const odometry_factor = new gbp.LinearFactor(4, [graph.pose_nodes[n_pose_nodes-2].var_id, graph.pose_nodes[n_pose_nodes-1].var_id]);
-    odometry_factor.jacs.push(meas_jac);
-    const measurement = new m.Matrix([[poses_gt[n_pose_nodes-1].x - poses_gt[n_pose_nodes-2].x + odometry_noise()], 
-      [poses_gt[n_pose_nodes-1].y - poses_gt[n_pose_nodes-2].y  + odometry_noise()]])
+    var jac = getJac(graph.pose_nodes[n_pose_nodes-2].belief.getMean(), graph.pose_nodes[n_pose_nodes-1].belief.getMean());
+    odometry_factor.jacs.push(jac);
+
+    var d = Math.sqrt(Math.pow(poses_gt[n_pose_nodes-1].x-poses_gt[n_pose_nodes-2].x, 2) + Math.pow(poses_gt[n_pose_nodes-1].y-poses_gt[n_pose_nodes-2].y, 2));
+    const measurement = new m.Matrix([[(poses_gt[n_pose_nodes-1].y - poses_gt[n_pose_nodes-2].y) / d + odometry_angle_noise()], [d + odometry_dist_noise()]]);
     odometry_factor.meas.push(measurement);
-    odometry_factor.lambdas.push(1 / Math.pow(odometry_std, 2));
+
+    var lambda = new m.Matrix([[1 / Math.pow(odometry_angle_std, 2), 0], [0, 1 / Math.pow(odometry_distance_std, 2)]]);
+    odometry_factor.lambdas.push(lambda);
+
     odometry_factor.adj_var_dofs.push(2);
     odometry_factor.adj_var_dofs.push(2);
 
@@ -341,7 +376,6 @@
 
     odometry_factor.messages.push(new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]));
     odometry_factor.messages.push(new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]));
-    odometry_factor.compute_factor();
     graph.factors.push(odometry_factor);
 
     graph.pose_nodes[n_pose_nodes-2].adj_factors.push(odometry_factor);
@@ -353,8 +387,7 @@
     let n_pose_nodes = graph.pose_nodes.length;
 
     for (var j=0; j<n_landmarks; j++) {
-      var dist = Math.sqrt(Math.pow(landmarks_gt[j].x - poses_gt[n_pose_nodes -1].x, 2) + 
-                        Math.pow(landmarks_gt[j].y - poses_gt[n_pose_nodes -1].y, 2));
+      var dist = Math.sqrt(Math.pow(landmarks_gt[j].x - poses_gt[n_pose_nodes -1].x, 2) + Math.pow(landmarks_gt[j].y - poses_gt[n_pose_nodes -1].y, 2));
       if (dist < meas_range) {
         // Create new landmark node if first observation of the landmark
         if (!(lmk_observed_yet[j])) {
@@ -363,11 +396,16 @@
         }
 
         const new_factor = new gbp.LinearFactor(4, [graph.pose_nodes[n_pose_nodes-1].var_id, j]);
-        new_factor.jacs.push(meas_jac);
-        const measurement = new m.Matrix([[landmarks_gt[j].x - poses_gt[n_pose_nodes-1].x + measurement_noise()], 
-          [landmarks_gt[j].y - poses_gt[n_pose_nodes-1].y + measurement_noise()]])
+        var jac = getJac(graph.pose_nodes[n_pose_nodes-1].belief.getMean(), graph.lmk_nodes[lmk_graph_ix[j]].belief.getMean());
+        new_factor.jacs.push(jac);
+
+        var d = Math.sqrt(Math.pow(landmarks_gt[j].x-poses_gt[n_pose_nodes-1].x, 2) + Math.pow(landmarks_gt[j].y-poses_gt[n_pose_nodes-1].y, 2));
+        const measurement = new m.Matrix([[(landmarks_gt[j].y - poses_gt[n_pose_nodes-1].y) / d  + meas_angle_noise()], [d + meas_dist_noise()]]);
         new_factor.meas.push(measurement);
-        new_factor.lambdas.push(1 / Math.pow(meas_std, 2));
+
+        var lambda = new m.Matrix([[1 / Math.pow(meas_angle_std, 2), 0], [0, 1 / Math.pow(meas_distance_std, 2)]]);
+        new_factor.lambdas.push(lambda);
+
         new_factor.adj_var_dofs.push(2);
         new_factor.adj_var_dofs.push(2);
 
@@ -376,7 +414,6 @@
 
         new_factor.messages.push(new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]));
         new_factor.messages.push(new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]));
-        new_factor.compute_factor();
         graph.factors.push(new_factor);
 
         graph.pose_nodes[n_pose_nodes-1].adj_factors.push(new_factor);
@@ -388,7 +425,6 @@
   function checkAddVarNode() {
     var dist = Math.sqrt(Math.pow(robot_loc[0] - last_key_pose[0], 2) + 
                         Math.pow(robot_loc[1] - last_key_pose[1], 2));
-
     if (dist > new_pose_dist) {
       const new_var_node = new gbp.VariableNode(2, n_landmarks + graph.pose_nodes.length);
       var lambda = 1 / Math.pow(robot_prior_std, 2);
@@ -466,17 +502,6 @@
     }
   }
 
-  function update_meas_model_std() {
-    var lambda = 1 / Math.pow(meas_std, 2);
-    var count = 0;
-    for (var c=0; c<graph.factors.length; c++) {
-      if (graph.factors[c].adj_var_ids[1] < n_landmarks) {
-        graph.factors[c].lambdas[0] = lambda;
-        graph.factors[c].compute_factor();
-      }
-    }
-  }
-
   function update_odometry_model_std() {
     var lambda = 1 / Math.pow(odometry_std, 2);
     for (var c=0; c<graph.factors.length; c++) {
@@ -524,13 +549,13 @@
   }
 
     function toggleFullscreen() {
-      if ( document.getElementById("robot-container").classList.contains('l-page-outset') ) {
-        document.getElementById("robot-container").classList.remove("l-page-outset");
-        document.getElementById("robot-container").classList.add("l-screen-inset");
+      if ( document.getElementById("robot-nonlinear-container").classList.contains('l-page-outset') ) {
+        document.getElementById("robot-nonlinear-container").classList.remove("l-page-outset");
+        document.getElementById("robot-nonlinear-container").classList.add("l-screen-inset");
         fullscreen = true;
       } else {
-        document.getElementById("robot-container").classList.remove("l-screen-inset");
-        document.getElementById("robot-container").classList.add("l-page-outset");
+        document.getElementById("robot-nonlinear-container").classList.remove("l-screen-inset");
+        document.getElementById("robot-nonlinear-container").classList.add("l-page-outset");
         fullscreen = false;
       }
     }
@@ -596,11 +621,18 @@
 
     <br><b>Standard deviation of noise in Gaussian measurement models:<br></b>
 
-    Landmark factors, &sigma = <b>{meas_std}</b>
-    <input type="range" min="25" max="75" bind:value={meas_std}><br>
+    <b>Odometry</b><br>
+    Distance factors, &sigma = <b>{odometry_distance_std}</b>
+    <input type="range" min="10" max="150" bind:value={odometry_distance_std}><br> 
+    Angle factors, &sigma = <b>{odometry_angle_std}</b>
+    <input type="range" min="0.1" max="1" step="0.01" bind:value={odometry_angle_std}><br>
 
-    Odometry factors, &sigma = <b>{odometry_std}</b>
-    <input type="range" min="1" max="100" bind:value={odometry_std}><br>
+    <b>Landmark Measurements</b><br>
+    Distance factors, &sigma = <b>{meas_distance_std}</b>
+    <input type="range" min="10" max="150" bind:value={meas_distance_std}><br> 
+    Angle factors, &sigma = <b>{meas_angle_std}</b>
+    <input type="range" min="0.1" max="1" step="0.01" bind:value={meas_angle_std}><br>
+
 
   </div>
 </div>
