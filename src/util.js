@@ -15,3 +15,4 @@ export function toggle(bool) {
 export function range(n){
   return Array(n).fill().map((_, i) => i);
 }
+

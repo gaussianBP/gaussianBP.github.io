@@ -5,15 +5,15 @@ General
 - Look into d3
 
 both
-- start when scroll down 
 - move update std in factors to be reactive rather than always running
 
 1d
 -
 
 2d robot sim
+- on fullscreen play hover text is out of view
+- can move in 2 directions at once
 - click to add measurements?
 - shade the 1std
 - change pointer to wasd
-- fullscreen option
 - move landmarks to the edge and add planar factors

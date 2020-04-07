@@ -12,8 +12,8 @@
 
   // Visual varaibles
   let canvas;
-  let var_node_radius = 7;
-  let gt_node_radius = 4;
+  let var_node_radius = 9;
+  let gt_node_radius = 6;
 
   let then; // time of start of vis
   let display_map = false;
@@ -23,13 +23,13 @@
 
   // Measurement model std
   const meas_jac = new m.Matrix([[-1., 0., 1., 0.], [0., -1., 0., 1.]]);
-  let meas_range = 120;
-  let lmk_prior_std = 50;
-  let robot_prior_std = 50;
+  let meas_range = 150;
+  let lmk_prior_std = 60;
+  let robot_prior_std = 60;
 
   // GBP variables
   let graph;
-  let n_landmarks = 20;
+  let n_landmarks = 25;
   let landmarks_gt = [];
   let poses_gt = [];
   let lmk_observed_yet = [];
@@ -41,10 +41,10 @@
   let dist = 0; // Average distance of belief means from MAP solution
 
   // Robot motion params
-  let robot_loc = [50, 590];
+  let robot_loc = [80, 720];
   let last_key_pose = [50, 590];
-  const step = 10;
-  let new_pose_dist = 70;
+  const step = 11;
+  let new_pose_dist = 75;
 
 
   // Measurement models
@@ -66,8 +66,19 @@
     graph.pose_nodes.push(first_var_node);
     poses_gt.push({x: robot_loc[0], y: robot_loc[1]})
 
-    // Generate landmarks
-    for (var i=0; i<n_landmarks; i++) {
+    // Generate landmarks, first landmark near robot
+    let lmk1_todo = true;
+    while (lmk1_todo) {
+      var x = robot_loc[0] + Math.random() * meas_range / Math.sqrt(2) - meas_range / (2 * Math.sqrt(2)); 
+      var y = robot_loc[1] + Math.random() * meas_range / Math.sqrt(2) - meas_range / (2 * Math.sqrt(2)); 
+      if ((x>20) && (x<canvas.width-20) && (y>20) && (y<canvas.height-20)) {
+        lmk1_todo = false;
+      }
+    }
+    landmarks_gt.push({x: x, y: y});
+    lmk_observed_yet.push(0);
+    lmk_graph_ix.push(-1);
+    for (var i=0; i<n_landmarks-1; i++) {
       var x = Math.random()*(canvas.width-20) + 10;
       var y = Math.random()*(canvas.height-20) + 10;
       landmarks_gt.push({x: x, y: y});
@@ -411,8 +422,19 @@
     graph.pose_nodes.push(first_var_node);
     poses_gt.push({x: robot_loc[0], y: robot_loc[1]})
 
-    // Generate landmarks
-    for (var i=0; i<n_landmarks; i++) {
+    // Generate landmarks, first landmark near robot
+    let lmk1_todo = true;
+    while (lmk1_todo) {
+      var x = robot_loc[0] + Math.random() * meas_range / Math.sqrt(2) - meas_range / (2 * Math.sqrt(2)); 
+      var y = robot_loc[1] + Math.random() * meas_range / Math.sqrt(2) - meas_range / (2 * Math.sqrt(2)); 
+      if ((x>20) && (x<canvas.width-20) && (y>20) && (y<canvas.height-20)) {
+        lmk1_todo = false;
+      }
+    }
+    landmarks_gt.push({x: x, y: y});
+    lmk_observed_yet.push(0);
+    lmk_graph_ix.push(-1);
+    for (var i=0; i<n_landmarks-1; i++) {
       var x = Math.random()*(canvas.width-20) + 10;
       var y = Math.random()*(canvas.height-20) + 10;
       landmarks_gt.push({x: x, y: y});
@@ -424,16 +446,6 @@
 
     then = Date.now();
     sync_on = true;
-  }
-
-	function clearMeasurements() {
-    graph.factors = graph.factors.slice(0, 9);
-    sync_on = false;
-    sweep_on = false;
-    display_map = false;
-    n_iters = 0;
-    graph = gbp.create1Dgraph(n_var_nodes, smoothness_std);
-    then = Date.now();
   }
 
   // User interaction functions
@@ -511,6 +523,17 @@
     checkAddVarNode();
   }
 
+    function toggleFullscreen() {
+      if ( document.getElementById("robot-container").classList.contains('l-page-outset') ) {
+        document.getElementById("robot-container").classList.remove("l-page-outset");
+        document.getElementById("robot-container").classList.add("l-screen-inset");
+        fullscreen = true;
+      } else {
+        document.getElementById("robot-container").classList.remove("l-screen-inset");
+        document.getElementById("robot-container").classList.add("l-page-outset");
+        fullscreen = false;
+      }
+    }
 
 
 </script>
@@ -518,8 +541,18 @@
 <div class="demo-container">
 
   <div id="gbp-container">
-    <canvas bind:this={canvas} width={1100} height={640}></canvas>
-
+    <canvas bind:this={canvas} width={1400} height={800}></canvas>
+      <div class="top-left">
+        {#if fullscreen}
+          <i class="fa fa-compress-arrows-alt tooltip-fs" on:click={toggleFullscreen} style="width: 10%">
+            <span class="tooltiptext">Toggle fullscreen</span>
+          </i>
+        {:else}
+          <i class="fas fa-expand-arrows-alt tooltip-fs" on:click={toggleFullscreen} style="width:20px">
+            <span class="tooltiptext">Toggle fullscreen</span>
+          </i>
+          {/if}
+      </div>
     <div class="buttons-panel">
       {#if sync_on}
         <i class="fa fa-pause tooltip" on:click={toggleGBP} style="width:25px">

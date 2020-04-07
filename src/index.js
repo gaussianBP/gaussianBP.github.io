@@ -2,6 +2,12 @@
 import * as _unused from "raw-loader!./index.ejs";
 // TODO: disable before publishing
 
+
+import GaussProduct from "./diagrams/gauss_product.svelte";
+const GaussProdComponent = new GaussProduct({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#gaussprod')
+});
+
 import Gbp1d from "./diagrams/gbp1d.svelte";
 const Gbp1dComponent = new Gbp1d({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#gbp1d')
