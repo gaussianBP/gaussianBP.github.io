@@ -8,12 +8,14 @@ both
 - move update std in factors to be reactive rather than always running
 
 gauss prod 
-- what happens when angle -> 0
+-
 
 1d
 -
 
 2d robot sim
+- try normalising
+- build up factor graph as robot moves
 - on fullscreen play hover text is out of view
 - can move in 2 directions at once
 - click to add measurements?

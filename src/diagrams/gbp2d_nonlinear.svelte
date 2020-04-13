@@ -7,6 +7,7 @@
 
   import * as gauss from '../gaussian';
   import * as gbp from '../gbp/gbp2d.js';
+  import * as nlm from '../gbp/nonlinear_meas_fn.js';
 
 	import { onInterval } from '../util.js';
 
@@ -26,23 +27,25 @@
   let lmk_prior_std = 60;
   let robot_prior_std = 60;
 
-  let odometry_distance_std = 80;
+  let odometry_distance_std = 30;
   let odometry_angle_std = 0.5;
   let meas_distance_std = 80;
   let meas_angle_std = 0.5;
 
-  const odometry_angle_noise = r.normal(0, 0.02);
+  const odometry_angle_noise = r.normal(0, 0.3);
   const odometry_dist_noise = r.normal(0, 5);
   const meas_angle_noise = r.normal(0, 0.02);
   const meas_dist_noise = r.normal(0, 5);
 
   // GBP variables
   let graph;
-  let n_landmarks = 25;
+  let n_landmarks = 35;
   let landmarks_gt = [];
   let poses_gt = [];
   let lmk_observed_yet = [];
   let lmk_graph_ix = [];
+
+  let eta_damping = 0.;
 
   let sync_on = false;
   let n_iters = 0;
@@ -61,11 +64,12 @@
 
     // Create initial factor graph
     graph = new gbp.FactorGraph();
-    let first_var_node = new gbp.VariableNode(2, n_landmarks);
-    first_var_node.prior.eta = new m.Matrix([[robot_loc[0]], [robot_loc[1]]]);
-    first_var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);  // strong prior for first measurement
-    first_var_node.update_belief();
-    graph.pose_nodes.push(first_var_node);
+    let first_pose_node = new gbp.VariableNode(2, n_landmarks);
+    first_pose_node.prior.lam = new m.Matrix([[0.1, 0], [0, 0.1]]); 
+    first_pose_node.prior.eta = first_pose_node.prior.lam.mmul(new m.Matrix([[robot_loc[0]], [robot_loc[1]]]));
+
+    first_pose_node.update_belief();
+    graph.pose_nodes.push(first_pose_node);
     poses_gt.push({x: robot_loc[0], y: robot_loc[1]})
 
     // Generate landmarks, first landmark near robot
@@ -88,7 +92,7 @@
       lmk_graph_ix.push(-1);
     }
 
-    addMeasurementFactors();  // add initial measurements
+    // addMeasuremewwntFactors();  // add initial measurements
     then = Date.now();
   });
 
@@ -268,6 +272,8 @@
       } 
     }
 
+    update_lambdas();
+
     drawLines();
     drawRobot();
     drawPoseNodes();
@@ -288,58 +294,24 @@
   // ******************* GBP functions ***********************
 
   function syncGBP() {
+    // if (n_iters % 20 === 0) {
+      graph.relinearise();
+    // }
     graph.sync_iter();
-    relinearise();
     if (!(n_iters == 0)) {
       dist = graph.compare_to_MAP(n_landmarks, lmk_graph_ix);   
     }
     n_iters++;
   }
 
-  // Jacobian function for nonlinear bearing and distance measurement
-  function getJac(cam_coords, lmk_coords) {
-    var x1 = cam_coords.get(0,0);
-    var y1 = cam_coords.get(1,0);
-    var x2 = lmk_coords.get(0,0);
-    var y2 = lmk_coords.get(1,0);
-    var d = Math.sqrt(Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2));
-    
-    var j00 = (y2-y1)*(x2-x1) / Math.pow(d, 3);
-    var j01 = Math.pow(y2-y1, 2) / Math.pow(d, 3) - 1/d;
-    var j02 = -(y2-y1)*(x2-x1) / Math.pow(d, 3);
-    var j03 = -Math.pow(y2-y1, 2) / Math.pow(d, 3) + 1/d;
-    var j10 = -(x2-x1) / d;
-    var j11 = -(y2-y1) / d;
-    var j12 = (x2-x1) / d;
-    var j13 = (y2-y1) / d;
-
-    return new m.Matrix([[j00, j01, j02, j03], [j10, j11, j12, j13]]);
-  }
-
-  function relinearise() {
+  function update_lambdas() {
     for(var c=0; c<graph.factors.length; c++) {
-      // Compute new jac
-      const cam_coords = graph.factors[c].adj_beliefs[0].getMean();
-      const lmk_coords = graph.factors[c].adj_beliefs[1].getMean();
-      var lin_point = new m.Matrix([[cam_coords.get(0,0)], [cam_coords.get(1,0)], [lmk_coords.get(0,0)], [lmk_coords.get(1,0)]]);
-      let jac = getJac(cam_coords, lmk_coords);
-      graph.factors[c].jacs[0] = jac;
-
-      graph.factors[c].factor.eta = m.Matrix.zeros(graph.factors[c].dofs, 1);
-      graph.factors[c].factor.lam = m.Matrix.zeros(graph.factors[c].dofs, graph.factors[c].dofs);
-
       if (graph.factors[c].adj_var_ids[1] >= n_landmarks) {
         var lambda = new m.Matrix([[1 / Math.pow(odometry_angle_std, 2), 0], [0, 1 / Math.pow(odometry_distance_std, 2)]]);
       } else {
         var lambda = new m.Matrix([[1 / Math.pow(meas_angle_std, 2), 0], [0, 1 / Math.pow(meas_distance_std, 2)]]);
       }
-      graph.factors[c].lambdas[0] = lambda;
-
-      var d = Math.sqrt(Math.pow(lmk_coords.get(0,0)-cam_coords.get(0,0), 2) + Math.pow(lmk_coords.get(1,0)-cam_coords.get(1,0), 2));
-      const measurement = new m.Matrix([[(lmk_coords.get(1,0) - cam_coords.get(1,0)) / d], [d]]);
-      const bracket = jac.mmul(lin_point).add(graph.factors[c].meas[0]).sub(measurement);
-      graph.factors[c].factor.eta.add((jac.transpose().mmul(lambda)).mmul(bracket) );
-      graph.factors[c].factor.lam.add((jac.transpose().mmul(lambda)).mmul(jac));
+      graph.factors[c].lambda = lambda;
     }
   }
 
@@ -357,22 +329,27 @@
   function addOdometryFactor() {
     var n_pose_nodes = graph.pose_nodes.length;
 
-    const odometry_factor = new gbp.LinearFactor(4, [graph.pose_nodes[n_pose_nodes-2].var_id, graph.pose_nodes[n_pose_nodes-1].var_id]);
-    var jac = getJac(graph.pose_nodes[n_pose_nodes-2].belief.getMean(), graph.pose_nodes[n_pose_nodes-1].belief.getMean());
-    odometry_factor.jacs.push(jac);
+    const odometry_factor = new gbp.NonLinearFactor(4, [graph.pose_nodes[n_pose_nodes-2].var_id, graph.pose_nodes[n_pose_nodes-1].var_id], nlm.measFn, nlm.jacFnFd);
+    odometry_factor.eta_damping = eta_damping;
 
-    var d = Math.sqrt(Math.pow(poses_gt[n_pose_nodes-1].x-poses_gt[n_pose_nodes-2].x, 2) + Math.pow(poses_gt[n_pose_nodes-1].y-poses_gt[n_pose_nodes-2].y, 2));
-    const measurement = new m.Matrix([[(poses_gt[n_pose_nodes-1].y - poses_gt[n_pose_nodes-2].y) / d + odometry_angle_noise()], [d + odometry_dist_noise()]]);
-    odometry_factor.meas.push(measurement);
+    const measurement = nlm.measFn(poses_gt[n_pose_nodes-2], poses_gt[n_pose_nodes-1]);
+    const noise = new m.Matrix([[odometry_angle_noise()], [odometry_dist_noise()]]);
+    // measurement.add(noise);
+    odometry_factor.meas = measurement;
+
+    // console.log(poses_gt[n_pose_nodes-2].x, poses_gt[n_pose_nodes-2].y);
+    // console.log(poses_gt[n_pose_nodes-1].x, poses_gt[n_pose_nodes-1].y);
+    console.log(measurement.get(1,0), measurement.get(0,0) / Math.PI)
 
     var lambda = new m.Matrix([[1 / Math.pow(odometry_angle_std, 2), 0], [0, 1 / Math.pow(odometry_distance_std, 2)]]);
-    odometry_factor.lambdas.push(lambda);
+    odometry_factor.lambda = lambda;
 
     odometry_factor.adj_var_dofs.push(2);
     odometry_factor.adj_var_dofs.push(2);
 
     odometry_factor.adj_beliefs.push(graph.pose_nodes[n_pose_nodes-2].belief);
     odometry_factor.adj_beliefs.push(graph.pose_nodes[n_pose_nodes-1].belief);
+    odometry_factor.compute_factor();
 
     odometry_factor.messages.push(new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]));
     odometry_factor.messages.push(new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]));
@@ -395,22 +372,26 @@
           lmk_observed_yet[j] = 1;
         }
 
-        const new_factor = new gbp.LinearFactor(4, [graph.pose_nodes[n_pose_nodes-1].var_id, j]);
-        var jac = getJac(graph.pose_nodes[n_pose_nodes-1].belief.getMean(), graph.lmk_nodes[lmk_graph_ix[j]].belief.getMean());
-        new_factor.jacs.push(jac);
+        const new_factor = new gbp.NonLinearFactor(4, [graph.pose_nodes[n_pose_nodes-1].var_id, j], nlm.measFn, nlm.jacFn);
+        new_factor.eta_damping = eta_damping;
 
-        var d = Math.sqrt(Math.pow(landmarks_gt[j].x-poses_gt[n_pose_nodes-1].x, 2) + Math.pow(landmarks_gt[j].y-poses_gt[n_pose_nodes-1].y, 2));
-        const measurement = new m.Matrix([[(landmarks_gt[j].y - poses_gt[n_pose_nodes-1].y) / d  + meas_angle_noise()], [d + meas_dist_noise()]]);
-        new_factor.meas.push(measurement);
+        // console.log(poses_gt[n_pose_nodes-1].x, poses_gt[n_pose_nodes-1].y);
+        // console.log(landmarks_gt[j].x, landmarks_gt[j].y);
+
+        const measurement = nlm.measFn(poses_gt[n_pose_nodes-1], landmarks_gt[j]);
+        const noise = new m.Matrix([[meas_angle_noise()], [meas_dist_noise()]]);
+        // measurement.add(noise); 
+        new_factor.meas = measurement;
 
         var lambda = new m.Matrix([[1 / Math.pow(meas_angle_std, 2), 0], [0, 1 / Math.pow(meas_distance_std, 2)]]);
-        new_factor.lambdas.push(lambda);
+        new_factor.lambda = lambda;
 
         new_factor.adj_var_dofs.push(2);
         new_factor.adj_var_dofs.push(2);
 
         new_factor.adj_beliefs.push(graph.pose_nodes[n_pose_nodes-1].belief);
         new_factor.adj_beliefs.push(graph.lmk_nodes[lmk_graph_ix[j]].belief);
+        new_factor.compute_factor();
 
         new_factor.messages.push(new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]));
         new_factor.messages.push(new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]));
@@ -437,7 +418,7 @@
       last_key_pose[1] = robot_loc[1];
 
       addOdometryFactor();
-      addMeasurementFactors();
+      // addMeasurementFactors();
     }
   }
 
@@ -451,11 +432,11 @@
 
     // Create initial factor graph
     graph = new gbp.FactorGraph();
-    let first_var_node = new gbp.VariableNode(2, n_landmarks);
-    first_var_node.prior.eta = new m.Matrix([[robot_loc[0]], [robot_loc[1]]]);
-    first_var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);  // strong prior for first measurement
-    first_var_node.update_belief();
-    graph.pose_nodes.push(first_var_node);
+    let first_pose_node = new gbp.VariableNode(2, n_landmarks);
+    first_pose_node.prior.eta = new m.Matrix([[robot_loc[0]], [robot_loc[1]]]);
+    first_pose_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);  
+    first_pose_node.update_belief();
+    graph.pose_nodes.push(first_pose_node);
     poses_gt.push({x: robot_loc[0], y: robot_loc[1]})
 
     // Generate landmarks, first landmark near robot
@@ -623,13 +604,13 @@
 
     <b>Odometry</b><br>
     Distance factors, &sigma = <b>{odometry_distance_std}</b>
-    <input type="range" min="10" max="150" bind:value={odometry_distance_std}><br> 
+    <input type="range" min="5" max="200" bind:value={odometry_distance_std}><br> 
     Angle factors, &sigma = <b>{odometry_angle_std}</b>
-    <input type="range" min="0.1" max="1" step="0.01" bind:value={odometry_angle_std}><br>
+    <input type="range" min="0.01" max="1" step="0.01" bind:value={odometry_angle_std}><br>
 
     <b>Landmark Measurements</b><br>
     Distance factors, &sigma = <b>{meas_distance_std}</b>
-    <input type="range" min="10" max="150" bind:value={meas_distance_std}><br> 
+    <input type="range" min="10" max="200" bind:value={meas_distance_std}><br> 
     Angle factors, &sigma = <b>{meas_angle_std}</b>
     <input type="range" min="0.1" max="1" step="0.01" bind:value={meas_angle_std}><br>
 

@@ -31,6 +31,20 @@ export class FactorGraph {
     this.update_beliefs();
   }
 
+  energy() {
+    let energy = 0.;
+    for(var c=0; c<this.factors.length; c++) {
+      energy += this.factors[c].energy();
+    }
+  }
+
+  relinearise() {
+    for (var c=0; c<this.factors.length; c++) {
+      this.factors[c].compute_factor();
+    }
+  }
+
+
   computeMAP(n_landmarks, lmk_graph_ix) {
     var tot_dofs = 0;
     for(var c=0; c<this.pose_nodes.length; c++) {
@@ -143,29 +157,42 @@ export class VariableNode {
   }
 }
 
-export class LinearFactor {
-  constructor(dofs, adj_var_ids) {
+
+export class NonLinearFactor {
+  constructor(dofs, adj_var_ids, measFn, jacFn) {
     this.dofs = dofs;
     this.adj_var_ids = adj_var_ids;
     this.adj_beliefs = [];
     this.adj_var_dofs = [];
 
-    // To compute factor when factor is combination of many factor types (e.g. measurement and smoothness)
-    this.jacs = [];
-    this.meas = [];
-    this.lambdas = [];
+    this.meas;
+    this.lambda;
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
+    this.linpoint;
+
+    this.jacFn = jacFn;
+    this.measFn = measFn;
 
     this.messages = [];
+
+    this.eta_damping = 0.;
   }
 
   compute_factor() {
-    this.factor.eta = m.Matrix.zeros(this.dofs, 1);
-    this.factor.lam = m.Matrix.zeros(this.dofs, this.dofs);
-    for (var i=0; i<this.jacs.length; i++) {
-      this.factor.eta.add(this.jacs[i].transpose().mmul(this.meas[i]).mul(this.lambdas[i]));
-      this.factor.lam.add(this.jacs[i].transpose().mmul(this.jacs[i]).mul(this.lambdas[i]));
-    }
+    const cam_coords = this.adj_beliefs[0].getMean();
+    const lmk_coords = this.adj_beliefs[1].getMean();
+    this.linpoint = new m.Matrix([[cam_coords.get(0,0)], [cam_coords.get(1,0)], [lmk_coords.get(0,0)], [lmk_coords.get(1,0)]]);
+    let jac = this.jacFn(cam_coords, lmk_coords);
+
+    const measurement = this.measFn(cam_coords, lmk_coords);
+    const bracket = jac.mmul(this.linpoint).add(this.meas).sub(measurement);
+    this.factor.eta = (jac.transpose().mmul(this.lambda)).mmul(bracket);
+    this.factor.lam = (jac.transpose().mmul(this.lambda)).mmul(jac);
+  }
+
+  energy() {
+    var res = this.meas_fn(cam_coords, lmk_coords).sub(this.meas);
+    return 0.5 * res.mmul(this.lambda).mmul(res);
   }
 
   send_mess() {
@@ -207,6 +234,95 @@ export class LinearFactor {
       const mess = new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]);
       const block = lono.mmul(m.inverse(lnono));
       mess.eta = new m.Matrix(eo.sub(block.mmul(eno)));
+      mess.eta.mul(1-this.eta_damping);
+      mess.eta.add(this.messages[i].eta.mul(this.eta_damping));
+      mess.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
+      this.messages[i] = mess;
+    }
+
+  }
+}
+
+
+
+
+export class LinearFactor {
+  constructor(dofs, adj_var_ids) {
+    this.dofs = dofs;
+    this.adj_var_ids = adj_var_ids;
+    this.adj_beliefs = [];
+    this.adj_var_dofs = [];
+
+    // To compute factor when factor is combination of many factor types (e.g. measurement and smoothness)
+    this.jacs = [];
+    this.meas = [];
+    this.lambdas = [];
+    this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
+
+    this.messages = [];
+
+    this.eta_damping = 0.;
+  }
+
+  compute_factor() {
+    this.factor.eta = m.Matrix.zeros(this.dofs, 1);
+    this.factor.lam = m.Matrix.zeros(this.dofs, this.dofs);
+    for (var i=0; i<this.jacs.length; i++) {
+      this.factor.eta.add(this.jacs[i].transpose().mmul(this.meas[i]).mul(this.lambdas[i]));
+      this.factor.lam.add(this.jacs[i].transpose().mmul(this.jacs[i]).mul(this.lambdas[i]));
+    }
+  }
+
+  energy() {
+    const cam_coords = this.adj_beliefs[0].getMean();
+    const lmk_coords = this.adj_beliefs[1].getMean();
+    linpoint = new m.Matrix([[cam_coords.get(0,0)], [cam_coords.get(1,0)], [lmk_coords.get(0,0)], [lmk_coords.get(1,0)]]);
+
+    var res = this.jacs[0].mmul(linpoint).sub(this.meas[0]);
+    return 0.5 * res.mmul(this.lambdas[0]).mmul(res);
+  }
+
+  send_mess() {
+    var start_dim = 0;
+    
+    for (var i=0; i<this.adj_var_ids.length; i++) {
+      var eta_factor = this.factor.eta.clone();
+      var lam_factor = this.factor.lam.clone();
+
+      // Take product with incoming messages, general for factor connected to arbitrary num var nodes
+      var mess_start_dim = 0;
+      for (var j=0; j<this.adj_var_ids.length; j++) {
+        if (!(i == j)) {
+          const eta_prod = m.Matrix.sub(this.adj_beliefs[j].eta, this.messages[j].eta);
+          const lam_prod = m.Matrix.sub(this.adj_beliefs[j].lam, this.messages[j].lam);
+          new m.MatrixSubView(eta_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] -1, 0, 0).add(eta_prod);
+          new m.MatrixSubView(lam_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] -1, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] -1).add(lam_prod);
+        }
+        mess_start_dim += this.adj_var_dofs[j];
+      }
+
+      // For factor connecting 2 variable nodes
+      if (i == 0) {
+        var eo = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
+        var eno = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
+        var loo = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
+        var lnono = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
+        var lnoo = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
+        var lono = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
+      } else if (i == 1) {
+        var eno = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
+        var eo = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
+        var lnono = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
+        var loo = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
+        var lono = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
+        var lnoo = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
+      }
+
+      const mess = new gauss.Gaussian([[0],[0]], [[0,0],[0,0]]);
+      const block = lono.mmul(m.inverse(lnono));
+      mess.eta = new m.Matrix(eo.sub(block.mmul(eno)));
+      mess.eta.mul(1-this.eta_damping);
+      mess.eta.add(this.messages[i].eta.mul(this.eta_damping));
       mess.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
       this.messages[i] = mess;
     }

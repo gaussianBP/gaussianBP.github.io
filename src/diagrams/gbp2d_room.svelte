@@ -66,9 +66,6 @@
     const ctx = canvas.getContext("2d");
     ctx.lineWidth = 4;
 
-    // Create initial factor graph
-    graph = new gbp.FactorGraph();
-
     for (var c=0; c<8; c++) {
       var x = 60 + c * (canvas.width-120) / 7;
       var y_bottom = 740;
@@ -91,6 +88,8 @@
 
     n_landmarks = landmarks_gt.length;
 
+    // Create initial factor graph
+    graph = new gbp.FactorGraph();
     let first_var_node = new gbp.VariableNode(2, n_landmarks);
     first_var_node.prior.eta = new m.Matrix([[robot_loc[0]], [robot_loc[1]]]);
     first_var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);  // strong prior for first measurement
@@ -454,7 +453,6 @@
   function reset() {
     sync_on = false;
     n_iters = 0;
-    landmarks_gt = [];
     poses_gt = [];
     lmk_observed_yet = [];
     lmk_graph_ix = [];
@@ -468,28 +466,7 @@
     graph.pose_nodes.push(first_var_node);
     poses_gt.push({x: robot_loc[0], y: robot_loc[1]})
 
-    // Generate landmarks, first landmark near robot
-    let lmk1_todo = true;
-    while (lmk1_todo) {
-      var x = robot_loc[0] + Math.random() * meas_range / Math.sqrt(2) - meas_range / (2 * Math.sqrt(2)); 
-      var y = robot_loc[1] + Math.random() * meas_range / Math.sqrt(2) - meas_range / (2 * Math.sqrt(2)); 
-      if ((x>20) && (x<canvas.width-20) && (y>20) && (y<canvas.height-20)) {
-        lmk1_todo = false;
-      }
-    }
-    landmarks_gt.push({x: x, y: y});
-    lmk_observed_yet.push(0);
-    lmk_graph_ix.push(-1);
-    for (var i=0; i<n_landmarks-1; i++) {
-      var x = Math.random()*(canvas.width-20) + 10;
-      var y = Math.random()*(canvas.height-20) + 10;
-      landmarks_gt.push({x: x, y: y});
-      lmk_observed_yet.push(0);
-      lmk_graph_ix.push(-1);
-    }
-
     addMeasurementFactors();  // add initial measurements
-
     then = Date.now();
     sync_on = true;
   }
