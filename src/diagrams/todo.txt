@@ -6,6 +6,7 @@ General
 
 both
 - move update std in factors to be reactive rather than always running
+- for each canvas, hover somewhere to see graph 
 
 gauss prod 
 -
@@ -14,12 +15,10 @@ gauss prod
 -
 
 2d robot sim
-- try normalising
+- non-linear measurement functions has convergence issues: maybe Huber loss can help?
 - build up factor graph as robot moves
 - on fullscreen play hover text is out of view
 - can move in 2 directions at once
-- click to add measurements?
 - shade the 1std
 - change pointer to wasd
 - move landmarks to the edge and add planar factors
-- non-linear measurement functions

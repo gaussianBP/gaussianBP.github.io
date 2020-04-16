@@ -191,8 +191,13 @@
 
     var lambda = new m.Matrix([[1 / Math.pow(angle_std, 2), 0], [0, 1 / Math.pow(distance_std, 2)]]);
     for(var c=0; c<2; c++) {
-        const new_factor = new gbp.NonLinearFactor(4, [c+1, 0], nlm.measFn, nlm.jacFn);
-        new_factor.meas = nlm.measFn(cam_locs[c], lmk_loc);
+        var dx = lmk_loc.x - cam_locs[c].x;
+        const new_factor = new gbp.NonLinearFactor(4, [c+1, 0], nlm.measFnR, nlm.jacFnR);
+        if (dx < 0){
+          new_factor.measFn = nlm.measFnL;
+          new_factor.jacFn = nlm.jacFnL;
+        }
+        new_factor.meas = new_factor.measFn(cam_locs[c], lmk_loc);
 	      new_factor.lambda = lambda;
 
         new_factor.adj_var_dofs.push(2);
@@ -217,7 +222,7 @@
     graph.pose_nodes[cam_ix].update_belief();
 
     // Update measurement
-    const measurement = nlm.measFn(cam_locs[cam_ix], lmk_loc)
+    const measurement = graph.factors[cam_ix].measFn(cam_locs[cam_ix], lmk_loc);
     graph.factors[cam_ix].meas = measurement;
     graph.factors[cam_ix].compute_factor();
   }

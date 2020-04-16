@@ -11,6 +11,8 @@
 
 	import { onInterval } from '../util.js';
 
+  import Graph from './NetworkGraph.svelte';
+
   // Visual varaibles
   let canvas;
   let var_node_radius = 9;
@@ -29,17 +31,17 @@
 
   let odometry_distance_std = 30;
   let odometry_angle_std = 0.5;
-  let meas_distance_std = 80;
+  let meas_distance_std = 70;
   let meas_angle_std = 0.5;
 
-  const odometry_angle_noise = r.normal(0, 0.3);
+  const odometry_angle_noise = r.normal(0, 0.1);
   const odometry_dist_noise = r.normal(0, 5);
-  const meas_angle_noise = r.normal(0, 0.02);
-  const meas_dist_noise = r.normal(0, 5);
+  const meas_angle_noise = r.normal(0, 0.01);
+  const meas_dist_noise = r.normal(0, 2);
 
   // GBP variables
   let graph;
-  let n_landmarks = 35;
+  let n_landmarks = 25;
   let landmarks_gt = [];
   let poses_gt = [];
   let lmk_observed_yet = [];
@@ -72,6 +74,8 @@
     graph.pose_nodes.push(first_pose_node);
     poses_gt.push({x: robot_loc[0], y: robot_loc[1]})
 
+    // data.nodes.push({"id": "cam0", "group": 1});
+
     // Generate landmarks, first landmark near robot
     let lmk1_todo = true;
     while (lmk1_todo) {
@@ -92,12 +96,14 @@
       lmk_graph_ix.push(-1);
     }
 
-    // addMeasuremewwntFactors();  // add initial measurements
+    addMeasurementFactors();  // add initial measurements
     then = Date.now();
+
   });
 
 	onInterval(() => updateVis(), 25);
 
+    
 // ******************************* Drawing functions ********************************
 
   function drawRobot() {
@@ -323,23 +329,26 @@
     lmk_node.update_belief();
     lmk_graph_ix[ix] = graph.lmk_nodes.length;
     graph.lmk_nodes.push(lmk_node);
+
+    // data.nodes.push({"id": "lmk".concat(ix.toString()), "group": 2});
   }
 
   // Add odometry factor connecting to most recent pose to penultimate pose
   function addOdometryFactor() {
     var n_pose_nodes = graph.pose_nodes.length;
 
-    const odometry_factor = new gbp.NonLinearFactor(4, [graph.pose_nodes[n_pose_nodes-2].var_id, graph.pose_nodes[n_pose_nodes-1].var_id], nlm.measFn, nlm.jacFnFd);
-    odometry_factor.eta_damping = eta_damping;
-
-    const measurement = nlm.measFn(poses_gt[n_pose_nodes-2], poses_gt[n_pose_nodes-1]);
+    var dx = poses_gt[n_pose_nodes-1].x - poses_gt[n_pose_nodes-2].x;
+    const odometry_factor = new gbp.NonLinearFactor(4, [graph.pose_nodes[n_pose_nodes-2].var_id, graph.pose_nodes[n_pose_nodes-1].var_id], nlm.measFnR, nlm.jacFnR);
+    if (dx < 0) {
+      odometry_factor.measFn = nlm.measFnL;
+      odometry_factor.jacFn = nlm.jacFnL;
+    } else {
+    }
+    const measurement = odometry_factor.measFn(poses_gt[n_pose_nodes-2], poses_gt[n_pose_nodes-1]);
     const noise = new m.Matrix([[odometry_angle_noise()], [odometry_dist_noise()]]);
-    // measurement.add(noise);
+    measurement.add(noise);
     odometry_factor.meas = measurement;
-
-    // console.log(poses_gt[n_pose_nodes-2].x, poses_gt[n_pose_nodes-2].y);
-    // console.log(poses_gt[n_pose_nodes-1].x, poses_gt[n_pose_nodes-1].y);
-    console.log(measurement.get(1,0), measurement.get(0,0) / Math.PI)
+    odometry_factor.eta_damping = eta_damping;
 
     var lambda = new m.Matrix([[1 / Math.pow(odometry_angle_std, 2), 0], [0, 1 / Math.pow(odometry_distance_std, 2)]]);
     odometry_factor.lambda = lambda;
@@ -372,16 +381,18 @@
           lmk_observed_yet[j] = 1;
         }
 
-        const new_factor = new gbp.NonLinearFactor(4, [graph.pose_nodes[n_pose_nodes-1].var_id, j], nlm.measFn, nlm.jacFn);
+        var dx = landmarks_gt[j].x - poses_gt[n_pose_nodes-1].x;
+        const new_factor = new gbp.NonLinearFactor(4, [graph.pose_nodes[n_pose_nodes-1].var_id, j], nlm.measFnR, nlm.jacFnR);
+        if (dx < 0) {
+          new_factor.measFn = nlm.measFnL;
+          new_factor.jacFn = nlm.jacFnL;
+        }
+        const measurement = new_factor.measFn(poses_gt[n_pose_nodes-1], landmarks_gt[j]);
+        const noise = new m.Matrix([[meas_angle_noise()], [meas_dist_noise()]]);
+        measurement.add(noise); 
+        new_factor.meas = measurement;
         new_factor.eta_damping = eta_damping;
 
-        // console.log(poses_gt[n_pose_nodes-1].x, poses_gt[n_pose_nodes-1].y);
-        // console.log(landmarks_gt[j].x, landmarks_gt[j].y);
-
-        const measurement = nlm.measFn(poses_gt[n_pose_nodes-1], landmarks_gt[j]);
-        const noise = new m.Matrix([[meas_angle_noise()], [meas_dist_noise()]]);
-        // measurement.add(noise); 
-        new_factor.meas = measurement;
 
         var lambda = new m.Matrix([[1 / Math.pow(meas_angle_std, 2), 0], [0, 1 / Math.pow(meas_distance_std, 2)]]);
         new_factor.lambda = lambda;
@@ -399,6 +410,8 @@
 
         graph.pose_nodes[n_pose_nodes-1].adj_factors.push(new_factor);
         graph.lmk_nodes[lmk_graph_ix[j]].adj_factors.push(new_factor);
+
+        // data.links.push({"source": "cam".concat((n_pose_nodes-1).toString()), "target": "lmk".concat(j.toString())});
       }
     }
   }
@@ -418,7 +431,7 @@
       last_key_pose[1] = robot_loc[1];
 
       addOdometryFactor();
-      // addMeasurementFactors();
+      addMeasurementFactors();
     }
   }
 
@@ -544,6 +557,21 @@
 
 </script>
 
+<style>
+  .chart {
+    width: 100%;
+    height: 500px;
+/*    width: 100%;
+    height:100%;
+    max-width: 640px;
+    height: calc(100% - 4em);
+    min-height: 280px;
+    max-height: 480px;
+    margin: 0 auto;*/
+  }
+</style>
+
+
 <div class="demo-container">
 
   <div id="gbp-container">
@@ -604,17 +632,21 @@
 
     <b>Odometry</b><br>
     Distance factors, &sigma = <b>{odometry_distance_std}</b>
-    <input type="range" min="5" max="200" bind:value={odometry_distance_std}><br> 
+    <input type="range" min="5" max="40" bind:value={odometry_distance_std}><br> 
     Angle factors, &sigma = <b>{odometry_angle_std}</b>
     <input type="range" min="0.01" max="1" step="0.01" bind:value={odometry_angle_std}><br>
 
     <b>Landmark Measurements</b><br>
     Distance factors, &sigma = <b>{meas_distance_std}</b>
-    <input type="range" min="10" max="200" bind:value={meas_distance_std}><br> 
+    <input type="range" min="30" max="100" bind:value={meas_distance_std}><br> 
     Angle factors, &sigma = <b>{meas_angle_std}</b>
-    <input type="range" min="0.1" max="1" step="0.01" bind:value={meas_angle_std}><br>
+    <input type="range" min="0.4" max="1" step="0.01" bind:value={meas_angle_std}><br>
 
 
   </div>
 </div>
 
+<!-- <div class="chart">
+  <Graph graph={data}/>
+</div>
+ -->

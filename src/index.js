@@ -13,9 +13,14 @@ const Gbp1dComponent = new Gbp1d({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#gbp1d')
 });
 
-import RobotSim from "./diagrams/gbp2d_linear.svelte";
-const RobotSimComponent = new RobotSim({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#RobotSim')
+// import RobotSim from "./diagrams/gbp2d_linear.svelte";
+// const RobotSimComponent = new RobotSim({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#RobotSim')
+// });
+
+import Graph from "./diagrams/graph.svelte";
+const GraphComponent = new Graph({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#Graph')
 });
 
 import RobotNonlinearSim from "./diagrams/gbp2d_nonlinear.svelte";

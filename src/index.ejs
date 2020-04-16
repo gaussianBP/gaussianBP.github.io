@@ -42,12 +42,24 @@
     </d-contents>
 
     <h2 id="spatialAI">Spatial AI </h2>
-    <p>A cornerstone of intelligence.</p>
-    <p>ElasticFusion, SemanticFusion: how to do it properly?</p>
+    <p>We want to build intelligent robots that can interact with their environments. An intelligent agent must be capable of spatial reasoning, which requires a component that can build representations of the environment, while also continuosly updating the representation. These representations should capture the geometry, semantic properties, physical properties and other information about the environment.  </p>
+
+    <p>To draw analogy to humans, we have grid cells ect... evidence for map building in human brains. </p>
+
+    <p>We call this general spatial perception capability <i><b>Spatial AI</b></i> <d-cite key="davison2018futuremapping"></d-cite>. We believe that SLAM will evolve into Spatial AI.</p>
+
+
+    <p>We begin the discussion of how to build a system capable of Spatial AI by examining existing works in that direction. Note, we have not specified whether the representation should derscribe metric geometry of be abstract. Core capabilities are dense geometry and object class understanding: ElasticFusion, SemanticFusion: how to do it properly?</p>
+
+    <p>Practical considerations, that lead to proposing GBP?</p>
+
     <p>Consistency, long term persistence, abstraction and efficiency</p>
     <p>Why? To enable intelligence! A robot will have a model of the world which is a simulation of reality based on all of its prior knowledge and ongoing experience; and be able to use it to make intelligent e.g. causal inferences about action. I believe in persistent scene representation for spatial reasoning. The foundation for higher level AI?</p>
 
+
     <h2 id="gbp">Why Gaussian Belief Propagation? </h2>
+
+    <p>We argue that Gaussian Belief Propagation (GBP) is a strong algorithmic framework for the distributed, generic and incremental probabilistic estimation that we need in Spatial AI. Here we describe how GBP can be the foundation for high performance smart robots and devices which operate within the constraints of real products.</p>
 
     <h3>Low power requires distributed computation and storage to fit new hardware
     </h3>
@@ -68,41 +80,47 @@
     <p>-> Gaussian Belief Propagation: messages take the form of small information vectors and matrices; all the same local operations as in Kalman Filtering or non-linear optimisation.
 </p>
 
-    <h2 id="related"> Related work</h2>
-
-    <p> Bundle Adjustment <d-cite key="ortiz2020gbp"></d-cite></p>
-
 
     <h2 id="theory">A quick run through of the maths </h2>
 
     <h3> Factor Graphs </h3>
 
-    <p> Any linear equation <d-math>Ax = b</d-math> can be represented as a factor graph. Topology encodes structure of matrix <d-math>A</d-math>. </p>
+    <p>Factor graphs are represenation of the factorization of a probability distribution function over a set of variables. A factor graph is a bipartite graph, composed of variable nodes, factor nodes and edges that link variable and factor nodes. In geometric vision, factor graphs are commonly used and each factors represents a probabilistic constraint between a subset of the variables. The topology of the factor graph encodes the factorization of the probability distribution by connecting factor nodes to variabe nodes they depend on. </p>
 
     <h3> Gaussian Belief Propagation </h3>
 
-    <p>Intuition of the algorithm. <a
-        href="https://github.com/distillpub/template/wiki/Annotated-Formulas">Annotated formula</a> for message passing.</p>
-    <p>Relation to energy based models. </p>
-
-    <p> Visualisation of taking products of 2D Gaussians. </p>
-
-    <figure class="l-page">
-      <d-figure id="gaussprod"></d-figure>
-        <figcaption>Taking products of Gaussians.</figcaption>
-      </figure>
-    </figure>
-
-    <p> Computing marginal distribution is equivalent to MAP with Gaussians. Relinearisation. </p>
+    <p>Belief Propagation is a commonly used inference algorithm for computing the marginal distribution <d-footnote>Computing marginal distribution is equivalent to MAP with Gaussians. The MAP of a distribution is the mode, which for a Gaussian is simply the mean. So the MAP is the mean of the marginal distribution. </d-footnote>. for a set of variables from the joint probability distribution: </p>
 
     <d-math block="">
       p(\bold{x}_i) = \int p(\bold{x}) d\bold{x}_1 ... d\bold{x}_{i-1} d\bold{x}_{i+1} ... d\bold{x}_{n}
     </d-math>
 
 
+    <p>Intuition of the algorithm. <a
+        href="https://github.com/distillpub/template/wiki/Annotated-Formulas">Annotated formula</a> for message passing.</p>
+
+    <p>Factors represent constraints from measurements <d-math>z</d-math> that are modeled by Gaussian measurement models <d-math>z = h(x) + \eta</d-math> where <d-math>\eta \sim N(0, \Sigma_m)</d-math> is zero centered Gaussian noise.</p>
+
+    <p>The belief at a variable node is updated by taking the product of incoming messages from adjacent factor nodes. A message represents... </p>
+
+    <figure class="l-page">
+      <d-figure id="gaussprod"></d-figure>
+        <figcaption>A landmark is observed by two different cameras, each of which makes an uncertain measurement of the distance to the landmark and the bearing. The location of the cameras are well-known with high confidence. You can change the </figcaption>
+      </figure>
+    </figure>
+
+    <p>Relinearisation. </p>
+
+
+
     <p> Flexibility in message passing schedule. </p>
 
+
+
+
     <h2 id="simulations">Simulated geometric estimation problems </h2>
+
+    <p> We demonstrate the positive qualities of GBP through a series of simulated geometric estimation problems. We hope this gives intuition of how inference is performed in GBP. </p>
 
     <h4 id="1dsurface">1D Surface estimation</h4>
 
@@ -114,21 +132,21 @@
       </figure>
     </figure>
 
-    <p>Comparison to Gaussian processes!?</p>
+    <p>Can we relate this to Gaussian processes?</p>
 
 
     <h4 id="2drobot">2D Robot Simulation </h4>
 
     <p> How to formulate 2D measurement factors. </p>
 
-    <p> We can begin with purely linear measurement factors.</p>
+<!--     <p> We can begin with purely linear measurement factors.</p>
 
     <figure class="l-page-outset" id="robot-container">
       <d-figure id="RobotSim"></d-figure>
         <figcaption>Robot simulation with linear measurement factors.</figcaption>
       </figure>
     </figure>
-
+ -->
     <p> We now introduce non-linear measurement factors.</p>
 
     <figure class="l-page-outset" id="robot-nonlinear-container">
@@ -136,6 +154,13 @@
         <figcaption>Robot simulation with non-linear measurement factors.</figcaption>
       </figure>
     </figure>
+
+    <figure class="l-body">
+      <d-figure id="Graph"></d-figure>
+        <figcaption>d3 graph.</figcaption>
+      </figure>
+    </figure>
+
 
     <p> Lastly we can introduce smoothness factors, for instance enforcing landmarks to be co-linear.</p>
 
@@ -148,6 +173,8 @@
     <h2> Stability </h2>
 
     <h2 id="discussion">Discussion</h2>
+    
+    <p> Bundle Adjustment <d-cite key="ortiz2020gbp"></d-cite></p>
 
 
   </d-article>
