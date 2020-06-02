@@ -51,6 +51,29 @@
     <p>What capabilities do we need: Consistency, long term persistence, abstraction and efficiency</p>
     <p>Why? To enable intelligence! A robot will have a model of the world which is a simulation of reality based on all of its prior knowledge and ongoing experience; and be able to use it to make intelligent e.g. causal inferences about action. I believe in persistent scene representation for spatial reasoning. The foundation for higher level AI?</p>
 
+
+
+
+
+1. Spatial AI
+
+    
+
+2. Hardware:
+we have a strong feeling that algorithms which can operate with purely local computation and in-place data storage on a graph, and communicate via message passing, will fit well with coming computer hardware.
+
+
+
+3. Factor graph as master representation:
+    - Most accurate, non-linear, general
+    - What we need are marginals
+    - Enables dynamic computation
+    - Batch solution always possible; practical algorithms for real-time either filter or choose
+      subset of data.
+
+4. GBP
+    
+    
     <h3 id="slam">Current Landscape of SLAM Algorithms </h2>
 
     <p>We begin the discussion of how to build a system capable of Spatial AI by examining existing works in that direction. Note, we have not specified whether the representation should derscribe metric geometry of be abstract. Core capabilities are dense geometry and object class understanding: ElasticFusion, SemanticFusion: how to do it properly?</p>
@@ -63,6 +86,19 @@
         <figcaption>Toy visualisation of data flow and compute on current CPUs / GPUs.</figcaption>
       </figure>
     </figure>
+
+
+
+Current prototype Spatial AI systems, attempting to pro- cess this heterogeneous flow of data into complicated per- sistent representations via various estimation techniques, often have severe performance bottlenecks due to limits in the capacities of computation load, data storage or data transfer. 
+
+Two lines of attack: representation and hardware.
+
+
+SemanticFusion is very complicated and requires heterogeneous computation and a lot of data movement.
+
+Hardware: we need parallelism, but also distributed storage
+
+
 
     Discussion of bits x milimetres metric. 
 
