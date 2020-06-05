@@ -1,0 +1,345 @@
+.subgrid {
+  grid-column: screen; 
+  display: grid; 
+  grid-template-columns: inherit;
+  grid-template-rows: inherit;
+  grid-column-gap: inherit;
+  grid-row-gap: inherit;
+}
+
+d-figure.base-grid {
+  grid-column: screen;
+  background: hsl(0, 0%, 97%);
+  padding: 20px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+d-figure {
+  margin-bottom: 1em;
+  position: relative;
+}
+
+d-figure > figure {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+d-figure.fullscreen{
+  grid-column: screen;
+}
+
+.shaded-figure {
+  background-color: hsl(0, 0%, 97%);
+  border-top: 1px solid hsla(0, 0%, 0%, 0.1);
+  border-bottom: 1px solid hsla(0, 0%, 0%, 0.1);
+  padding: 30px 0;
+}
+
+.pointer {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  top: 26px;
+  left: -48px;
+}
+
+
+.demo-container {
+  display:inline-block;
+}
+
+#gbp-container {
+  position: relative;
+  width: 75%;
+  float: left;
+  margin-right:5px;
+}
+
+#settings-panel {
+  position: relative;
+  width: 24%;
+  float: left;
+}
+
+.buttons-panel {
+  font-size: 36px; 
+}
+
+.center {
+  position: absolute;
+  left: 0;
+  top: 37%;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+}
+
+.top-left {
+  position: absolute;
+  left: 0;
+  top: 0%;
+  width: 100%;
+  font-size: 18px;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  background-color: #D3D3D3	;
+}
+
+#click-canvas {
+  cursor: pointer;
+}
+
+button {
+  width: 100px;
+  border: none;
+  background-color: white;
+  padding: 5px 5px;
+  font-size: 36px;
+  color: rgb(39, 36, 36);
+  font-family: Arial, Arial, Helvetica, sans-serif;
+  outline: 0;
+  cursor: pointer;
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  cursor: pointer;
+
+  /* Hides the slider so custom styles can be added */
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 10%; 
+  background: #d3d3d3;
+  outline: none; 
+  /* opacity: 0.7;  */
+  -webkit-transition: .2s; 
+  transition: opacity .2s;  
+  margin-top: -6px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 18px; 
+  height: 18px; 
+  border-radius: 50%;
+  background: rgb(209, 117, 12);
+  cursor: pointer;
+}
+
+/* input[type=range]:hover {
+  opacity: 1; 
+} */
+
+#alert {
+  text-align: center;
+  font-size: xx-large;
+}
+
+#pointer {
+  width: 45px;
+}
+
+#wasd {
+  width: 45px;
+}
+
+#demo-tip{
+  float: right;
+  display: grid;
+  grid-template-columns: 40px auto;
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 10px;
+}
+
+#left-demo-tip{
+  float: left;
+  display: grid;
+  grid-template-columns: 40px auto;
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 10px;
+}
+
+#hint {
+  position: relative;
+  color: rgba(0, 0, 0, 0.6);
+  line-height: 1.4em;
+  user-select: text;
+  font-size: 20px;
+}
+
+/* ****************************************
+ * On hover tooltip
+ ******************************************/
+.tooltip {
+  position: relative;
+  display: inline-block;
+  padding: 0px 5px;
+  font-size: 36px;
+  cursor: pointer;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: rgb(39, 36, 36);
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -60px;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  font-size: 40%;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+
+.tooltip-fs {
+  position: relative;
+  display: inline-block;
+  padding: 0px 5px;
+  font-size: 100%;
+  cursor: pointer;
+}
+
+.tooltip-fs .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: rgb(39, 36, 36);
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -60px;
+}
+
+.tooltip-fs:hover .tooltiptext {
+  visibility: visible;
+  font-size: 40%;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+
+
+/* ****************************************
+ * TOC
+ ******************************************/
+ @media(max-width: 1199px){
+  d-contents {
+    display: none;
+    justify-self: start;
+    align-self: start;
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+    padding-left: 0.25em;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+  }
+}
+d-contents a:hover {
+  border-bottom: none;
+}
+
+@media (min-width: 1200px){
+  d-contents {
+    align-self: start;
+    grid-column-start: 1 !important;
+    grid-column-end: 4 !important;
+    justify-self: end;
+    margin-top:  0em;
+    padding-right: 3em;
+    padding-left: 2em;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-right-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+d-contents nav h3 {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+d-contents nav div {
+  color: rgba(0, 0, 0, 0.8);
+  font-weight: bold;
+}
+
+d-contents nav a {
+  color: rgba(0, 0, 0, 0.8);
+  border-bottom: none;
+  text-decoration: none;
+}
+
+d-contents li {
+  list-style-type: none;
+}
+
+d-contents ul {
+  padding-left: 1em;
+}
+
+d-contents nav ul li {
+  margin-bottom: .25em;
+}
+
+d-contents nav a:hover {
+  text-decoration: underline solid rgba(0, 0, 0, 0.6);
+}
+
+d-contents nav ul {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+
+d-contents nav>div {
+  display: block;
+  outline: none;
+  margin-bottom: 0.5em;
+}
+
+d-contents nav>div>a {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+d-contents nav>div>a:hover,
+d-contents nav>ul>li>a:hover {
+    text-decoration: none;
+}
+
+
+
