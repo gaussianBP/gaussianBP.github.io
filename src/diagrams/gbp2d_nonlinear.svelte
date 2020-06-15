@@ -558,17 +558,17 @@
 </script>
 
 <style>
-  .chart {
+  /* .chart {
     width: 100%;
     height: 500px;
-/*    width: 100%;
+   width: 100%;
     height:100%;
     max-width: 640px;
     height: calc(100% - 4em);
     min-height: 280px;
     max-height: 480px;
-    margin: 0 auto;*/
-  }
+    margin: 0 auto;
+  } */
 </style>
 
 

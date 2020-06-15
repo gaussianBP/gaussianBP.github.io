@@ -3,10 +3,10 @@
 	// import data from './gbp2d_nonlinear.svelte';
 	import data from './fg_data.js';
 
-	data.nodes.push({id: "cam1", group: 2})
-	data.links.push({source: "Myriel", target: "cam1"})
+	data.nodes.push({id: "cam1", group: 2});
+	data.links.push({source: "Myriel", target: "cam1"});
 
-	console.log(data)
+	// console.log(data);
 </script>
 
 <style>

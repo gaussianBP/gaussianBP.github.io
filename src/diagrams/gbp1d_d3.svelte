@@ -4,7 +4,6 @@
   import * as m from "ml-matrix";
   import * as gauss from "../gaussian";
   import * as gbp from "../gbp/gbp1d.js";
-
   import { onInterval } from "../util.js";
 
   // Visual varaibles
@@ -42,6 +41,14 @@
   $: var_nodes = [];
   $: meas_nodes = [];
   $: map_nodes = [];
+  let var_line;
+  let meas_line;
+  let map_line;
+
+  var line = d3.line()
+		.x(d => d.x)
+		.y(d => d.y)
+		.curve(d3.curveBasis);
 
   onMount(() => {
     resize();
@@ -53,14 +60,23 @@
     node_radius = height / 38;
 	stroke_width = 3;
     genRandomMeasurements(n_measurements, measurements);
-    then = Date.now();
+	then = Date.now();
+	
   });
 
   onInterval(() => updateVis(), 25);
 
   function resize() {
     ({ width, height } = svg.getBoundingClientRect());
-    console.log("resize()", width, height);
+  }
+
+  function generateLine(nodes) {
+	let line_data = [];
+	for (let i = 0; i < nodes.length; i++) {
+	  line_data.push({x: nodes[i].x, y: nodes[i].y});
+	}
+	let path = line(line_data);
+	return path
   }
 
   // Draw functions
@@ -87,7 +103,8 @@
       };
 
       var_nodes.push(node);
-    }
+	}
+	var_line = generateLine(var_nodes);
   }
 
   function drawMeasurements(meas_model_std) {
@@ -335,11 +352,11 @@
       width={1300}
       height={640}
       on:click={addMeasurement}
-      id="click-canvas">
+      id="click-svg">
       {#each var_nodes as node}
         <circle cx={node.x} cy={node.y} r={node.radius} fill={node.color}></circle>
 		<line x1={node.x} y1={node.var_l} x2={node.x} y2={node.var_h} stroke-width={node.stroke_width} stroke={node.color}></line>
-      {/each}
+	  {/each}
       {#each meas_nodes as node}
         <circle cx={node.x} cy={node.y} r={node.radius} fill={node.color}></circle>
 		<line x1={node.x} y1={node.var_l} x2={node.x} y2={node.var_h} stroke-width={node.stroke_width} stroke={node.color}></line>

@@ -29,7 +29,6 @@
 
 	function resize() {
 		({ width, height } = svg.getBoundingClientRect());
-		console.log('resize()', width, height)
 	}
 
 	let simulation
