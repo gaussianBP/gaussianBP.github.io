@@ -1,7 +1,7 @@
 import * as m from 'ml-matrix';
 import * as gauss from '../gaussian';
 
-let interaction_distance_tolerance = 10;
+let offset_distance_tolerance = 10;
 
 export class FactorGraph {
   constructor() {
@@ -11,40 +11,38 @@ export class FactorGraph {
   }
 
   add_var_node(x = 0, y = 0) {
-    let new_var_node;
-    if (this.last_node == null) {
-      new_var_node = new VariableNode(1, 0);
+    let var_node;
+    if (this.last_node) {
+      var_node = new VariableNode(1, this.last_node.id + 1, x, y);
     }
     else {
-      new_var_node = new VariableNode(1, this.last_node.id + 1);
+      var_node = new VariableNode(1, 0, x, y);
     }
-    new_var_node.x = x;
-    new_var_node.y = y;
-    this.var_nodes.push(new_var_node);
-    this.last_node = new_var_node;
+    this.var_nodes.push(var_node);
+    this.last_node = var_node;
   }
 
   add_factor_node(x = 0, y = 0) {
-    let new_factor_node;
-    if (this.last_node == null) {
-      new_factor_node = new LinearFactor(1, 0);
+    let factor_node;
+    if (this.last_node) {
+      factor_node = new LinearFactor(1, this.last_node.id + 1, x, y);
     }
     else {
-      new_factor_node = new LinearFactor(1, this.last_node.id + 1);
+      factor_node = new LinearFactor(1, 0, x, y);
     }
-    new_factor_node.x = x;
-    new_factor_node.y = y;
-    this.factor_nodes.push(new_factor_node);
-    this.last_node = new_factor_node;
+    this.factor_nodes.push(factor_node);
+    this.last_node = factor_node;
   }
 
   find_node(id) {
     id = parseInt(id);
-    if (this.var_nodes.map(var_node => var_node.id).includes(id)) {
-      return this.var_nodes.filter(var_node => var_node.id == id)[0];
+    let var_node = this.var_nodes.filter(var_node => var_node.id == id)[0];
+    let factor_node = this.factor_nodes.filter(factor_node => factor_node.id == id)[0];
+    if (var_node) {
+      return var_node;
     }
-    else if (this.factor_nodes.map(factor_node => factor_node.id).includes(id)) {
-      return this.factor_nodes.filter(factor_node => factor_node.id == id)[0];
+    else if (factor_node) {
+      return factor_node;
     }
     else {
       return false;
@@ -54,13 +52,24 @@ export class FactorGraph {
   remove_node(id) {
     id = parseInt(id);
     if (this.var_nodes.map(var_node => var_node.id).includes(id)) {
-      this.var_nodes.splice(this.var_nodes.findIndex(var_node => var_node.id == id), 1);
+      // Id corresponds to a var_node
+      this.var_nodes = this.var_nodes.filter(var_node => var_node.id != id);
+      this.update_node_id();
+      return true;
     }
     else if (this.factor_nodes.map(factor_node => factor_node.id).includes(id)) {
-      this.factor_nodes.splice(this.factor_nodes.findIndex(factor_node => factor_node.id == id), 1);
+      // Id corresponds to a factor_node
+      this.factor_nodes = this.factor_nodes.filter(factor_node => factor_node.id != id);
       for (let i = 0; i < this.var_nodes.length; i++) {
-        this.var_nodes[i].adj_factor_ids.filter(factor_id => factor_id != id);
+        // Also remove this node from adj_factor_ids
+        this.var_nodes[i].adj_factor_ids = this.var_nodes[i].adj_factor_ids.filter(factor_id => factor_id != id);
       }
+      this.update_node_id();
+      return true;
+    }
+    else {
+      // Id has no match
+      return false;
     }
   }
 
@@ -68,17 +77,31 @@ export class FactorGraph {
     let ids = this.var_nodes.map(var_node => var_node.id)
       .concat(this.factor_nodes.map(factor_node => factor_node.id));  // Collect all ids
     ids = ids.sort((a, b) => a - b);  // Sort all ids by ascending order
+    if (ids) {
+      this.last_node = this.find_node(ids[ids.length - 1]);
+    }
+    else {
+      // If there is no node, remove last_node
+      this.last_node = null;
+    }
     let id_diff = new Array(ids[ids.length - 1]);  // Create array with length matching the largest id
-    let running_sum = 0;  // Use running sum to reduce loops
-    id_diff[0] = 0;
-    for (let i = 1; i < ids.length; i++) {
-      running_sum = running_sum + ids[i] - ids[i - 1] - 1;
-      id_diff[ids[i]] = running_sum;
+    let running_sum;  // Use running sum to avoid nested loops
+    for (let i = 0; i < ids.length; i++) {
+      if (i != 0) {
+        running_sum = running_sum + ids[i] - ids[i - 1] - 1;  // Accumulates the sum when ids are not consecutive
+      }
+      else {
+        running_sum = ids[i];  // First node should always be 0, so the first id is the starting running_sum
+      }
+      id_diff[ids[i]] = running_sum;  // Only assign values to id indices that match existing nodes
     }
     for (let i = 0; i < this.var_nodes.length; i++) {
+      // Update id for each var_node and adj_factor_ids according to id_diff
       this.var_nodes[i].id = this.var_nodes[i].id - id_diff[this.var_nodes[i].id];
+      this.var_nodes[i].adj_factor_ids = this.var_nodes[i].adj_factor_ids.map(adj_factor_id => adj_factor_id - id_diff[adj_factor_id]);
     }
     for (let i = 0; i < this.factor_nodes.length; i++) {
+      // Update id for each factor_node according to id_diff
       this.factor_nodes[i].id = this.factor_nodes[i].id - id_diff[this.factor_nodes[i].id];
     }
   }
@@ -86,15 +109,14 @@ export class FactorGraph {
   find_element(x, y) {
     for (let i = 0; i < this.var_nodes.length; i++) {
       if (Math.sqrt(Math.pow(this.var_nodes[i].x - x, 2) +
-        Math.pow(this.var_nodes[i].y - y, 2)) <= interaction_distance_tolerance) {
+        Math.pow(this.var_nodes[i].y - y, 2)) <= offset_distance_tolerance) {
         console.log(this.var_nodes[i])
         return this.var_nodes[i];
       }
     }
-
     for (let i = 0; i < this.factor_nodes.length; i++) {
       if (Math.sqrt(Math.pow(this.factor_nodes[i].x - x, 2) +
-        Math.pow(this.factor_nodes[i].y - y, 2)) <= interaction_distance_tolerance) {
+        Math.pow(this.factor_nodes[i].y - y, 2)) <= offset_distance_tolerance) {
         console.log(this.factor_nodes[i])
         return this.factor_nodes[i];
       }
@@ -113,8 +135,29 @@ export class FactorGraph {
       }
     }
     else if (node1.type == 'factor_node' && node2.type == 'var_node') {
-      if (!node2.adj_factor_ids.includes(node1_id)) {  // If node2 is not already connected
+      if (!node2.adj_factor_ids.includes(node1_id)) {  // If node1 is not already connected
         node2.adj_factor_ids.push(node1_id);
+        return true;
+      }
+    }
+    else {
+      return false;
+    }
+  }
+
+  pass_message(node1_id, node2_id) {
+    // TODO: temporary implementation, need to integrate to gbp2d
+    node1_id = parseInt(node1_id);
+    node2_id = parseInt(node2_id);
+    let node1 = this.find_node(node1_id);
+    let node2 = this.find_node(node2_id);
+    if (node1.type == 'var_node' && node2.type == 'factor_node') {
+      if (node1.adj_factor_ids.includes(node2_id)) {  // If node2 is not already connected
+        return true;
+      }
+    }
+    else if (node1.type == 'factor_node' && node2.type == 'var_node') {
+      if (node2.adj_factor_ids.includes(node1_id)) {  // If node2 is not already connected
         return true;
       }
     }
@@ -130,13 +173,13 @@ export class FactorGraph {
     let node2 = this.find_node(node2_id);
     if (node1.type == 'var_node' && node2.type == 'factor_node') {
       if (node1.adj_factor_ids.includes(node2_id)) {  // If node2 is not already connected
-        node1.adj_factor_ids.splice(node1.adj_factor_ids.indexOf(node2_id), 1);
+        node1.adj_factor_ids = node1.adj_factor_ids.filter(adj_factor_id => adj_factor_id != node2_id);
         return true;
       }
     }
     else if (node1.type == 'factor_node' && node2.type == 'var_node') {
       if (node2.adj_factor_ids.includes(node1_id)) {  // If node2 is not already connected
-        node2.adj_factor_ids.splice(node2.adj_factor_ids.indexOf(node1_id), 1);
+        node2.adj_factor_ids = node2.adj_factor_ids.filter(adj_factor_id => adj_factor_id != node1_id);
         return true;
       }
     }
@@ -147,6 +190,7 @@ export class FactorGraph {
 
   check_connection() {
     // Check if all nodes are connected to neighbors
+    // TODO: Check for global connection, i.e. all nodes are interconnected forming only one graph
     let adj_factor_ids = this.var_nodes.map(var_node => var_node.adj_factor_ids).flat();
     if (this.var_nodes.every(var_node =>  // Every variable node has adjacent factor nodes
       var_node.adj_factor_ids.length != 0) &&

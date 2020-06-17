@@ -3,7 +3,6 @@
   import { fade } from "svelte/transition";
   import * as pg from "../playground/playground.js";
   import { onInterval } from "../util.js";
-  import { event as currentEvent } from "d3";
 
   // svg
   let svg;
@@ -25,10 +24,19 @@
   var last_connection_clicked = null;
   let current_mouse_location = { x: null, y: null };
 
+  // Message passing animation
+  let source_node = null;
+  let target_node = null;
+
   // UI
   let display_node_text = true;
   let message = { message: null, timestamp: null, duration: null };
-  let check_connection_message = { message: null, timestamp: null, duration: null };
+  let check_connection_message = {
+    message: null,
+    timestamp: null,
+    duration: null
+  };
+  let edit_mode = true;
 
   $: var_nodes = [];
   $: factor_nodes = [];
@@ -113,7 +121,7 @@
       x: e.clientX - rect.x,
       y: e.clientY - rect.y
     };
-    if (node_mousedown && !last_node_clicked) {
+    if (node_mousedown && !last_node_clicked && edit_mode) {
       node_mousedown.x = current_mouse_location.x;
       node_mousedown.y = current_mouse_location.y;
     }
@@ -125,14 +133,21 @@
   }
 
   function click_handler(e) {
-    // console.log(e.clientX, e.clientY);
+    if (edit_mode) {
+      edit_click_handler(e);
+    } else {
+      play_click_handler(e);
+    }
+  }
+
+  function edit_click_handler(e) {
     node_clicked = null;
     connection_clicked = null;
     node_clicked = e.path.find(element => element.classList == "g_node");
     connection_clicked = e.path.find(
       element => element.classList == "line_connection"
     );
-    
+
     if (Date.now() - mousedown_time <= 100) {
       // If time between mousedown and mouseup is short, consider as a click
       if (node_clicked) {
@@ -143,7 +158,7 @@
           last_node_clicked = node_clicked;
         } else {
           // This is the second click
-          if (node_clicked == last_node_clicked) {
+          if (node_clicked.id == last_node_clicked.id) {
             // Remove the node if double clicked the same node
             graph.remove_node(node_clicked.id);
             last_node_clicked = null;
@@ -153,7 +168,7 @@
           ) {
             // Successfully added a new connection
             console.log(
-              "Successfully added a new connection between",
+              "Added connection between",
               last_node_clicked.id,
               "and",
               node_clicked.id
@@ -161,7 +176,7 @@
           } else {
             // Unable to add new connection
             console.log(
-              "Failed to add the connection between",
+              "Failed to add connection between",
               last_node_clicked.id,
               "and",
               node_clicked.id
@@ -181,8 +196,6 @@
               connection_clicked.var_id,
               connection_clicked.factor_id
             );
-            console.log(e);
-            update_playground();
           }
           connection_clicked = null;
           last_connection_clicked = null;
@@ -195,6 +208,49 @@
         last_node_clicked = null;
         node_clicked = null;
       }
+    }
+  }
+
+  function play_click_handler(e) {
+    // TODO: Change node color when selected as source or target node
+    node_clicked = null;
+    connection_clicked = null;
+    node_clicked = e.path.find(element => element.classList == "g_node");
+    connection_clicked = e.path.find(
+      element => element.classList == "line_connection"
+    );
+
+    if (node_clicked) {
+      // When a node is clicked
+      node_clicked = graph.find_node(node_clicked.id);
+      if (!last_node_clicked) {
+        // Select source node
+        last_node_clicked = node_clicked;
+      } else {
+        // This is the second click
+        if (graph.pass_message(node_clicked.id, last_node_clicked.id)) {
+          // Connection exists
+          console.log(
+            "Passed message from",
+            last_node_clicked.id,
+            "to",
+            node_clicked.id
+          );
+        } else {
+          console.log(
+            "Failed to pass message from",
+            last_node_clicked.id,
+            "to",
+            node_clicked.id
+          );
+        }
+        last_node_clicked = null;
+        node_clicked = null;
+      }
+    } else if (last_node_clicked && !node_clicked) {
+      // Did not click on a target node for message passing
+      last_node_clicked = null;
+      node_clicked = null;
     }
   }
 
@@ -218,6 +274,11 @@
     document.getElementById(
       "toggle_node_text_display_checkbox"
     ).checked = display_node_text;
+    if (edit_mode) {
+      document.getElementById("edit_mode_radio_button").checked = true;
+    } else {
+      document.getElementById("play_mode_radio_button").checked = true;
+    }
   }
 
   function update_messages() {
@@ -228,11 +289,26 @@
       }
     }
     if (check_connection_message.message) {
-      if (Date.now() - check_connection_message.timestamp >= check_connection_message.duration) {
+      if (
+        Date.now() - check_connection_message.timestamp >=
+        check_connection_message.duration
+      ) {
         // Clear message if message has passed duration
-        check_connection_message = { message: null, timestamp: null, duration: null };
+        check_connection_message = {
+          message: null,
+          timestamp: null,
+          duration: null
+        };
       }
     }
+  }
+
+  function toggle_mode() {
+    edit_mode = !edit_mode;
+    node_clicked = null;
+    last_node_clicked = null;
+    connection_clicked = null;
+    last_connection_clicked = null;
   }
 
   function toggle_node_text_display() {
@@ -262,9 +338,7 @@
       on:mouseup={mouseup_handler}
       on:click={click_handler}>
       {#each connections as connection}
-        <g
-          cursor="pointer"
-          draggable="true">
+        <g cursor="pointer" draggable="true">
           <line
             class="line_connection"
             id={connection.id}
@@ -287,7 +361,7 @@
             stroke-width="1" />
         </g>
       {/each}
-      {#if last_node_clicked}
+      {#if last_node_clicked && edit_mode}
         <line
           x1={last_node_clicked.x}
           y1={last_node_clicked.y}
@@ -306,6 +380,7 @@
             cursor="pointer"
             draggable="true">
             <rect
+              class="node"
               x={-10}
               y={-10}
               width={20}
@@ -315,6 +390,7 @@
             {#if display_node_text}
               <g cursor="pointer">
                 <text
+                  class="node_id"
                   x={0}
                   y={5}
                   text-anchor={'middle'}
@@ -335,10 +411,17 @@
             {var_node.y})"
             cursor="pointer"
             draggable="true">
-            <circle cx={0} cy={0} r={10} stroke={'red'} fill={'white'} />
+            <circle
+              class="node"
+              cx={0}
+              cy={0}
+              r={10}
+              stroke={'red'}
+              fill={'white'} />
             {#if display_node_text}
               <g class="unselectable">
                 <text
+                  class="node_id"
                   x={0}
                   y={5}
                   text-anchor={'middle'}
@@ -357,57 +440,80 @@
 
   <div id="playground-settings-panel">
     <label>
-      <button
-        type="button"
-        class="btn"
-        on:click={add_var_node}
-        style="width:200px; border:2px solid black">
-        Add Variable Node
-      </button>
-    </label>
-    <label>
-      <button
-        type="button"
-        class="btn"
-        on:click={add_factor_node}
-        style="width:200px; border:2px solid black">
-        Add Factor Node
-      </button>
-    </label>
-    <label>
-      <button
-        type="button"
-        class="btn"
-        on:click={check_connection}
-        style="width:200px; border:2px solid black">
-        {#if check_connection_message.message}
-          <p font-size=12 style="display:inline; color:red">{check_connection_message.message}</p>
-        {:else}
-          <p font-size=12 style="display:inline; color:black">Check Connection</p>
-        {/if}
-      </button>
-    </label>
-    <label>
-      <button
-        type="button"
-        class="btn"
-        on:click={reset_playground}
-        style="width:200px; border:2px solid black">
-        Reset Playground
-      </button>
-    </label>
-    <label style="user-select: none">
       <input
-        type="checkbox"
-        id="toggle_node_text_display_checkbox"
-        value={display_node_text}
-        on:click={toggle_node_text_display} />
-      Toggle Node Text
+        type="radio"
+        id="edit_mode_radio_button"
+        name="toggle_mode_radio_button"
+        on:click={toggle_mode} />
+      Edit Mode
+    </label>
+    <br />
+    <label>
+      <input
+        type="radio"
+        id="play_mode_radio_button"
+        name="toggle_mode_radio_button"
+        on:click={toggle_mode} />
+      Play Mode
     </label>
     <div>
-        {#if message.message}
-          <p transition:fade font-size=14>{message.message}</p>
-        {/if}
-      </div>
+      <label>
+        <button
+          type="button"
+          class="btn"
+          on:click={add_var_node}
+          style="width:200px; border:2px solid black">
+          Add Variable Node
+        </button>
+      </label>
+      <label>
+        <button
+          type="button"
+          class="btn"
+          on:click={add_factor_node}
+          style="width:200px; border:2px solid black">
+          Add Factor Node
+        </button>
+      </label>
+      <label>
+        <button
+          type="button"
+          class="btn"
+          on:click={check_connection}
+          style="width:200px; border:2px solid black">
+          {#if check_connection_message.message}
+            <p font-size="12" style="display:inline; color:red">
+              {check_connection_message.message}
+            </p>
+          {:else}
+            <p font-size="12" style="display:inline; color:black">
+              Check Connection
+            </p>
+          {/if}
+        </button>
+      </label>
+      <label>
+        <button
+          type="button"
+          class="btn"
+          on:click={reset_playground}
+          style="width:200px; border:2px solid black">
+          Reset Playground
+        </button>
+      </label>
+      <label style="user-select: none">
+        <input
+          type="checkbox"
+          id="toggle_node_text_display_checkbox"
+          value={display_node_text}
+          on:click={toggle_node_text_display} />
+        Toggle Node Text
+      </label>
+    </div>
+    <div>
+      {#if message.message}
+        <p transition:fade font-size="14">{message.message}</p>
+      {/if}
+    </div>
   </div>
 </div>
