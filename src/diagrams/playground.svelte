@@ -3,6 +3,7 @@
   import { fade } from "svelte/transition";
   import * as pg from "../playground/playground.js";
   import { onInterval } from "../util.js";
+  import * as m from 'ml-matrix';
 
   // svg
   let svg;
@@ -43,7 +44,7 @@
   $: connections = [];
 
   onMount(() => {
-    graph = pg.createNewPlayground(n_var_nodes, n_factor_nodes);
+    graph = pg.create_new_playground(n_var_nodes, n_factor_nodes);
     reset_playground();
   });
 
@@ -59,10 +60,10 @@
 
   function update_connection() {
     connections = [];
-    for (let i = 0; i < graph.var_nodes.length; i++) {
-      let var_node = graph.var_nodes[i];
-      for (let j = 0; j < var_node.adj_factor_ids.length; j++) {
-        let factor_node = graph.find_node(var_node.adj_factor_ids[j]);
+    for (let i = 0; i < graph.factor_nodes.length; i++) {
+      let factor_node = graph.factor_nodes[i];
+      for (let j = 0; j < factor_node.adj_var_ids.length; j++) {
+        let var_node = graph.find_node(factor_node.adj_var_ids[j]);
         let connection = {
           id: i,
           var_id: var_node.id,
@@ -90,9 +91,11 @@
     var_nodes = [];
     factor_nodes = [];
     connections = [];
-    graph = pg.createNewPlayground(n_var_nodes, n_factor_nodes);
+    graph = pg.create_new_playground(n_var_nodes, n_factor_nodes);
     update_playground();
     update_web_element();
+    graph.var_nodes[0].prior.eta = new m.Matrix([[graph.var_nodes[0].x], [graph.var_nodes[0].y]]);
+    graph.var_nodes[0].prior.lam = new m.Matrix([[1, 0], [0, 1]]);  // strong prior for first measurement
   }
 
   function find_connection(id) {
