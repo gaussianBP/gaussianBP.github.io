@@ -136,6 +136,57 @@ Hardware: we need parallelism, but also distributed storage
 
     <h2 id="theory">Factor Graphs and GBP </h2>
 
+    <h3> Setting up a problem </h3>
+
+    <p>
+      We are generally interested in the problem of inferring some information about a set random variables <d-math>X</d-math> given a set of noisy measurements <d-math>Z</d-math>.
+      To tackle this we begin by using our using our knowledge about the world to formulate the problem probabilistically.
+      First, we have a prior expectation about the values that we expect the variables <d-math>X</d-math> to take.
+      Second, we understand the physical process that generated the measurements and have an estimate of the noise we expect in our sensor readings.
+    </p>
+
+    <p>
+      We can use these prior models of the world to form a distribution <d-math>P(X | Z)</d-math> which is the process of probabilistic inference.
+      Generally, we want a property of the distribution <d-math>P(X|Z)</d-math> such as the marginals <d-math>P(x_i)</d-math> or the MAP <d-math>argmax_X P(X|Z)</d-math>.
+    </p>
+
+    <p>
+      Ignoring the problem of data association (which variables to include in our generative model), we can use our generative model, 
+      which comprises of our measurement model <d-math>h(x,z)</d-math> and noise model <d-math>\eta \sim \mathcal{N}(0, \Sigma_n)</d-math>
+    </p>
+
+    <h3> Gaussian Information form </h3>
+
+    <d-math block="">
+      \mathcal{N}(\mu, \Sigma) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma|}} \exp{(-\frac{1}{2} (x - \mu)^\top \Sigma^{-1} (x - \mu))}
+    </d-math>
+
+    <d-math block="">
+      \mathcal{N}^{-1}(\eta, \Lambda) = \frac{1}{\sqrt{(2 \pi)^k |\Lambda^{-1}|}} \exp{(-\frac{1}{2} \eta^\top \Lambda^{-1} \eta)} \exp{(-\frac{1}{2} x^\top \Lambda x + \eta^\top x)}
+    </d-math>
+
+    <p>
+      where <d-math>\Lambda = \Sigma^{-1}</d-math> and <d-math>\eta = \Sigma^{-1} \mu</d-math>.
+    </p>
+
+    <p>
+      So far we have not related this to graphical models. <d-math>P(X|Y)</d-math> is a CRF.
+      Graphical models are just a representation of a probability distribution.
+    </p>
+
+    <p>
+      The distribution is a factorised distribution: <d-math>P(X | Z) = \prod_c f_c(X_c, Z_c) </d-math>. 
+      Each factor is a Gaussian distribution which we can easily convert between the covariance and information form as it is low dimensional.
+      We want to compute the marginal distribution of each random variable.
+      If we have <d-math>P(X|Z)</d-math> in the covariance form, we can read off the marginals.
+      To get the posterior in the covariance form we need to take products of the Gaussian factors.
+      Taking products of Gaussians is difficult in the covariance form, while it is easy in the information form. 
+      Therefore another approach is to compute <d-math>P(X|Z)</d-math> in the information form and then convert it to the covariance form. 
+      This requires the inversion of a large NxN matrix.
+      Distributed solutions that can be best understood as message passing on the corresponding factor graph.
+    </p>
+
+
     <h3> Factor Graphs and Gaussian Distributions </h3>
 
     <p>Factor graphs are a representation of the factorization of a probability distribution function over a set of variables. A factor graph is a bipartite graph, composed of variable nodes, factor nodes and edges that link variable and factor nodes. In geometric vision, factor graphs are commonly used and each factors represents a probabilistic constraint between a subset of the variables. The topology of the factor graph encodes the factorization of the probability distribution by connecting factor nodes to variabe nodes they depend on. </p>
