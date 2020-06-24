@@ -1,7 +1,7 @@
 import * as m from 'ml-matrix';
 import * as gauss from '../gaussian';
 
-let offset_distance_tolerance = 10;
+var offset_distance_tolerance = 10;
 
 export class FactorGraph {
   constructor() {
@@ -10,34 +10,10 @@ export class FactorGraph {
     this.factor_nodes = [];
   }
 
-  add_var_node(x = 0, y = 0) {
-    let var_node;
-    if (this.last_node) {
-      var_node = new VariableNode(2, this.last_node.id + 1, x, y);
-    }
-    else {
-      var_node = new VariableNode(2, 0, x, y);
-    }
-    this.var_nodes.push(var_node);
-    this.last_node = var_node;
-  }
-
-  add_factor_node(x = 0, y = 0) {
-    let factor_node;
-    if (this.last_node) {
-      factor_node = new LinearFactor(1, this.last_node.id + 1, x, y);
-    }
-    else {
-      factor_node = new LinearFactor(1, 0, x, y);
-    }
-    this.factor_nodes.push(factor_node);
-    this.last_node = factor_node;
-  }
-
   find_node(id) {
     id = parseInt(id);
-    let var_node = this.var_nodes.filter(var_node => var_node.id == id)[0];
-    let factor_node = this.factor_nodes.filter(factor_node => factor_node.id == id)[0];
+    var var_node = this.var_nodes.filter(var_node => var_node.id == id)[0];
+    var factor_node = this.factor_nodes.filter(factor_node => factor_node.id == id)[0];
     if (var_node) {
       return var_node;
     }
@@ -45,25 +21,26 @@ export class FactorGraph {
       return factor_node;
     }
     else {
-      return false;
+      return null;
     }
   }
 
   remove_node(id) {
-    let node = this.find_node(parseInt(id));
+    var node = this.find_node(parseInt(id));
     if (node.type == 'var_node') {
       // Id corresponds to a var_node
       this.var_nodes = this.var_nodes.filter(var_node => var_node.id != node.id);
-      for (let i = 0; i < this.factor_nodes.length; i++) {
-        // Also remove this node from adj_var_ids
-        this.factor_nodes[i].adj_var_ids = this.factor_nodes[i].adj_var_ids.filter(adj_var_id => adj_var_id != node.id);
-      }
+      // Also remove this node from adj_ids
+      this.factor_nodes = this.factor_nodes.filter(factor_node => !factor_node.adj_ids.includes(node.id));
       this.update_node_id();
       return true;
     }
     else if (node.type == 'factor_node') {
       // Id corresponds to a factor_node
       this.factor_nodes = this.factor_nodes.filter(factor_node => factor_node.id != node.id);
+      for (var i = 0; i < this.var_nodes.length; i++) {
+        this.var_nodes[i].adj_ids = this.var_nodes[i].adj_ids.filter(adj_id => adj_id != node.id);
+      }
       this.update_node_id();
       return true;
     }
@@ -74,7 +51,7 @@ export class FactorGraph {
   }
 
   update_node_id() {
-    let ids = this.var_nodes.map(var_node => var_node.id)
+    var ids = this.var_nodes.map(var_node => var_node.id)
       .concat(this.factor_nodes.map(factor_node => factor_node.id));  // Collect all ids
     ids = ids.sort((a, b) => a - b);  // Sort all ids by ascending order
     if (ids) {
@@ -84,9 +61,9 @@ export class FactorGraph {
       // If there is no node, remove last_node
       this.last_node = null;
     }
-    let id_diff = new Array(ids[ids.length - 1]);  // Create array with length matching the largest id
-    let running_sum;  // Use running sum to avoid nested loops
-    for (let i = 0; i < ids.length; i++) {
+    var id_diff = new Array(ids[ids.length - 1]);  // Create array with length matching the largest id
+    var running_sum;  // Use running sum to avoid nested loops
+    for (var i = 0; i < ids.length; i++) {
       if (i != 0) {
         running_sum = running_sum + ids[i] - ids[i - 1] - 1;  // Accumulates the sum when ids are not consecutive
       }
@@ -95,26 +72,37 @@ export class FactorGraph {
       }
       id_diff[ids[i]] = running_sum;  // Only assign values to id indices that match existing nodes
     }
-    for (let i = 0; i < this.var_nodes.length; i++) {
+    for (var i = 0; i < this.var_nodes.length; i++) {
       // Update id for each var_node according to id_diff
-      this.var_nodes[i].id = this.var_nodes[i].id - id_diff[this.var_nodes[i].id];
+      this.var_nodes[i].id -= id_diff[this.var_nodes[i].id];
+      for (var j = 0; j < this.var_nodes[i].adj_ids.length; j++) {
+        this.var_nodes[i].adj_ids[j] -= id_diff[this.var_nodes[i].adj_ids[j]];
+      }
     }
-    for (let i = 0; i < this.factor_nodes.length; i++) {
-      // Update id for each factor_node and adj_var_ids according to id_diff
-      this.factor_nodes[i].id = this.factor_nodes[i].id - id_diff[this.factor_nodes[i].id];
-      this.factor_nodes[i].adj_var_ids = this.factor_nodes[i].adj_var_ids.map(adj_var_id => adj_var_id - id_diff[adj_var_id]);
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      // Update id for each factor_node and adj_ids according to id_diff
+      this.factor_nodes[i].id -= id_diff[this.factor_nodes[i].id];
+      for (var j = 0; j < this.factor_nodes[i].adj_ids.length; j++) {
+        this.factor_nodes[i].adj_ids[j] -= id_diff[this.factor_nodes[i].adj_ids[j]];
+      }
+    }
+  }
+
+  update_node_cov_ellipse() {
+    for (var i = 0; i < this.var_nodes.length; i++) {
+      this.var_nodes[i].update_cov_ellipse();
     }
   }
 
   find_element(x, y) {
-    for (let i = 0; i < this.var_nodes.length; i++) {
+    for (var i = 0; i < this.var_nodes.length; i++) {
       if (Math.sqrt(Math.pow(this.var_nodes[i].x - x, 2) +
         Math.pow(this.var_nodes[i].y - y, 2)) <= offset_distance_tolerance) {
         console.log(this.var_nodes[i])
         return this.var_nodes[i];
       }
     }
-    for (let i = 0; i < this.factor_nodes.length; i++) {
+    for (var i = 0; i < this.factor_nodes.length; i++) {
       if (Math.sqrt(Math.pow(this.factor_nodes[i].x - x, 2) +
         Math.pow(this.factor_nodes[i].y - y, 2)) <= offset_distance_tolerance) {
         console.log(this.factor_nodes[i])
@@ -123,77 +111,84 @@ export class FactorGraph {
     }
   }
 
-  add_connection(node1_id, node2_id) {
-    let node1 = this.find_node(parseInt(node1_id));
-    let node2 = this.find_node(parseInt(node2_id));
-    if (node1.type == 'factor_node' && node2.type == 'var_node') {
-      if (!node1.adj_var_ids.includes(node2.id)) {  // If node2 is not already connected
-        node1.adj_var_ids.push(node2.id);
-        return true;
-      }
-    }
-    else if (node1.type == 'var_node' && node2.type == 'factor_node') {
-      if (!node2.adj_var_ids.includes(node1.id)) {  // If node1 is not already connected
-        node2.adj_var_ids.push(node1.id);
-        return true;
-      }
+  find_connection(node1_id, node2_id) {
+    node1_id = parseInt(node1_id);
+    node2_id = parseInt(node2_id);
+    if (this.find_node(node1_id).adj_ids.includes(node2_id) &&
+      this.find_node(node2_id).adj_ids.includes(node1_id)) {
+      return true
     }
     else {
       return false;
+    }
+  }
+
+  find_factor_node(node1_id, node2_id) {
+    node1_id = parseInt(node1_id);
+    node2_id = parseInt(node2_id);
+    if (node1_id == node2_id) {
+      return null;
+    }
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      if (this.find_connection(this.factor_nodes[i].id, node1_id) &&
+        this.find_connection(this.factor_nodes[i].id, node2_id)) {
+        return this.factor_nodes[i]
+      }
+    }
+    return null;
+  }
+
+  update_factor_node_location() {
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      var x = 0;
+      var y = 0;
+      for (var j = 0; j < this.factor_nodes[i].adj_ids.length; j++) {
+        var adj_var_node = this.find_node(this.factor_nodes[i].adj_ids[j]);
+        x += adj_var_node.x;
+        y += adj_var_node.y;
+      }
+      x /= this.factor_nodes[i].adj_ids.length;
+      y /= this.factor_nodes[i].adj_ids.length;
+      this.factor_nodes[i].x = x;
+      this.factor_nodes[i].y = y;
     }
   }
 
   pass_message(node1_id, node2_id) {
     // TODO: temporary implementation, need to integrate to gbp2d
-    let node1 = this.find_node(parseInt(node1_id));
-    let node2 = this.find_node(parseInt(node2_id));
-    if (node1.type == 'factor_node' && node2.type == 'var_node') {
-      if (node1.adj_var_ids.includes(node2.id)) {  // If node2 is not already connected
-        return true;
-      }
+    // FIXME: 
+    var node1 = this.find_node(parseInt(node1_id));
+    var node2 = this.find_node(parseInt(node2_id));
+    if (node1.id == node2.id) {
+      node1.update_node(this);
     }
-    else if (node1.type == 'var_node' && node2.type == 'factor_node') {
-      if (node2.adj_var_ids.includes(node1.id)) {  // If node2 is not already connected
-        return true;
-      }
+    else if (this.find_connection(node1.id, node2.id)) {
+      node1.send_message(this, node2.id);
+      node2.receive_message(this, node1.id);
     }
     else {
       return false;
     }
-  }
-
-  remove_connection(node1_id, node2_id) {
-    let node1 = this.find_node(parseInt(node1_id));
-    let node2 = this.find_node(parseInt(node2_id));
-    if (node1.type == 'factor_node' && node2.type == 'var_node') {
-      if (node1.adj_var_ids.includes(node2.id)) {  // If node2 is not already connected
-        node1.adj_var_ids = node1.adj_var_ids.filter(adj_var_id => adj_var_id != node2.id);
-        return true;
-      }
-    }
-    else if (node1.type == 'var_node' && node2.type == 'factor_node') {
-      if (node2.adj_var_ids.includes(node1.id)) {  // If node2 is not already connected
-        node2.adj_var_ids = node2.adj_var_ids.filter(adj_var_id => adj_var_id != node1.id);
-        return true;
-      }
-    }
-    else {
-      return false;
-    }
+    return true
   }
 
   check_connection() {
     // Check if all nodes are connected to neighbors
-    let adj_var_ids = this.factor_nodes.map(factor_node => factor_node.adj_var_ids).flat();
-    if (this.factor_nodes.every(factor_node =>   // Every factor node has adjacent variable nodes
-      factor_node.adj_var_ids.length != 0) &&
-      this.var_nodes.every(var_node => 
-        adj_var_ids.includes(var_node.id))  // Every variable node is connected to some factor nodes
-    ) {
+    if (this.factor_nodes.every(factor_node => factor_node.adj_ids.length != 0) &&  // Every factor node has adjacent variable nodes
+      this.var_nodes.every(var_node => var_node.adj_ids.length != 0))  // Every variable node is connected to some factor nodes
+    {
       return true;
     }
-    else {
-      return false;
+    return false;
+  }
+
+  sync_graph() {
+    // FIXME:
+    for (var i = 0; i < this.factor_nodes.length; i ++) {
+      this.factor_nodes[i].update_node(this);
+    }
+    for (var i = 0; i < this.var_nodes.length; i ++) {
+      this.var_nodes[i].update_node(this);
     }
   }
 }
@@ -203,48 +198,193 @@ export class VariableNode {
     this.type = 'var_node';
     this.dofs = dofs;
     this.id = id;
-    this.x = x;
-    this.y = y;
     this.belief = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.prior = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
+    this.adj_ids = [];
+    this.x = x;
+    this.y = y;
+    this.rx = 0;
+    this.ry = 0;
+    this.angle = 0;
+  }
 
-    this.adj_factor_ids = [];
-    this.el = null;
+  update_cov_ellipse() {
+    var values = this.belief.getCovEllipse();
+    this.rx = Math.sqrt(values[0][0]);
+    this.ry = Math.sqrt(values[0][1]);
+    this.angle = values[1];
+  }
+
+  send_message(graph, node_id = null) {
+    node_id = parseInt(node_id);
+    console.log('var node', this.id, 'send message');
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      if (!node_id || node_id == this.adj_ids[i]) {
+        var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
+        graph.find_node(this.adj_ids[i]).adj_beliefs[idx] = this.belief;
+      }
+    }
+  }
+
+  receive_message(graph, node_id = null) {
+    node_id = parseInt(node_id);
+    this.belief.eta = this.prior.eta.clone();
+    this.belief.lam = this.prior.lam.clone();
+    // Send new belief to adjacent factors
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      if (!node_id || node_id == this.adj_ids[i]) {
+        var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
+        this.belief.product(graph.find_node(this.adj_ids[i]).messages[idx])
+      }
+    }
+  }
+
+  update_node(graph) {
+    this.belief.eta = this.prior.eta.clone();
+    this.belief.lam = this.prior.lam.clone();
+    // Take product of incoming messages
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
+      this.belief.product(graph.find_node(this.adj_ids[i]).messages[idx])
+    }
+
+    // Send new belief to adjacent factors
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
+      graph.find_node(this.adj_ids[i]).adj_beliefs[idx] = this.belief;
+    }
   }
 }
 
 export class LinearFactor {
-  constructor(dofs, id, x = 0, y = 0) {
+  constructor(dofs, id, adj_ids) {
     this.type = 'factor_node';
     this.dofs = dofs;
     this.id = id;
-    this.x = x;
-    this.y = y;
-    this.adj_var_ids = [];
+    this.adj_ids = adj_ids.sort((a, b) => a - b);
+    this.adj_var_dofs = [];
     this.adj_beliefs = [];
+
     // To compute factor when factor is combination of many factor types (e.g. measurement and smoothness)
     this.jacs = [];
     this.meas = [];
     this.lambdas = [];
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
-
+    this.incoming_factor = this.factor;
     this.messages = [];
-  }
-}
+    this.eta_damping = 0.;
 
-export function create_new_playground(n_var_nodes = 1, n_factor_nodes = 1) {
-  let graph = new FactorGraph()
-  for (let i = 0; i < n_var_nodes; i++) {
-    graph.add_var_node(50 + 50 * i, 50);
+    this.x = 0;
+    this.y = 0;
+    this.rx = 0;
+    this.ry = 0;
+    this.angle = 0;
   }
-  for (let i = 0; i < n_factor_nodes; i++) {
-    graph.add_factor_node(75 + 50 * i, 100);
-  }
-  for (let i = 0; i < n_var_nodes; i++) {
-    for (let j = 0; j < n_factor_nodes; j++) {
-      graph.add_connection(graph.var_nodes[i].id, graph.factor_nodes[j].id);
+
+  compute_factor() {
+    this.factor.eta = m.Matrix.zeros(this.dofs, 1);
+    this.factor.lam = m.Matrix.zeros(this.dofs, this.dofs);
+    for (var i = 0; i < this.jacs.length; i++) {
+      this.factor.eta.add(this.jacs[i].transpose().mmul(this.meas[i]).mul(this.lambdas[i]));
+      this.factor.lam.add(this.jacs[i].transpose().mmul(this.jacs[i]).mul(this.lambdas[i]));
     }
   }
-  console.log(graph);
-  return graph
+
+  send_message(graph, node_id = null) {
+    // FIXME:
+    node_id = parseInt(node_id);
+    console.log('factor node', this.id, 'send message');
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      if (!node_id || this.adj_ids[i] == node_id) {
+        // For factor connecting 2 variable nodes
+        if (i == 0) {
+          var eo = new m.MatrixSubView(this.incoming_factor.eta, 0, 1, 0, 0);
+          var eno = new m.MatrixSubView(this.incoming_factor.eta, 2, 3, 0, 0);
+          var loo = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 0, 1);
+          var lnono = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 2, 3);
+          var lnoo = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 0, 1);
+          var lono = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 2, 3);
+        } else if (i == 1) {
+          var eno = new m.MatrixSubView(this.incoming_factor.eta, 0, 1, 0, 0);
+          var eo = new m.MatrixSubView(this.incoming_factor.eta, 2, 3, 0, 0);
+          var lnono = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 0, 1);
+          var loo = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 2, 3);
+          var lono = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 0, 1);
+          var lnoo = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 2, 3);
+        }
+
+        const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
+        const block = lono.mmul(m.inverse(lnono));
+        message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
+        message.eta.mul(1 - this.eta_damping);
+        message.eta.add(this.messages[i].eta.mul(this.eta_damping));
+        message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
+        this.messages[i] = message;
+      }
+    }
+  }
+
+  receive_message(graph, node_id = null) {
+    // FIXME:
+    node_id = parseInt(node_id);
+    console.log('factor node', this.id, 'receive message');
+    var mess_start_dim = 0;
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      this.incoming_factor.eta = this.factor.eta.clone();
+      this.incoming_factor.lam = this.factor.lam.clone();
+      if (!node_id || this.adj_ids[i] == node_id) {
+        // Take product with incoming messages, general for factor connected to arbitrary num var nodes
+        var node_idx = this.adj_ids.indexOf(node_id);
+        const eta_prod = m.Matrix.sub(this.adj_beliefs[node_idx].eta, this.messages[node_idx].eta);
+        const lam_prod = m.Matrix.sub(this.adj_beliefs[node_idx].lam, this.messages[node_idx].lam);
+        new m.MatrixSubView(this.incoming_factor.eta, mess_start_dim, mess_start_dim + this.adj_var_dofs[node_idx] - 1, 0, 0).add(eta_prod);
+        new m.MatrixSubView(this.incoming_factor.lam, mess_start_dim, mess_start_dim + this.adj_var_dofs[node_idx] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[node_idx] - 1).add(lam_prod);
+      }
+      mess_start_dim += this.adj_var_dofs[i];
+    }
+  }
+
+  update_node(graph) {
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      this.incoming_factor.eta = this.factor.eta.clone();
+      this.incoming_factor.lam = this.factor.lam.clone();
+
+      // Take product with incoming messages, general for factor connected to arbitrary num var nodes
+      var mess_start_dim = 0;
+      for (var j = 0; j < this.adj_ids.length; j++) {
+        if (i != j) {
+          const eta_prod = m.Matrix.sub(this.adj_beliefs[j].eta, this.messages[j].eta);
+          const lam_prod = m.Matrix.sub(this.adj_beliefs[j].lam, this.messages[j].lam);
+          new m.MatrixSubView(this.incoming_factor.eta, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, 0, 0).add(eta_prod);
+          new m.MatrixSubView(this.incoming_factor.lam, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1).add(lam_prod);
+        }
+        mess_start_dim += this.adj_var_dofs[j];
+      }
+
+      // For factor connecting 2 variable nodes
+      if (i == 0) {
+        var eo = new m.MatrixSubView(this.incoming_factor.eta, 0, 1, 0, 0);
+        var eno = new m.MatrixSubView(this.incoming_factor.eta, 2, 3, 0, 0);
+        var loo = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 0, 1);
+        var lnono = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 2, 3);
+        var lnoo = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 0, 1);
+        var lono = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 2, 3);
+      } else if (i == 1) {
+        var eno = new m.MatrixSubView(this.incoming_factor.eta, 0, 1, 0, 0);
+        var eo = new m.MatrixSubView(this.incoming_factor.eta, 2, 3, 0, 0);
+        var lnono = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 0, 1);
+        var loo = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 2, 3);
+        var lono = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 0, 1);
+        var lnoo = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 2, 3);
+      }
+
+      const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
+      const block = lono.mmul(m.inverse(lnono));
+      message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
+      message.eta.mul(1 - this.eta_damping);
+      message.eta.add(this.messages[i].eta.mul(this.eta_damping));
+      message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
+      this.messages[i] = message;
+    }
+  }
 }
