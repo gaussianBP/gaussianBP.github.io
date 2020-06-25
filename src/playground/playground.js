@@ -1,5 +1,6 @@
 import * as m from 'ml-matrix';
 import * as gauss from '../gaussian';
+import { getEllipse } from '../gaussian';
 
 var offset_distance_tolerance = 10;
 
@@ -136,11 +137,11 @@ export class FactorGraph {
     for (var i = 0; i < this.var_nodes.length; i++) {
       var var_node = this.var_nodes[i]
       var values = var_node.belief.getCovEllipse();
-      var_node.cx = var_node.belief.getMean().get(0, 0);
-      var_node.cy = var_node.belief.getMean().get(1, 0);
-      var_node.rx = Math.sqrt(values[0][0]);
-      var_node.ry = Math.sqrt(values[0][1]);
-      var_node.angle = values[1];
+      var_node.bp_ellipse.cx = var_node.belief.getMean().get(0, 0);
+      var_node.bp_ellipse.cy = var_node.belief.getMean().get(1, 0);
+      var_node.bp_ellipse.rx = Math.sqrt(values[0][0]);
+      var_node.bp_ellipse.ry = Math.sqrt(values[0][1]);
+      var_node.bp_ellipse.angle = values[1];
     }
   }
 
@@ -196,6 +197,66 @@ export class FactorGraph {
     }
     return total_error;
   }
+
+  compute_MAP() {
+    var total_dofs = 0;
+    for (var i = 0; i < this.var_nodes.length; i ++) {
+      total_dofs += this.var_nodes[i].dofs;
+    }
+    const bigEta = m.Matrix.zeros(total_dofs, 1);
+    const bigLam = m.Matrix.zeros(total_dofs, total_dofs);
+
+    // Add priors
+    for (var i = 0; i < this.var_nodes.length; i ++) {
+      new m.MatrixSubView(bigEta, i * 2, (i + 1) * 2 - 1, 0, 0).add(this.var_nodes[i].prior.eta);
+      new m.MatrixSubView(bigLam, i * 2, (i + 1) * 2 - 1, i * 2, (i + 1) * 2 - 1).add(this.var_nodes[i].prior.lam);
+    }
+
+    // Add factors
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      const f_p1_eta = new m.Matrix(new m.MatrixSubView(this.factor_nodes[i].factor.eta, 0, 1, 0, 0));
+      const f_p2_eta = new m.Matrix(new m.MatrixSubView(this.factor_nodes[i].factor.eta, 2, 3, 0, 0));
+      const f_p1_lam = new m.Matrix(new m.MatrixSubView(this.factor_nodes[i].factor.lam, 0, 1, 0, 1));
+      const f_p2_lam = new m.Matrix(new m.MatrixSubView(this.factor_nodes[i].factor.lam, 2, 3, 2, 3));
+      const f_p1_p2_lam = new m.Matrix(new m.MatrixSubView(this.factor_nodes[i].factor.lam, 0, 1, 2, 3));
+      const f_p2_p1_lam = new m.Matrix(new m.MatrixSubView(this.factor_nodes[i].factor.lam, 2, 3, 0, 1));
+
+      var c_id1 = this.factor_nodes[i].adj_ids[0];
+      var c_id2 = this.factor_nodes[i].adj_ids[1];
+      new m.MatrixSubView(bigEta, c_id1, c_id1 + 1, 0, 0).add(f_p1_eta);
+      new m.MatrixSubView(bigEta, c_id2, c_id2 + 1, 0, 0).add(f_p2_eta);
+      new m.MatrixSubView(bigLam, c_id1, c_id1 + 1, c_id1, c_id1 + 1).add(f_p1_lam);
+      new m.MatrixSubView(bigLam, c_id2, c_id2 + 1, c_id2, c_id2 + 1).add(f_p1_lam);
+      new m.MatrixSubView(bigLam, c_id1, c_id1 + 1, c_id2, c_id2 + 1).add(f_p1_p2_lam);
+      new m.MatrixSubView(bigLam, c_id2, c_id2 + 1, c_id1, c_id1 + 1).add(f_p2_p1_lam);
+    }
+
+    const bigCov = m.inverse(bigLam);
+    const means = bigCov.mmul(bigEta);
+    for (var i = 0; i < this.var_nodes.length; i ++) {
+      var cov = new m.Matrix(new m.MatrixSubView(bigCov, 2 * i, 2 * i + 1, 2 * i, 2 * i + 1));
+      var values = getEllipse(cov);
+      this.var_nodes[i].MAP_ellipse.cx = means.get(2 * i, 0);
+      this.var_nodes[i].MAP_ellipse.cy = means.get(2 * i + 1, 0);
+      this.var_nodes[i].MAP_ellipse.rx = Math.sqrt(values[0][0]);
+      this.var_nodes[i].MAP_ellipse.ry = Math.sqrt(values[0][1]);
+      this.var_nodes[i].MAP_ellipse.angle = values[1];
+    }
+    return [means, bigCov];
+  }
+
+  compare_to_MAP() {
+    var bp_means = [];
+    for (var i = 0; i < this.var_nodes.length; i ++) {
+      bp_means.push(this.var_nodes[i].belief.getMean().get(0,0));
+      bp_means.push(this.var_nodes[i].belief.getMean().get(1,0));
+    }
+
+    const means = new m.Matrix([bp_means]);
+    const map = this.compute_MAP()[0];
+    var av_diff = (map.sub(means.transpose())).norm();
+    return av_diff;
+  }
 }
 
 export class VariableNode {
@@ -208,11 +269,20 @@ export class VariableNode {
     this.adj_ids = [];
     this.x = x;
     this.y = y;
-    this.cx = 0;
-    this.cy = 0;
-    this.rx = 0;
-    this.ry = 0;
-    this.angle = 0;
+    this.bp_ellipse = {
+      cx: 0,
+      cy: 0,
+      rx: 0,
+      ry: 0,
+      angle: 0
+    };
+    this.MAP_ellipse = {
+      cx: 0,
+      cy: 0,
+      rx: 0,
+      ry: 0,
+      angle: 0
+    };
   }
 
   send_message(graph, node_id = null) {
@@ -272,13 +342,10 @@ export class LinearFactor {
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.incoming_factor = this.factor;
     this.messages = [];
-    this.eta_damping = 0.9;
+    this.eta_damping = 0.;
 
     this.x = 0;
     this.y = 0;
-    this.rx = 0;
-    this.ry = 0;
-    this.angle = 0;
   }
 
   compute_factor() {

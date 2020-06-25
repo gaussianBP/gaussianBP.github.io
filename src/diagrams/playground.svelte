@@ -15,8 +15,8 @@
   const factor_node_prior_std = 30;
   var factor_lambda = 1 / Math.pow(factor_node_prior_std, 2);
   const random_noise = r.normal(0, 10);
-  var eta_damping = 0.2;
-
+  var eta_damping = 0.;
+  const new_gauss = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
   // svg
   var svg;
   var svg_width = 800;
@@ -24,10 +24,11 @@
 
   // Playground
   var graph;
-  var n_var_nodes = 5;
+  var n_var_nodes = 23;
   var sync_schedule = true;
   var message_idx = 0;
   var total_error_distance = 0;
+  var bp_MAP_diff = 0;
 
   // Drag and drop function
   const click_time_span = 100; // Threshold for time span during click
@@ -52,8 +53,10 @@
   var counter = 0;
   var edit_mode = true;
   var passing_message = false;
-  var show_cov_ellipse = true;
-  var show_mean = true;
+  var show_bp_mean = true;
+  var show_bp_cov = true;
+  var show_MAP_mean = false;
+  var show_MAP_cov = false;
   var show_ground_truth = true;
   var message = { message: null, timestamp: null, duration: null };
   var check_connection_message = {
@@ -134,35 +137,36 @@
 
   function pass_message_interval() {
     // Enables pass message in adjustable interval
-    if (counter >= iter_sec * 10 - 1) {
-      counter = 0;
-      pass_message();
-    }
-    else {
-      counter ++;
+    if (!edit_mode && passing_message) {
+      if (counter >= iter_sec * 10 - 1) {
+        counter = 0;
+        pass_message();
+      }
+      else {
+        counter ++;
+      }
     }
   }
 
   function pass_message() {
-    if (!edit_mode && passing_message) {
-      if (sync_schedule) {
-        // TODO: two message passing schedules, which one?
-        for (
-          var i = 0;
-          i < graph.var_nodes.length + graph.factor_nodes.length;
-          i++
-        ) {
-          graph.find_node(i).pass_message(graph);
-        }
-      } else {
-        if (message_idx >= graph.var_nodes.length + graph.factor_nodes.length) {
-          message_idx = 0;
-        }
-        graph.find_node(message_idx).pass_message(graph);
-        message_idx++;
+    if (sync_schedule) {
+      // TODO: two message passing schedules, which one?
+      for (
+        var i = 0;
+        i < graph.var_nodes.length + graph.factor_nodes.length;
+        i++
+      ) {
+        graph.find_node(i).pass_message(graph);
       }
-      total_error_distance = parseInt(graph.compute_error());
+    } else {
+      if (message_idx >= graph.var_nodes.length + graph.factor_nodes.length) {
+        message_idx = 0;
+      }
+      graph.find_node(message_idx).pass_message(graph);
+      message_idx++;
     }
+    total_error_distance = parseInt(graph.compute_error());
+    bp_MAP_diff = parseInt(graph.compare_to_MAP());
   }
 
   function update_connection() {
@@ -214,12 +218,10 @@
     ) {
       // No existing connection between node1 and node2
       const factor_node = new pg.LinearFactor(4, id, [node1_id, node2_id]);
-      factor_node.messages.push(
-        new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]])
-      );
-      factor_node.messages.push(
-        new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]])
-      );
+      factor_node.messages.push(new_gauss);
+      factor_node.messages.push(new_gauss);
+      factor_node.adj_beliefs.push(new_gauss);
+      factor_node.adj_beliefs.push(new_gauss);
       graph.factor_nodes.push(factor_node);
       graph.last_node = factor_node;
       graph.find_node(node1_id).adj_ids.push(id);
@@ -262,15 +264,13 @@
       factor_node.lambdas.push(factor_lambda);
       factor_node.adj_var_dofs.push(2);
       factor_node.adj_var_dofs.push(2);
-      factor_node.adj_beliefs.push(
-        graph.find_node(factor_node.adj_ids[0]).belief
-      );
-      factor_node.adj_beliefs.push(
-        graph.find_node(factor_node.adj_ids[1]).belief
-      );
+      factor_node.adj_beliefs[0] = graph.find_node(factor_node.adj_ids[0]).belief;
+      factor_node.adj_beliefs[1] = graph.find_node(factor_node.adj_ids[1]).belief;
       factor_node.compute_factor();
     }
   }
+
+
 
   function mousedown_handler(e) {
     mouse_up = false;
@@ -385,8 +385,9 @@
     document.getElementById("play_mode_radio_button").checked = !edit_mode;
     document.getElementById("sync_mode_radio_button").checked = sync_schedule;
     document.getElementById("sweep_mode_radio_button").checked = !sync_schedule;
-    document.getElementById("toggle_mean_checkbox").checked = show_mean;
-    document.getElementById("toggle_cov_ellipse_checkbox").checked = show_cov_ellipse;
+    document.getElementById("toggle_MAP_mean_checkbox").checked = show_MAP_mean;
+    document.getElementById("toggle_bp_mean_checkbox").checked = show_bp_mean;
+    document.getElementById("toggle_bp_cov_checkbox").checked = show_bp_cov;
     document.getElementById("toggle_ground_truth_checkbox").checked = show_ground_truth;
   }
 
@@ -415,7 +416,11 @@
   function toggle_mode() {
     edit_mode = (document.getElementById("edit_mode_radio_button").checked &&
                 !document.getElementById("play_mode_radio_button").checked);
-    compute_nodes();
+    if (!edit_mode) {
+      compute_nodes();
+      pass_message();
+      graph.compute_MAP();
+    }
     last_node_clicked = null;
     passing_message = false;
   }
@@ -433,16 +438,24 @@
                     !document.getElementById("sweep_mode_radio_button").checked);
   }
 
-  function toggle_mean() {
-    show_mean = document.getElementById("toggle_mean_checkbox").checked;
+  function toggle_bp_mean() {
+    show_bp_mean = document.getElementById("toggle_bp_mean_checkbox").checked;
   }
 
-  function toggle_cov_ellipse() {
-    show_cov_ellipse = document.getElementById("toggle_cov_ellipse_checkbox").checked;
+  function toggle_bp_cov() {
+    show_bp_cov = document.getElementById("toggle_bp_cov_checkbox").checked;
   }
 
   function toggle_ground_truth() {
     show_ground_truth = document.getElementById("toggle_ground_truth_checkbox").checked;
+  }
+
+  function toggle_MAP_mean() {
+    show_MAP_mean = document.getElementById("toggle_MAP_mean_checkbox").checked;
+  }
+
+  function toggle_MAP_cov() {
+    show_MAP_cov = document.getElementById("toggle_MAP_cov_checkbox").checked;
   }
 
   function update_eta_damping() {
@@ -478,8 +491,12 @@
       on:mouseup={mouseup_handler}
       on:click={click_handler}>
       <defs>
-        <radialGradient id="var_cov_gradient">
+        <radialGradient id="bp_cov_gradient">
           <stop offset="0" stop-color="red" stop-opacity="1" />
+          <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
+        </radialGradient>
+        <radialGradient id="MAP_cov_gradient">
+          <stop offset="0" stop-color="purple" stop-opacity="1" />
           <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
         </radialGradient>
       </defs>
@@ -568,29 +585,51 @@
               </text>
             </g>
           {:else}
-            {#if show_cov_ellipse}
+            {#if show_MAP_cov}
               <ellipse
-                cx={var_node.cx}
-                cy={var_node.cy}
-                rx={var_node.rx}
-                ry={var_node.ry}
-                transform="rotate({var_node.angle})"
+              class="node_MAP_cov"
+              cx={var_node.MAP_ellipse.cx}
+              cy={var_node.MAP_ellipse.cy}
+              rx={var_node.MAP_ellipse.rx}
+              ry={var_node.MAP_ellipse.ry}
+              transform="rotate({var_node.MAP_ellipse.angle})"
+              stroke="red"
+              stroke-opacity={0.25}
+              fill="url(#MAP_cov_gradient)" />
+            {/if}
+            {#if show_bp_cov}
+              <ellipse
+                class="node_bp_cov"
+                cx={var_node.bp_ellipse.cx}
+                cy={var_node.bp_ellipse.cy}
+                rx={var_node.bp_ellipse.rx}
+                ry={var_node.bp_ellipse.ry}
+                transform="rotate({var_node.bp_ellipse.angle})"
                 stroke="red"
                 stroke-opacity={0.25}
-                fill="url(#var_cov_gradient)" />
+                fill="url(#bp_cov_gradient)" />
             {/if}
-            {#if show_mean}
+            {#if show_MAP_mean}
+                <circle 
+                class="node_MAP_mean" 
+                cx={var_node.MAP_ellipse.cx}
+                cy={var_node.MAP_ellipse.cy}
+                r={2}
+                stroke="purple"
+                fill="purple" />
+            {/if}
+            {#if show_bp_mean}
               <circle 
-                class="node_mean" 
-                cx={var_node.cx}
-                cy={var_node.cy}
+                class="node_bp_mean" 
+                cx={var_node.bp_ellipse.cx}
+                cy={var_node.bp_ellipse.cy}
                 r={2}
                 stroke="yellow"
                 fill="yellow" />
             {/if}
             {#if show_ground_truth}
               <circle 
-                class="node_ground_truth" 
+                class="node_ground_truth"
                 cx={var_node.x}
                 cy={var_node.y}
                 r={2}
@@ -606,6 +645,9 @@
   <div id="playground-settings-panel">
     <div>
     <b>Total Error: {total_error_distance}</b>
+    <br />
+    <b>Difference to MAP: {bp_MAP_diff}</b>
+    <br />
     </div>
     <label class="radio-inline">
       <input
@@ -623,6 +665,7 @@
         on:change={toggle_mode} />
       Play Mode
     </label>
+    <br />
     <div>
       {#if edit_mode}
         <label>
@@ -655,6 +698,7 @@
           </button>
         </label>
       {/if}
+      <br />
       <!-- <label>
         <button
           type="button"
@@ -681,6 +725,7 @@
           Reset Playground
         </button>
       </label>
+      <br />
       <label>
         <button
           type="button"
@@ -690,6 +735,7 @@
           Show Graph Details
         </button>
       </label>
+      <br />
       Message Passing Schedule:
       <label class="radio-inline">
         <input
@@ -707,7 +753,7 @@
           on:click={toggle_schedule} />
         Sweep
       </label>
-      <label>
+      <!-- <label>
         &eta Damping: <b>{eta_damping}</b>
         <input
           type="range"
@@ -717,7 +763,7 @@
           bind:value={eta_damping}
           on:change={update_eta_damping}
           style="width:200px;" />
-      </label>
+      </label> -->
       <label>
         Iteration Interval: <b>{iter_sec}</b> sec
         <input
@@ -728,20 +774,42 @@
           bind:value={iter_sec}
           style="width:200px;" />
       </label>
-      <label style="user-select: none">
+      <br />
+      <div style="display: inline-block;">
+      <b>Belief:</b>
+      <label class="checkbox-inline" style="user-select: none">
         <input
           type="checkbox"
-          id="toggle_mean_checkbox"
-          on:click={toggle_mean} />
-        Show Belief Mean
+          id="toggle_bp_mean_checkbox"
+          on:click={toggle_bp_mean} />
+        Mean
       </label>
-      <label style="user-select: none">
+      <label class="checkbox-inline" style="user-select: none">
         <input
           type="checkbox"
-          id="toggle_cov_ellipse_checkbox"
-          on:click={toggle_cov_ellipse} />
-        Show Covariance Ellipse
+          id="toggle_bp_cov_checkbox"
+          on:click={toggle_bp_cov} />
+        Cov
       </label>
+      </div>
+      <div style="display: inline-block;">
+      <b>MAP:</b>
+      <label class="checkbox-inline" style="user-select: none">
+        <input
+          type="checkbox"
+          id="toggle_MAP_mean_checkbox"
+          on:click={toggle_MAP_mean} />
+        Mean
+      </label>
+      <label class="checkbox-inline" style="user-select: none">
+        <input
+          type="checkbox"
+          id="toggle_MAP_cov_checkbox"
+          on:click={toggle_MAP_cov} />
+        Cov
+      </label>
+      </div>
+      <br />
       <label style="user-select: none">
         <input
           type="checkbox"
