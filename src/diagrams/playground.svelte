@@ -19,8 +19,8 @@
 
   // svg
   var svg;
-  var svg_width = 600;
-  var svg_height = 400;
+  var svg_width = 800;
+  var svg_height = 500;
 
   // Playground
   var graph;
@@ -78,15 +78,24 @@
   function create_new_playground(n_var_nodes = 2) {
     graph = new pg.FactorGraph();
     var var_node = new pg.VariableNode(2, 0, 50, 50);
-    var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);
-    var_node.prior.eta = var_node.prior.lam.mmul(
-      new m.Matrix([[var_node.x], [var_node.y]])
-    );
-    var_node.pass_message(graph);
     graph.var_nodes.push(var_node);
     graph.last_node = var_node;
     for (var i = 1; i < n_var_nodes; i++) {
-      add_var_node(50 + 100 * i, 50, i * 2);
+      if (i < 8) {
+        add_var_node(50 + 100 * i, 50, i * 2);
+      }
+      else if (i < 12) {
+        add_var_node(750, 50 + 100 * (i - 7), i * 2);
+      }
+      else if (i < 18) {
+        add_var_node(50 + 100 * (18 - i), 450, i * 2);
+      }
+      else if (i < 23) {
+        add_var_node(50, 50 + 100 * (22 - i), i * 2);
+      }
+      else {
+        return graph;
+      }
       if (i > 0) {
         add_factor_node(
           graph.var_nodes[i - 1].id,
@@ -145,13 +154,6 @@
         ) {
           graph.find_node(i).pass_message(graph);
         }
-        // for (var i = 0; i < graph.var_nodes.length; i++) {
-        //   var var_node = graph.var_nodes[i];
-        //   var_node.pass_message(graph);
-        //   for (var j = 0; j < var_node.adj_ids.length; j ++) {
-        //     graph.find_node(var_node.adj_ids[j]).pass_message(graph);
-        //   }
-        // }
       } else {
         if (message_idx >= graph.var_nodes.length + graph.factor_nodes.length) {
           message_idx = 0;
@@ -192,9 +194,6 @@
       id = graph.var_nodes.length + graph.factor_nodes.length;
     }
     const var_node = new pg.VariableNode(2, id, x, y);
-    // var_node.prior.lam = new m.Matrix([[var_lambda, 0], [0, var_lambda]]);
-    // var_node.prior.eta = var_node.prior.lam.mmul(new m.Matrix([[x], [y]]));
-    // var_node.pass_message(graph);
     graph.var_nodes.push(var_node);
     graph.last_node = var_node;
   }
@@ -355,12 +354,6 @@
     if (click_time <= click_time_span && mouse_up) {
       if (node_clicked) {
         node_clicked = graph.find_node(node_clicked.id);
-        if (node_clicked.type == "var_node") {
-          console.log(node_clicked.belief.getMean());
-        } else {
-          console.log(node_clicked.factor.getMean());
-        }
-
         // Consider as a click
         if (!last_node_clicked) {
           last_node_clicked = node_clicked;
