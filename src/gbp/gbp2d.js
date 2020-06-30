@@ -99,7 +99,7 @@ export class FactorGraph {
         new m.MatrixSubView(bigEta, c_id1*2, (c_id1+1)*2-1, 0, 0).add(f_p1_eta);
         new m.MatrixSubView(bigEta, c_id2*2, (c_id2+1)*2-1, 0, 0).add(f_p2_eta);
         new m.MatrixSubView(bigLam, c_id1*2, (c_id1+1)*2-1, c_id1*2, (c_id1+1)*2-1).add(f_p1_lam);
-        new m.MatrixSubView(bigLam, c_id2*2, (c_id2+1)*2-1, c_id2*2, (c_id2+1)*2-1).add(f_p1_lam);
+        new m.MatrixSubView(bigLam, c_id2*2, (c_id2+1)*2-1, c_id2*2, (c_id2+1)*2-1).add(f_p2_lam);
         new m.MatrixSubView(bigLam, c_id1*2, (c_id1+1)*2-1, c_id2*2, (c_id2+1)*2-1).add(f_p1_p2_lam);
         new m.MatrixSubView(bigLam, c_id2*2, (c_id2+1)*2-1, c_id1*2, (c_id1+1)*2-1).add(f_p2_p1_lam);
       }
