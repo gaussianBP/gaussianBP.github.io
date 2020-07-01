@@ -73,6 +73,7 @@ d-figure.fullscreen{
   position: relative;
   width: 24%;
   float: left;
+  font-size: 16px;
 }
 
 .buttons-panel {

@@ -1,0 +1,6 @@
+1. Select area and duplicate selected graph
+    plot area is not very large, too many nodes can cause the beliefs to overlap, bad for visualization
+2. Predefined graph templates for selection
+3. Message passing animations
+4. Show some info while hovering over nodes
+    maybe a 3D bell curve visualization of the belief

@@ -31,7 +31,7 @@ export class FactorGraph {
     node2_id = parseInt(node2_id);
     if (this.find_node(node1_id).adj_ids.includes(node2_id) &&
       this.find_node(node2_id).adj_ids.includes(node1_id)) {
-      return true
+      return true;
     }
     else {
       return false;
@@ -57,14 +57,12 @@ export class FactorGraph {
     for (var i = 0; i < this.var_nodes.length; i++) {
       if (Math.sqrt(Math.pow(this.var_nodes[i].x - x, 2) +
         Math.pow(this.var_nodes[i].y - y, 2)) <= offset_distance_tolerance) {
-        console.log(this.var_nodes[i])
         return this.var_nodes[i];
       }
     }
     for (var i = 0; i < this.factor_nodes.length; i++) {
       if (Math.sqrt(Math.pow(this.factor_nodes[i].x - x, 2) +
         Math.pow(this.factor_nodes[i].y - y, 2)) <= offset_distance_tolerance) {
-        console.log(this.factor_nodes[i])
         return this.factor_nodes[i];
       }
     }
@@ -169,12 +167,16 @@ export class FactorGraph {
     if (node1.id == node2.id) {
       node1.pass_message(this);
     }
-    else if (this.find_connection(node1.id, node2.id)) {
-      node1.send_message(this, node2.id);
-      node2.receive_message(this, node1.id);
-    }
     else {
-      return false;
+      var factor_node = this.find_factor_node(node1.id, node2.id);
+      if (factor_node) {
+        node1.send_message(this);
+        factor_node.pass_message(this);
+        node2.receive_message(this);
+      }
+      else {
+        return false;
+      }
     }
     return true
   }
@@ -205,11 +207,12 @@ export class FactorGraph {
     }
     const bigEta = m.Matrix.zeros(total_dofs, 1);
     const bigLam = m.Matrix.zeros(total_dofs, total_dofs);
+    const var_ids = this.var_nodes.map(var_node => var_node.id);
 
     // Add priors
     for (var i = 0; i < this.var_nodes.length; i ++) {
-      new m.MatrixSubView(bigEta, i * 2, (i + 1) * 2 - 1, 0, 0).add(this.var_nodes[i].prior.eta);
-      new m.MatrixSubView(bigLam, i * 2, (i + 1) * 2 - 1, i * 2, (i + 1) * 2 - 1).add(this.var_nodes[i].prior.lam);
+      new m.MatrixSubView(bigEta, i * 2, (i + 1) * 2 - 1, 0, 0).add(this.find_node(var_ids[i]).prior.eta);
+      new m.MatrixSubView(bigLam, i * 2, (i + 1) * 2 - 1, i * 2, (i + 1) * 2 - 1).add(this.find_node(var_ids[i]).prior.lam);
     }
 
     // Add factors
@@ -221,12 +224,12 @@ export class FactorGraph {
       const f_p1_p2_lam = new m.Matrix(new m.MatrixSubView(this.factor_nodes[i].factor.lam, 0, 1, 2, 3));
       const f_p2_p1_lam = new m.Matrix(new m.MatrixSubView(this.factor_nodes[i].factor.lam, 2, 3, 0, 1));
 
-      var c_id1 = this.factor_nodes[i].adj_ids[0];
-      var c_id2 = this.factor_nodes[i].adj_ids[1];
+      var c_id1 = var_ids.indexOf(this.factor_nodes[i].adj_ids[0]) * 2;
+      var c_id2 = var_ids.indexOf(this.factor_nodes[i].adj_ids[1]) * 2;
       new m.MatrixSubView(bigEta, c_id1, c_id1 + 1, 0, 0).add(f_p1_eta);
       new m.MatrixSubView(bigEta, c_id2, c_id2 + 1, 0, 0).add(f_p2_eta);
       new m.MatrixSubView(bigLam, c_id1, c_id1 + 1, c_id1, c_id1 + 1).add(f_p1_lam);
-      new m.MatrixSubView(bigLam, c_id2, c_id2 + 1, c_id2, c_id2 + 1).add(f_p1_lam);
+      new m.MatrixSubView(bigLam, c_id2, c_id2 + 1, c_id2, c_id2 + 1).add(f_p2_lam);
       new m.MatrixSubView(bigLam, c_id1, c_id1 + 1, c_id2, c_id2 + 1).add(f_p1_p2_lam);
       new m.MatrixSubView(bigLam, c_id2, c_id2 + 1, c_id1, c_id1 + 1).add(f_p2_p1_lam);
     }
@@ -254,8 +257,14 @@ export class FactorGraph {
 
     const means = new m.Matrix([bp_means]);
     const map = this.compute_MAP()[0];
-    var av_diff = (map.sub(means.transpose())).norm();
-    return av_diff;
+    return (map.sub(means.transpose())).norm();
+  }
+
+  node_distance(node1_id, node2_id) {
+    var node1 = this.find_node(parseInt(node1_id));
+    var node2 = this.find_node(parseInt(node2_id));
+    return Math.sqrt(Math.pow(node1.x - node2.x, 2) +
+      Math.pow(node1.y - node2.y, 2));
   }
 }
 
@@ -285,22 +294,11 @@ export class VariableNode {
     };
   }
 
-  send_message(graph, node_id = null) {
-    node_id = parseInt(node_id);
-    console.log('var node', this.id, 'send message');
-    for (var i = 0; i < this.adj_ids.length; i++) {
-      if (!node_id || node_id == this.adj_ids[i]) {
-        var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
-        graph.find_node(this.adj_ids[i]).adj_beliefs[idx] = this.belief;
-      }
-    }
-  }
-
   receive_message(graph, node_id = null) {
     node_id = parseInt(node_id);
     this.belief.eta = this.prior.eta.clone();
     this.belief.lam = this.prior.lam.clone();
-    // Send new belief to adjacent factors
+    // console.log('var node', this.id, 'receive message');
     for (var i = 0; i < this.adj_ids.length; i++) {
       if (!node_id || node_id == this.adj_ids[i]) {
         var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
@@ -309,20 +307,20 @@ export class VariableNode {
     }
   }
 
-  pass_message(graph) {
-    this.belief.eta = this.prior.eta.clone();
-    this.belief.lam = this.prior.lam.clone();
-    // Take product of incoming messages
+  send_message(graph, node_id = null) {
+    node_id = parseInt(node_id);
+    // console.log('var node', this.id, 'send message');
     for (var i = 0; i < this.adj_ids.length; i++) {
-      var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
-      this.belief.product(graph.find_node(this.adj_ids[i]).messages[idx])
+      if (!node_id || node_id == this.adj_ids[i]) {
+        var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
+        graph.find_node(this.adj_ids[i]).adj_beliefs[idx] = this.belief;
+      }
     }
+  }
 
-    // Send new belief to adjacent factors
-    for (var i = 0; i < this.adj_ids.length; i++) {
-      var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
-      graph.find_node(this.adj_ids[i]).adj_beliefs[idx] = this.belief;
-    }
+  pass_message(graph) {
+    this.receive_message(graph);
+    this.send_message(graph);
   }
 }
 
@@ -341,6 +339,7 @@ export class LinearFactor {
     this.lambdas = [];
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.incoming_factor = this.factor;
+    this.incoming_id = null;
     this.messages = [];
     this.eta_damping = 0.;
 
@@ -354,60 +353,6 @@ export class LinearFactor {
     for (var i = 0; i < this.jacs.length; i++) {
       this.factor.eta.add(this.jacs[i].transpose().mmul(this.meas[i]).mul(this.lambdas[i]));
       this.factor.lam.add(this.jacs[i].transpose().mmul(this.jacs[i]).mul(this.lambdas[i]));
-    }
-  }
-
-  send_message(graph, node_id = null) {
-    // FIXME:
-    node_id = parseInt(node_id);
-    console.log('factor node', this.id, 'send message');
-    for (var i = 0; i < this.adj_ids.length; i++) {
-      if (!node_id || this.adj_ids[i] == node_id) {
-        // For factor connecting 2 variable nodes
-        if (i == 0) {
-          var eo = new m.MatrixSubView(this.incoming_factor.eta, 0, 1, 0, 0);
-          var eno = new m.MatrixSubView(this.incoming_factor.eta, 2, 3, 0, 0);
-          var loo = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 0, 1);
-          var lnono = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 2, 3);
-          var lnoo = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 0, 1);
-          var lono = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 2, 3);
-        } else if (i == 1) {
-          var eno = new m.MatrixSubView(this.incoming_factor.eta, 0, 1, 0, 0);
-          var eo = new m.MatrixSubView(this.incoming_factor.eta, 2, 3, 0, 0);
-          var lnono = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 0, 1);
-          var loo = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 2, 3);
-          var lono = new m.MatrixSubView(this.incoming_factor.lam, 2, 3, 0, 1);
-          var lnoo = new m.MatrixSubView(this.incoming_factor.lam, 0, 1, 2, 3);
-        }
-
-        const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
-        const block = lono.mmul(m.inverse(lnono));
-        message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
-        message.eta.mul(1 - this.eta_damping);
-        message.eta.add(this.messages[i].eta.mul(this.eta_damping));
-        message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
-        this.messages[i] = message;
-      }
-    }
-  }
-
-  receive_message(graph, node_id = null) {
-    // FIXME:
-    node_id = parseInt(node_id);
-    console.log('factor node', this.id, 'receive message');
-    var mess_start_dim = 0;
-    for (var i = 0; i < this.adj_ids.length; i++) {
-      this.incoming_factor.eta = this.factor.eta.clone();
-      this.incoming_factor.lam = this.factor.lam.clone();
-      if (!node_id || this.adj_ids[i] == node_id) {
-        // Take product with incoming messages, general for factor connected to arbitrary num var nodes
-        var node_idx = this.adj_ids.indexOf(node_id);
-        const eta_prod = m.Matrix.sub(this.adj_beliefs[node_idx].eta, this.messages[node_idx].eta);
-        const lam_prod = m.Matrix.sub(this.adj_beliefs[node_idx].lam, this.messages[node_idx].lam);
-        new m.MatrixSubView(this.incoming_factor.eta, mess_start_dim, mess_start_dim + this.adj_var_dofs[node_idx] - 1, 0, 0).add(eta_prod);
-        new m.MatrixSubView(this.incoming_factor.lam, mess_start_dim, mess_start_dim + this.adj_var_dofs[node_idx] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[node_idx] - 1).add(lam_prod);
-      }
-      mess_start_dim += this.adj_var_dofs[i];
     }
   }
 
@@ -453,6 +398,10 @@ export class LinearFactor {
       message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
       this.messages[i] = message;
     }
+    // this.receive_message(graph, this.adj_ids[1]);
+    // this.send_message(graph, this.adj_ids[0]);
+    // this.receive_message(graph, this.adj_ids[0]);
+    // this.send_message(graph, this.adj_ids[1]);
   }
 }
 
