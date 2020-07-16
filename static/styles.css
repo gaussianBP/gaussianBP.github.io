@@ -342,4 +342,45 @@ d-contents nav>ul>li>a:hover {
 }
 
 
+.eq-grid {
+  display: grid;
+  justify-content: start;
+  grid-row-gap: 10px;
+}
+.eq-grid figcaption d-math {
+  font-size: 100%;
+}
+.eq-grid .expansion-marker-above {
+  border: 1px solid #CCC;
+  border-bottom: none;
+  height: .5em;
+  width: 100%;
+}
+.eq-grid .expansion-marker-below {
+  border: 1px solid #CCC;
+  border-top: none;
+  height: .5em;
+  width: 90%;
+}
 
+
+/* code blocks to margins */
+@media (min-width: 1600px) {
+  d-code {
+    margin-top: -10px;
+    grid-column-start: 12 !important;
+    grid-column-end: 14 !important; 
+  }
+}
+
+/* margin block */
+@media (min-width: 1600px) {
+  .margin {
+    font-size: 85%;
+    border-left: 2px solid rgb(199, 199, 199);
+    padding-left: 10px;
+    margin-top: 10px;
+    grid-column-start: 12 !important;
+    grid-column-end: 15 !important; 
+  }
+}

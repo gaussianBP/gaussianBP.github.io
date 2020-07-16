@@ -25,11 +25,12 @@
   </d-title>
 
   <d-article>
-    <d-contents>
+
+    <!-- <d-contents>
       <nav class="l-text toc figcaption">
         <h3>Contents</h3>
         <div><a href="#spatialAI">Spatial AI</a></div>
-        <div><a href="#gbp">Gaussian Belief Propagation</a></div>
+        <div><a href="#hardware">Hardware</a></div>
         <div><a href="#related">Related Work</a></div>
         <div><a href="#theory">A brief Theoretical Background</a></div>
         <div><a href="#simulations">Simulated Geometric Estimation Problems</a></div>
@@ -39,46 +40,89 @@
         </ul>
         <div><a href="#discussion">Discussion</a></div>
       </nav>
-    </d-contents>
+    </d-contents> -->
+
+
+    <p>
+      <b>Notes:</b>
+
+      1. Spatial AI
+
+      2. Hardware:
+      we have a strong feeling that algorithms which can operate with purely local computation and in-place data storage on a graph, and communicate via message passing, will fit well with coming computer hardware.
+    
+      3. Factor graph as master representation:
+          - Most accurate, non-linear, general
+          - What we need are marginals
+          - Enables dynamic computation
+          - Batch solution always possible; practical algorithms for real-time either filter or choose
+            subset of data.
+      
+      4. GBP
+    </p>
+
+    <p>
+      Visualistion ideas:
+      <ul>
+        <li>
+          Factor graph where you message scheduling is determined by the user. i.e. they can move the mouse and messages are sent from variables near the mouse.
+        </li>
+        <li>
+          Spring interpretation of GBP for linear problems.
+        </li>
+        <li>
+          GBP with multiple hierarchies?
+        </li>
+      </ul> 
+    </p>
 
     <h2 id="spatialAI">Spatial AI </h2>
-    <p>We want to build intelligent robots that can interact with their environments. An intelligent agent must be capable of spatial reasoning, which requires a component that can build representations of the environment, while also continuosly updating the representation. These representations should capture the geometry, semantic properties, physical properties and other information about the environment.  </p>
 
-    <p>To draw analogy to humans, we have grid cells ect... evidence for map building in human brains. </p>
+    <p>
+      We want to build intelligent robots that can interact with their environments. 
+      An intelligent agent must be capable of spatial reasoning, which requires a component that can build representations of the environment, while also continuosly updating the representation. 
+      These representations should capture the geometry, semantic properties, physical properties and other information about the environment. 
+    </p>
 
-    <p>We call this general spatial perception capability <i><b>Spatial AI</b></i> <d-cite key="davison2018futuremapping"></d-cite>. We believe that SLAM will evolve into Spatial AI.</p>
+    <p>
+      We call this general spatial perception capability <i><b>Spatial AI</b></i> <d-cite key="davison2018futuremapping"></d-cite>. 
+      We believe that SLAM will evolve into Spatial AI.
+    </p>
 
-    <p>What capabilities do we need: Consistency, long term persistence, abstraction and efficiency</p>
-    <p>Why? To enable intelligence! A robot will have a model of the world which is a simulation of reality based on all of its prior knowledge and ongoing experience; and be able to use it to make intelligent e.g. causal inferences about action. I believe in persistent scene representation for spatial reasoning. The foundation for higher level AI?</p>
-
-
-
-
-
-1. Spatial AI
-
-    
-
-2. Hardware:
-we have a strong feeling that algorithms which can operate with purely local computation and in-place data storage on a graph, and communicate via message passing, will fit well with coming computer hardware.
+    <p>
+      What capabilities do we need: Consistency, long term persistence, abstraction and efficiency
+    </p>
+    <p>
+      Why? To enable intelligence! 
+      A robot will have a model of the world which is a simulation of reality based on all of its prior knowledge and ongoing experience; and be able to use it to make intelligent e.g. causal inferences about action. 
+      I believe in persistent scene representation for spatial reasoning. The foundation for higher level AI?
+    </p>
 
 
 
-3. Factor graph as master representation:
-    - Most accurate, non-linear, general
-    - What we need are marginals
-    - Enables dynamic computation
-    - Batch solution always possible; practical algorithms for real-time either filter or choose
-      subset of data.
 
-4. GBP
-    
-    
     <h3 id="slam">Current Landscape of SLAM Algorithms </h2>
 
-    <p>We begin the discussion of how to build a system capable of Spatial AI by examining existing works in that direction. Note, we have not specified whether the representation should derscribe metric geometry of be abstract. Core capabilities are dense geometry and object class understanding: ElasticFusion, SemanticFusion: how to do it properly?</p>
+    <p>
+      We begin the discussion of how to build a system capable of Spatial AI by examining existing works in that direction. 
+      Note, we have not specified whether the representation should derscribe metric geometry of be abstract. 
+      Core capabilities are dense geometry and object class understanding: ElasticFusion, SemanticFusion: how to do it properly?
+    </p>
 
-    <p>What hardware is used in current practical SLAM systems? </p>
+    <p>
+      Current prototype Spatial AI systems, attempting to pro- cess this heterogeneous flow of data into complicated per- sistent representations via various estimation techniques, often have severe performance bottlenecks due to limits in the capacities of computation load, data storage or data transfer. 
+      Two lines of attack: representation and hardware.
+      SemanticFusion is very complicated and requires heterogeneous computation and a lot of data movement.
+    </p>
+
+
+    <h2 id="hardware"> Hardware</h2>
+
+    <p>
+      What hardware is used in current practical SLAM systems? 
+
+      Hardware: we need parallelism, but also distributed storage
+    </p>
 
 
     <figure class="l-body">
@@ -89,20 +133,16 @@ we have a strong feeling that algorithms which can operate with purely local com
 
 
 
-Current prototype Spatial AI systems, attempting to pro- cess this heterogeneous flow of data into complicated per- sistent representations via various estimation techniques, often have severe performance bottlenecks due to limits in the capacities of computation load, data storage or data transfer. 
-
-Two lines of attack: representation and hardware.
-
-
-SemanticFusion is very complicated and requires heterogeneous computation and a lot of data movement.
-
-Hardware: we need parallelism, but also distributed storage
 
 
 
-    Discussion of bits x milimetres metric. 
+    <p>
+      Hardware: we need parallelism, but also distributed storage
 
-    What current graph processing hardware is emerging. How would a message passing inference algorithm be well satisfy practical constraints. 
+      Discussion of bits x milimetres metric. 
+
+      What current graph processing hardware is emerging. How would a message passing inference algorithm be well satisfy practical constraints. 
+    </p>
 
     <figure class="l-body">
       <d-figure id=""></d-figure>
@@ -110,9 +150,241 @@ Hardware: we need parallelism, but also distributed storage
       </figure>
     </figure>
 
+    <h2>Factor graphs</h2>
+
+    <p>
+      We have a strong feeling that algorithms which can operate with purely local computation and in-place data storage on a graph, 
+      and communicate via message passing, will fit well with coming computer hardware.
+      With this in mind, we now explore Spatial AI problems as graphs, through the link between probability distributions and graphical models.
+    </p>  
+
+
+    <h3>Graphical Models</h3>
+
+    <p>
+      Graphical models are a graph-based representation of a probability distribution which captures compactly the structure or factorisation of the distribution.
+      They are useful as they provide a simple way to visualise the compositional structure of problems and because complex computations can be understood as graphical manipulations.
+      Graphical models are comprised of nodes that represent a random variable and edges that represent probabilistic relationships between the variables.
+      <!-- There are directed (Bayesian networks), undirected (Markov Random Fields) and factor graphs.  -->
+      They are particularly insightful for representing distributions over random variables with a sparse conditional dependence structure.
+    </p>
+
+
+    <d-math block="">
+      P(X) = \prod_i P(x_i | pa_i)  \;\;\;\; \text{where} \;\;\;\; \forall \;\;pa_i , \;\;  |pa_i| \ll |X|
+    </d-math>
+
+    <div class=margin>
+      <p>
+        <d-math>pa_i</d-math> is the set of random variables on which <d-math>x_i</d-math> depends, or the parents.
+      </p>
+      <p>
+        <d-math> |X|</d-math> denotes the cardinality of (number of elements in) the set <d-math>X</d-math>.
+      </p>
+    </div>
+
+
+    <p>
+      This sparse structure is inherent in spatial estimation problems due the property of <b>locality</b> - variables which are local (in space or time) tend to be dependent variables, while variables more separated spatially and temporally are likely to be independent.
+      Hence, graphical models are a useful tool for inspecting the structure of Spatial AI problems and designing computationally efficient inference algorithms.
+      <!-- Consider for example in bundle adjustment, the generative model for particular feature (measurement) is a function of only the pose of a single keyframe and the 3D location of the landmark. -->
+    </p>
+
+
+    <h3>Factor Graphs</h3>
+
+    <p>
+      Factor graphs, in particular, have been commonly used in Spatial AI problems <d-cite key="Dellaert:Kaess:Foundations2017"></d-cite>.  
+      Factor graphs are a bipartite graphical model that can represent the factorisation of any function <d-math>g</d-math>, for example a probability density function.
+      They consist of a set of variable nodes <d-math>X = \{ x_i\}</d-math> for the variables we want to model and a set of factor nodes <d-math>F = \{ f_i \}</d-math> each of which connect to a subset of the variables <d-math>X_i\subset X</d-math>.
+      Each factor describes a probabilistic constraint between a subset of the variables <d-math>X_i</d-math> with an arbitrary function <d-math>f_i(X_i)</d-math>.
+      In this way a factor graph represents the factorisation of a global function <d-math>g(X)</d-math> as:
+    </p>
+
+    <d-math block="">
+      g(X) = \prod_i f_i(X_i)
+    </d-math>
+
+    <p>
+      We can apply this machinery to spatial estimation problems, with the factor graph defining the posterior conditional density function.
+    </p>
+    
+    <figure class="eq-grid">
+
+      <div style="grid-row: 1; grid-column: 1;">
+        <d-math> P(X|Z) ~~~=~~~~ </d-math>
+      </div>
+      <div style="grid-row: 1; grid-column: 2;">
+        <d-math> \frac{P(Z|X) P(X)}{P(Z)}  </d-math>
+      </div>
+
+      <div style="grid-row: 2; grid-column: 1;">
+        <d-math> ~~~~~~~~~~~~~~~~~~=~~~~ </d-math>
+      </div>
+      <div style="grid-row: 2; grid-column: 2;">
+        <d-math> \frac{1}{P(Z)} \prod_i P(z_i | X_i) \prod_j P(x_j) </d-math>
+      </div>
+
+      <div style="grid-row: 3; grid-column: 1;">
+        <d-math> ~~~~~~~~~~~~~~~~~~\propto~~~~ </d-math>
+      </div>
+      <div style="grid-row: 3; grid-column: 2;">
+        <d-math>  \prod_i \psi(X_i;z_i) \prod_j \phi(x_j) </d-math>
+      </div>
+
+      <div style="grid-row: 4; grid-column: 1;">
+        <d-math> ~~~~~~~~~~~~~~~~~~\propto~~~~ </d-math>
+      </div>
+      <div style="grid-row: 4; grid-column: 2;">
+        <d-math>  \prod_i f(X_i)  </d-math>
+      </div>
+
+    </figure>
+
+    <p>
+      As the measurements <d-math>Z</d-math> are given, we have dropped <d-math>P(Z)</d-math>. 
+      The likelihood <d-math>P(Z|X)</d-math> is a function of Z given a choice of X, however with <d-math>Z</d-math> given, we are interested in all densities as a function of X.
+      Hence we define <d-math>\psi(X_i; Z)</d-math> which is the likelihood as a function of X for the given <d-math>Z</d-math>.
+      It is no longer a normalised distribution and no longer takes the Gaussian form unless the measurement function is linear.
+    </p>
+
+    <p>
+      Factor graphs as a good choice for the master representation. 
+      - Most accurate, non-linear, general
+      - What we need are marginals
+      - Enables dynamic computation
+      - Batch solution always possible; practical algorithms for real-time either filter or choose
+        subset of data.
+    </p>
+
+
+    <h2>Probabilistic estimation on Factor Graphs</h2>
+
+    <h3>Bayesian Inference in Spatial Estimation</h3>
+
+    <p>
+      In spatial estimation problems, we are interested in characterising our knowledge about a set of random variables <d-math>X</d-math> that describe a representation of the world and/or an agent, given a set of noisy sensor measurements <d-math>Z</d-math>.
+      In the language of Bayesian probability theory, this amounts to performing probabilistic inference to determine the conditional posterior density <d-math>P(X | Z)</d-math>.
+      In order to guide the inference component to learn a robust model <d-math>P(X | Z)</d-math>, we require a generative model or likelihood <d-math>P(Z | X)</d-math> which simulates sensor measurements given a configuration of <d-math>X</d-math>.
+      The generation of sensor measurements is modelled by separating the generative model into a measurement function <d-math>h(X)</d-math> and a noise model <d-math>\eta</d-math>. 
+    </p>
+
+    <d-math block="">
+      Z = h(X) + \eta
+    </d-math>
+
+    <p>
+      As the physical process that generated the sensor measurements is well understood, we can hand-design <d-math>h(X)</d-math> to simulate the measurement generation.
+      Meanwhile, the noise model captures the random noise expected in our sensor readings.
+      The generative model is related to the posterior which we want to determine by Bayes' Rule:
+    </p>
+
+    <d-math block="">
+      P(X|Z) = \frac{P(Z|X) P(X)}{P(Z)} 
+    </d-math>
+
+    <p>
+      where <d-math>P(X)</d-math> is the prior on <d-math>X</d-math> and <d-math>P(Z)</d-math> is the marginal likelihood.
+    </p>
+
+    <h3>Gaussian Distribution</h3>
+
+    <p>
+      The probability densities above can take any form, however it is commonly assumed in spatial estimation problems that all distributions are multivariate Gaussians
+      <d-footnote>Measurement distributions often have longer tails, posterior distributions may be mulitmodal. </d-footnote>.
+      Multivariate Gaussian distributions have two equivalent parametrisations: 
+      the covariance form <d-math>\mathcal{N}(\mu, \Sigma)</d-math> and the information form <d-math>\mathcal{N}^{-1}(\eta, \Lambda)</d-math>. 
+    </p>
+
+    <d-math block="">
+      \mathcal{N}(x; \mu, \Sigma) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma|}} \exp{(-\frac{1}{2} (x - \mu)^\top \Sigma^{-1} (x - \mu))}
+    </d-math>
+
+    <d-math block="">
+      \mathcal{N}^{-1}(x; \eta, \Lambda) = \frac{1}{\sqrt{(2 \pi)^k |\Lambda^{-1}|}} \exp{(-\frac{1}{2} \eta^\top \Lambda^{-1} \eta)} \exp{(-\frac{1}{2} x^\top \Lambda x + \eta^\top x)}
+    </d-math>
+
+    <p>
+      where <d-math>\Lambda = \Sigma^{-1}</d-math> and <d-math>\eta = \Sigma^{-1} \mu</d-math>.
+    </p>
+    <p>
+      The assumption of a Gaussian data / measurement distribution is implemented by choosing a Gaussian noise model for the generative model <d-math>\eta \sim \mathcal{N}(0, \Sigma_n)</d-math>.
+      This leads to a likelihood:
+    </p>
+
+    <d-math block="">
+      P(Z|X) = \mathcal{N}(Z; h(X), \Sigma_n) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma_n|}} \exp{(-\frac{1}{2} (Z - h(X))^\top \Sigma_n^{-1} (Z - h(X)))}
+    </d-math>
+
+    <p>
+      Similarly using prior knowledge we can construct Gaussian distributions for the prior and marginal likelihood. 
+      Following Bayes' Rule we can then recover the desired posterior.
+    </p>
+
+    <p>
+      Generally, it can be computationally intractable or impractical to determinine the density <d-math>P(X|Z)</d-math>.
+      Inference is answering queries about the marginal or conditional posterior distribution. 
+      Instead we commonly use logical reasoning to infer iteratively by optimisation, the most likely configuration of X that explains our observations.
+      This process is known as MAP inference and formally it estimates  <d-math>X^* = argmax_X P(X|Z)</d-math>.
+      In comparison, in GBP, we infer the marginals <d-math>P(x_i)</d-math> for each variable. 
+      As the posterior is Gaussian, the MAP solution is equal to means of the GBP solution marginal distributions.
+    </p>
+    
+    <h3> Graphical models and the Gaussian Information form </h3>
+
+    <p>
+      As we have described, in spatial estimation problems, we model the posterior as a Gaussian which is composed of a product of Gaussian factors.
+      We choose to represent the posterior Gaussian in the information form as it exposes the one-to-one relationship between graphical models and matrices.
+      A zero element in the covariance matrix means the two variables are marginally independent without observing the other variables.
+      While a zero element in the information matrix means that the variables are conditionally independent given the other variables are observed.
+      As a result, a non-zero element in the information matrix coresponds to an edge in a Markov Random Field and a factor that is adjacent to both variables in a factor graph.
+      A MRF and factor graph is a diagrammatic repesentation of the sparsity structure in the information matrix.
+
+    </p>
+
+    <p class="margin">
+      <d-math block="">
+        \Sigma_{i,j} = 0 \;\; \Longleftrightarrow \;\;
+      </d-math>
+
+      <d-math block="">
+        \Lambda_{i,j} = 0 \;\; \Longleftrightarrow \;\; P(x_i, x_j | X_{-ij}) = P(x_i | X_{-ij}) P(x_j | X_{-ij}) \;\; \Longleftrightarrow \;\; x_i \bot x_j | X_{-ij}
+      </d-math>
+
+    </p>
+
+    <figure class="l-body">
+        <figcaption>Illustration of information form and MRF? And factor graph?</figcaption>
+    </figure>
+
+
+    <h3> Inference as manipulations on a Graphical model </h3>
+
+    <p>
+      Each factor is a Gaussian distribution which we can easily convert between the covariance and information form as it is low dimensional.
+      We want to compute the marginal distribution of each random variable.
+      If we have <d-math>P(X|Z)</d-math> in the covariance form, we can read off the marginals.
+      To get the posterior in the covariance form we need to take products of the Gaussian factors.
+      Taking products of Gaussians is difficult in the covariance form, while it is easy in the information form. 
+      Therefore another approach is to compute <d-math>P(X|Z)</d-math> in the information form and then convert it to the covariance form. 
+      This requires the inversion of a large NxN matrix.
+      Distributed solutions that can be best understood as message passing on the corresponding factor graph.
+    </p>
+
+    <p>
+      Variable elimination is on the facotr graph is equivalent to operations during GN optimisation.
+    </p>
+
+    <p>
+      If we want to compute the marginal distributions, and we introduce the a new type of graphical model, factor graphs, then inference can be seen as simply message passing on a factor graph.
+      This is a purely local operation!
+    </p>
+
+
     <h2 id="gbp">Why Gaussian Belief Propagation? </h2>
 
-    <p>We argue that Gaussian Belief Propagation (GBP) is a strong algorithmic framework for the distributed, generic and incremental probabilistic estimation that we need in Spatial AI. Here we describe how GBP can be the foundation for high performance smart robots and devices which operate within the constraints of real products.</p>
+    <p>We argue that Gaussian Belief Propagation (GBP) is a strong algorithmic framework for the distributed, generic and incremental probabilistic estimation that we need in Spatial AI. 
+       Here we describe how GBP can be the foundation for high performance smart robots and devices which operate within the constraints of real products.</p>
 
     <h3>Low power requires distributed computation and storage to fit new hardware
     </h3>
@@ -128,93 +400,19 @@ Hardware: we need parallelism, but also distributed storage
     <p>-> Changing, irregular structure of measurements represented by a factor graph</p> 
     <p>-> Belief propagation: probabilistic message passing for in-place, convergent inference on a factor graph</p> 
 
-    <h3>Gaussian: most efficient way to represent probability distributions
-</h3>
-    <p>-> Gaussian Belief Propagation: messages take the form of small information vectors and matrices; all the same local operations as in Kalman Filtering or non-linear optimisation.
-</p>
-
-
-    <h2 id="theory">Factor Graphs and GBP </h2>
-
-    <h3> Setting up a problem </h3>
-
+    <h3>Gaussian: most efficient way to represent probability distributions</h3>
     <p>
-      We are generally interested in the problem of inferring some information about a set random variables <d-math>X</d-math> given a set of noisy measurements <d-math>Z</d-math>.
-      To tackle this we begin by using our using our knowledge about the world to formulate the problem probabilistically.
-      First, we have a prior expectation about the values that we expect the variables <d-math>X</d-math> to take.
-      Second, we understand the physical process that generated the measurements and have an estimate of the noise we expect in our sensor readings.
+      -> Gaussian Belief Propagation: messages take the form of small information vectors and matrices; all the same local operations as in Kalman Filtering or non-linear optimisation.
     </p>
 
-    <p>
-      We can use these prior models of the world to form a distribution <d-math>P(X | Z)</d-math> which is the process of probabilistic inference.
-      Generally, we want a property of the distribution <d-math>P(X|Z)</d-math> such as the marginals <d-math>P(x_i)</d-math> or the MAP <d-math>argmax_X P(X|Z)</d-math>.
-    </p>
+    
+    <h2 id="theory">Brief introduction to GBP </h2>
+
+    <h3> Intuitive introduction </h3>
 
     <p>
-      Ignoring the problem of data association (which variables to include in our generative model), we can use our generative model, 
-      which comprises of our measurement model <d-math>h(x,z)</d-math> and noise model <d-math>\eta \sim \mathcal{N}(0, \Sigma_n)</d-math>
+      Spring model.
     </p>
-
-    <h3> Gaussian Information form </h3>
-
-    <d-math block="">
-      \mathcal{N}(\mu, \Sigma) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma|}} \exp{(-\frac{1}{2} (x - \mu)^\top \Sigma^{-1} (x - \mu))}
-    </d-math>
-
-    <d-math block="">
-      \mathcal{N}^{-1}(\eta, \Lambda) = \frac{1}{\sqrt{(2 \pi)^k |\Lambda^{-1}|}} \exp{(-\frac{1}{2} \eta^\top \Lambda^{-1} \eta)} \exp{(-\frac{1}{2} x^\top \Lambda x + \eta^\top x)}
-    </d-math>
-
-    <p>
-      where <d-math>\Lambda = \Sigma^{-1}</d-math> and <d-math>\eta = \Sigma^{-1} \mu</d-math>.
-    </p>
-
-    <p>
-      So far we have not related this to graphical models. <d-math>P(X|Y)</d-math> is a CRF.
-      Graphical models are just a representation of a probability distribution.
-    </p>
-
-    <p>
-      The distribution is a factorised distribution: <d-math>P(X | Z) = \prod_c f_c(X_c, Z_c) </d-math>. 
-      Each factor is a Gaussian distribution which we can easily convert between the covariance and information form as it is low dimensional.
-      We want to compute the marginal distribution of each random variable.
-      If we have <d-math>P(X|Z)</d-math> in the covariance form, we can read off the marginals.
-      To get the posterior in the covariance form we need to take products of the Gaussian factors.
-      Taking products of Gaussians is difficult in the covariance form, while it is easy in the information form. 
-      Therefore another approach is to compute <d-math>P(X|Z)</d-math> in the information form and then convert it to the covariance form. 
-      This requires the inversion of a large NxN matrix.
-      Distributed solutions that can be best understood as message passing on the corresponding factor graph.
-    </p>
-
-
-    <h3> Factor Graphs and Gaussian Distributions </h3>
-
-    <p>Factor graphs are a representation of the factorization of a probability distribution function over a set of variables. A factor graph is a bipartite graph, composed of variable nodes, factor nodes and edges that link variable and factor nodes. In geometric vision, factor graphs are commonly used and each factors represents a probabilistic constraint between a subset of the variables. The topology of the factor graph encodes the factorization of the probability distribution by connecting factor nodes to variabe nodes they depend on. </p>
-
-    <p>How to relate sparsity in the information form to a graphical model.</p>
-
-    <p>What is inference in a graphical model. Why do we use the information form for GBP.</p>
-
-
-    <h3> Gaussian Belief Propagation </h3>
-
-    <p>Belief Propagation is a commonly used inference algorithm for estimating the marginal distribution for a set of variables from the joint probability distribution
-      <d-footnote>Computing marginal distribution is equivalent to MAP with Gaussians. The MAP of a distribution is the mode, which for a Gaussian is simply the mean. So the MAP is the mean of the marginal distribution. </d-footnote> : </p>
-
-    <d-math block="">
-      p(\bold{x}_i) = \int p(\bold{x}) d\bold{x}_1 ... d\bold{x}_{i-1} d\bold{x}_{i+1} ... d\bold{x}_{n}
-    </d-math>
-
-
-    <p>Belief propagation can also be understood as finding from the variational inference perspective as finding a distribution <d-math>q(x)</d-math> which minimises the <d-math>KL(q || p)</d-math> subject to two constraints.
-      <d-footnote>The two constraints are that <d-math>q(x)</d-math> is correctly normalised (<d-math>\sum_i q(x_i) = 1</d-math>) and is locally consistent (<d-math>q(x_i) = \sum_{x</d-math>). </d-footnote>. </p>
-
-    <p>Intuition of the algorithm. <a
-        href="https://github.com/distillpub/template/wiki/Annotated-Formulas">Annotated formula</a> for message passing.</p>
-
-    <p>Factors represent constraints from measurements <d-math>z</d-math> that are modeled by Gaussian measurement models <d-math>z = h(x) + \eta</d-math> where <d-math>\eta \sim N(0, \Sigma_m)</d-math> is zero centered Gaussian noise.</p>
-
-    <p>The belief at a variable node is updated by taking the product of incoming messages from adjacent factor nodes. A message represents... </p>
 
     <figure class="l-page">
       <d-figure id="gaussprod"></d-figure>
@@ -222,17 +420,177 @@ Hardware: we need parallelism, but also distributed storage
       </figure>
     </figure>
 
-    <p>Relinearisation. Can we visualise the affect that relinearisation has on a message. i.e. it turns a non Gaussian factor distribution into a Gaussian by moment matching. </p>
+
+    <h3> Technical introduction </h3>
+
+    <p>Belief Propagation is a commonly used inference algorithm
+      <d-footnote>It is an exact inference algorithm for tree graphs.</d-footnote>
+      for estimating the marginal distribution for a set of variables from the joint probability distribution.
+      <d-footnote>Computing marginal distribution is equivalent to MAP with Gaussians. The MAP of a distribution is the mode, which for a Gaussian is simply the mean. So the MAP is the mean of the marginal distribution. </d-footnote> : </p>
+
+    <d-math block="">
+      p(\bold{x}_i) = \int p(\bold{x}) d\bold{x}_1 ... d\bold{x}_{i-1} d\bold{x}_{i+1} ... d\bold{x}_{n}
+    </d-math>
+
+    <p>
+      It operates by iteratively sending messages between adjacent variables in the factor graph. 
+      Messages are computed using the following equations 
+      <d-footnote>See <d-cite key="Bishop:Book2006"></d-cite> or <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> for a detailled derivation.</d-footnote>. 
+    </p>
 
 
 
-    <p> Flexibility in message passing schedule. </p>
+    <figure class="eq-grid">
 
-    <p>Other visualistion ideas: 
-        - Factor graph where you message scheduling is determined by the user. i.e. they can move the mouse and messages are sent from variables near the mouse.
-        - Spring interpretation of GBP for linear problems.
-        - GBP with multiple hierarchies?
-      </p>
+      <div style="grid-row: 1; grid-column: 1;">
+        <d-math> ~~~~~\mu_{f_j \rightarrow x_i} </d-math>
+      </div>
+      <div style="grid-row: 1; grid-column: 2;">
+        <d-math>  ~=~~~ </d-math>
+      </div>
+      <div style="grid-row: 1; grid-column: 3;">
+        <d-math>  ~~~~~~~~\sum_{X_j \setminus x_i} </d-math>
+      </div>
+      <div style="grid-row: 1; grid-column: 4;">
+        <d-math>  ~~~~f(X_j)~~~~~~ </d-math>
+      </div>
+      <div style="grid-row: 1; grid-column: 5;">
+        <d-math> ~~~~\prod_{k, x_k \in n(f_j) \setminus x_i}~~~ </d-math>
+      </div>
+
+      <div style="grid-row: 1; grid-column: 6;">
+        <d-math> ~~~\mu_{x_k \rightarrow f_j} </d-math>
+      </div>
+
+      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 1 / span 1; "></div>
+      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 3 / span 1; "></div>
+      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 4 / span 1; "></div>
+      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 5 / span 1; "></div>
+      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 6 / span 1; "></div>
+  
+      <figcaption style="grid-row: 3; grid-column: 1; max-width:110px;">
+        Factor to variable message
+      </figcaption>
+      <figcaption style="grid-row: 3; grid-column: 3; max-width:145px;">
+        Marginalise over all other adjacent variables
+      </figcaption>
+      <figcaption style="grid-row: 3; grid-column: 4; max-width:100px;">
+        Factor potential
+      </figcaption>
+      <figcaption style="grid-row: 3; grid-column: 5; max-width:130px;">
+        Product over all other adjacent variables
+      </figcaption>
+      <figcaption style="grid-row: 3; grid-column: 6; max-width:85px;">
+        Message from variable <d-math>x_k</d-math><br>
+      </figcaption>
+
+
+      <div style="grid-row: 4; grid-column: 1;">
+        <d-math> ~~~~~\mu_{x_i \rightarrow f_j} </d-math>
+      </div>
+      <div style="grid-row: 4; grid-column: 2;">
+        <d-math>  ~=~~~ </d-math>
+      </div>
+      <div style="grid-row: 4; grid-column: 3;">
+        <d-math> ~~~~\prod_{s, f_s \in n(x_i) \setminus f_j}~~~ </d-math>
+      </div>
+
+      <div style="grid-row: 4; grid-column: 4;">
+        <d-math> ~~~\mu_{f_s \rightarrow x_i} </d-math>
+      </div>
+
+      <div class="expansion-marker-below" style="grid-row: 5; grid-column: 1 / span 1; "></div>
+      <div class="expansion-marker-below" style="grid-row: 5; grid-column: 3 / span 1; "></div>
+      <div class="expansion-marker-below" style="grid-row: 5; grid-column: 4 / span 1; "></div>
+  
+      <figcaption style="grid-row: 6; grid-column: 1; max-width:110px;">
+        Variable to factor message
+      </figcaption>
+      <figcaption style="grid-row: 6; grid-column: 3; max-width:140px;">
+        Product over all other adjacent factors
+      </figcaption>
+      <figcaption style="grid-row: 6; grid-column: 4; max-width:85px;">
+        Message from factor <d-math>f_s</d-math><br>
+      </figcaption>
+
+    </figure>
+
+    <figure class="margin">
+      <p> <d-math>X_j=n(f_j)</d-math> is the set of variables adjacent to factor <d-math>f_j</d-math></p>
+      <p> The summation becomes an integral for continuous variables </p>
+    </figure>
+
+    <p>
+      On convergence the marginal distribution is evaluated as follows:
+    </p>
+
+    <figure class="eq-grid">
+
+      <div style="grid-row: 1; grid-column: 1;">
+        <d-math> ~~~~p(x_i)~~ </d-math>
+      </div>
+      <div style="grid-row: 1; grid-column: 2;">
+        <d-math> ~~~=~ </d-math>
+      </div>
+      <div style="grid-row: 1; grid-column: 3;">
+        <d-math> ~~~\prod_{s \in n(x_i)}~~~~~ </d-math>
+      </div>
+      <div style="grid-row: 1; grid-column: 4;">
+        <d-math> ~~\mu_{f_s \rightarrow x_i} </d-math>
+      </div>
+
+      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 1 / span 1; "></div>
+      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 3 / span 1; "></div>
+      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 4 / span 1; "></div>
+  
+
+      <figcaption style="grid-row: 3; grid-column: 1; max-width:85px;">
+        Marginal distribution
+      </figcaption>
+      <figcaption style="grid-row: 3; grid-column: 3; max-width:100px;">
+        Product over adjacent factors
+      </figcaption>
+      <figcaption style="grid-row: 3; grid-column: 4; max-width:85px;">
+        Message from factor <d-math>f_s</d-math><br>
+      </figcaption>
+
+    </figure>
+
+
+    <p>
+      Works the same with Gaussians - all variables are Gaussian distributions, as are messages and factors.
+    </p>
+
+    <p>
+      Loopy belief propagation is an approximate inference algorithm. 
+    </p>
+
+    <h3>Other comments</h3>
+
+    <p>
+      <ul>
+        <li>
+          <b>Non-linear measurement functions.</b> 
+          Relinearisation. 
+          Can we visualise the affect that relinearisation has on a message. 
+          i.e. it turns a non Gaussian factor distribution into a Gaussian by moment matching.
+        </li>
+
+        <li>
+          <b>Message passing schedule.</b> 
+          On trees, convergence is acheived in one sweep from root to leaves and back up. 
+          On loopy graphs there are various choices for scheduling messages.
+          Synchronous message passing along all edges is a popular choice, while other heuristics based on information theory may also converge quickly while reducing computation.
+        </li>
+
+        <li>
+          <b>Convergence.</b>
+          Like other optimisation algorithms it may not always find the global minima.
+          Several heuristics just as damping can help <d-cite key="koller2009PGMs"></d-cite>.
+        </li>
+      </ul>
+
+    </p>
 
 
     <h2 id="simulations">Simulated geometric estimation problems </h2>
@@ -293,6 +651,21 @@ Hardware: we need parallelism, but also distributed storage
     
     <p> Bundle Adjustment <d-cite key="ortiz2020gbp"></d-cite></p>
 
+
+    <h2> Incorporating learning</h2>
+    <p> 
+      We have a known causal generative model, this guides the encoder (GBP) to learn robust models of X. 
+      Inference is inverse modelling, where we try to infer some quantities that explain the observations. It is an iterative encoder. 
+      Probabilistic inference, akin to an encoder network, estimates <d-math>P(X|Z)</d-math>
+      GBP is a causal / physical generative model that models the conditional probability <d-math>P(X|Z)</d-math>. 
+      We can use these models for a robot trajectory or a heightmap fitting problem.
+      However modeling the generative process for something like an image is more difficult, we must model hierarchies and self similarity.
+      The graphical model for something like an image is going to be more densely connected, so using graphical models becomes less illustrative. 
+
+      They identify that GBP may fail if we do not know the full data generation process or if we have loopy graphs.
+      'Neural augmentation', embedding a generative causal model into the structure of a NN <d-cite key="kuckWelling2020NEBP"></d-cite>. 
+      This is the idea of neural enhanced BP.
+    </p>
 
   </d-article>
 
