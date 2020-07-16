@@ -6,7 +6,6 @@ var offset_distance_tolerance = 10;
 
 export class FactorGraph {
   constructor() {
-    this.last_node = null;
     this.var_nodes = [];
     this.factor_nodes = [];
   }
@@ -26,7 +25,7 @@ export class FactorGraph {
     }
   }
 
-  find_connection(node1_id, node2_id) {
+  find_edge(node1_id, node2_id) {
     node1_id = parseInt(node1_id);
     node2_id = parseInt(node2_id);
     if (this.find_node(node1_id).adj_ids.includes(node2_id) &&
@@ -45,8 +44,8 @@ export class FactorGraph {
       return null;
     }
     for (var i = 0; i < this.factor_nodes.length; i++) {
-      if (this.find_connection(this.factor_nodes[i].id, node1_id) &&
-        this.find_connection(this.factor_nodes[i].id, node2_id)) {
+      if (this.find_edge(this.factor_nodes[i].id, node1_id) &&
+        this.find_edge(this.factor_nodes[i].id, node2_id)) {
         return this.factor_nodes[i]
       }
     }
@@ -97,13 +96,6 @@ export class FactorGraph {
     var ids = this.var_nodes.map(var_node => var_node.id)
       .concat(this.factor_nodes.map(factor_node => factor_node.id));  // Collect all ids
     ids = ids.sort((a, b) => a - b);  // Sort all ids by ascending order
-    if (ids) {
-      this.last_node = this.find_node(ids[ids.length - 1]);
-    }
-    else {
-      // If there is no node, remove last_node
-      this.last_node = null;
-    }
     var id_diff = new Array(ids[ids.length - 1]);  // Create array with length matching the largest id
     var running_sum;  // Use running sum to avoid nested loops
     for (var i = 0; i < ids.length; i++) {
@@ -135,27 +127,28 @@ export class FactorGraph {
     for (var i = 0; i < this.var_nodes.length; i++) {
       var var_node = this.var_nodes[i]
       var values = var_node.belief.getCovEllipse();
-      var_node.bp_ellipse.cx = var_node.belief.getMean().get(0, 0);
-      var_node.bp_ellipse.cy = var_node.belief.getMean().get(1, 0);
-      var_node.bp_ellipse.rx = Math.sqrt(values[0][0]);
-      var_node.bp_ellipse.ry = Math.sqrt(values[0][1]);
-      var_node.bp_ellipse.angle = values[1];
+      var_node.belief_ellipse.cx = var_node.belief.getMean().get(0, 0);
+      var_node.belief_ellipse.cy = var_node.belief.getMean().get(1, 0);
+      var_node.belief_ellipse.rx = Math.sqrt(values[0][0]);
+      var_node.belief_ellipse.ry = Math.sqrt(values[0][1]);
+      var_node.belief_ellipse.angle = values[1];
     }
   }
 
   update_factor_node_location() {
     for (var i = 0; i < this.factor_nodes.length; i++) {
+      var factor_node = this.factor_nodes[i]
       var x = 0;
       var y = 0;
-      for (var j = 0; j < this.factor_nodes[i].adj_ids.length; j++) {
-        var adj_var_node = this.find_node(this.factor_nodes[i].adj_ids[j]);
+      for (var j = 0; j < factor_node.adj_ids.length; j++) {
+        var adj_var_node = this.find_node(factor_node.adj_ids[j]);
         x += adj_var_node.x;
         y += adj_var_node.y;
       }
-      x /= this.factor_nodes[i].adj_ids.length;
-      y /= this.factor_nodes[i].adj_ids.length;
-      this.factor_nodes[i].x = x;
-      this.factor_nodes[i].y = y;
+      x /= factor_node.adj_ids.length;
+      y /= factor_node.adj_ids.length;
+      factor_node.x = x;
+      factor_node.y = y;
     }
   }
 
@@ -278,7 +271,7 @@ export class VariableNode {
     this.adj_ids = [];
     this.x = x;
     this.y = y;
-    this.bp_ellipse = {
+    this.belief_ellipse = {
       cx: 0,
       cy: 0,
       rx: 0,
@@ -301,8 +294,9 @@ export class VariableNode {
     // console.log('var node', this.id, 'receive message');
     for (var i = 0; i < this.adj_ids.length; i++) {
       if (!node_id || node_id == this.adj_ids[i]) {
-        var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
-        this.belief.product(graph.find_node(this.adj_ids[i]).messages[idx])
+        var factor_node = graph.find_node(this.adj_ids[i]);
+        var idx = factor_node.adj_ids.indexOf(this.id);
+        this.belief.product(factor_node.messages[idx]);
       }
     }
   }
@@ -312,8 +306,9 @@ export class VariableNode {
     // console.log('var node', this.id, 'send message');
     for (var i = 0; i < this.adj_ids.length; i++) {
       if (!node_id || node_id == this.adj_ids[i]) {
-        var idx = graph.find_node(this.adj_ids[i]).adj_ids.indexOf(this.id);
-        graph.find_node(this.adj_ids[i]).adj_beliefs[idx] = this.belief;
+        var factor_node = graph.find_node(this.adj_ids[i]);
+        var idx = factor_node.adj_ids.indexOf(this.id);
+        factor_node.adj_beliefs[idx] = this.belief;
       }
     }
   }
@@ -336,9 +331,9 @@ export class LinearFactor {
     // To compute factor when factor is combination of many factor types (e.g. measurement and smoothness)
     this.jacs = [];
     this.meas = [];
+    this.meas_noise = [];
     this.lambdas = [];
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
-    this.incoming_factor = this.factor;
     this.incoming_id = null;
     this.messages = [];
     this.eta_damping = 0.;
@@ -398,10 +393,6 @@ export class LinearFactor {
       message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
       this.messages[i] = message;
     }
-    // this.receive_message(graph, this.adj_ids[1]);
-    // this.send_message(graph, this.adj_ids[0]);
-    // this.receive_message(graph, this.adj_ids[0]);
-    // this.send_message(graph, this.adj_ids[1]);
   }
 }
 
