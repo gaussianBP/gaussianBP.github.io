@@ -51,6 +51,14 @@
       2. Hardware:
       we have a strong feeling that algorithms which can operate with purely local computation and in-place data storage on a graph, and communicate via message passing, will fit well with coming computer hardware.
     
+      3. Inference in Spatial AI and Factor graphs
+        - Bayesian inference in Spatial AI
+        - Graphical models
+        - Factor graphs
+        - Factor graphs as master rep
+        - Gaussians
+        - Gaussian posterior, sparsity relationship between inf matrix and graph
+
       3. Factor graph as master representation:
           - Most accurate, non-linear, general
           - What we need are marginals
@@ -66,6 +74,7 @@
       4. GBP
         - Intuitiion
         - Equations
+      
     </p>
 
     <p>
@@ -86,8 +95,9 @@
     <h2 id="spatialAI">Spatial AI </h2>
 
     <p>
-      We want to build intelligent robots that can interact with their environments. 
-      An intelligent agent must be capable of spatial reasoning, which requires a component that can build representations of the environment, while also continuosly updating the representation. 
+      We want to build robots that can understand and interact intelligently with their environments. 
+      <i>Spatial AI</i> is the core capability of real-time vision-driven scene understanding that enables this type of behaviour within the constraints of practical physical systems.
+      It is broadly the task of incremental estimation in which a persistent scene model is constructed and continually updated using data from a variety of sources.      
       These representations should capture the geometry, semantic properties, physical properties and other information about the environment. 
     </p>
 
@@ -105,14 +115,10 @@
       I believe in persistent scene representation for spatial reasoning. The foundation for higher level AI?
     </p>
 
-
-
-
     <h3 id="slam">Current Landscape of SLAM Algorithms </h2>
 
     <p>
       We begin the discussion of how to build a system capable of Spatial AI by examining existing works in that direction. 
-      Note, we have not specified whether the representation should derscribe metric geometry of be abstract. 
       Core capabilities are dense geometry and object class understanding: ElasticFusion, SemanticFusion: how to do it properly?
     </p>
 
@@ -122,15 +128,23 @@
       SemanticFusion is very complicated and requires heterogeneous computation and a lot of data movement.
     </p>
 
+    <p>
+      Paragraph laying out structure of the remainder of the article.
+    </p>
 
     <h2 id="hardware"> Hardware</h2>
 
     <p>
-      What hardware is used in current practical SLAM systems? 
-
-      Hardware: we need parallelism, but also distributed storage
+      Identify properties of performant system: high parallelism, but also distributed storage to keep data close to compute and reduce bits x mm.
     </p>
 
+    <p>
+      What hardware is used in current practical SLAM systems? 
+      GPUs not well suited for computation in which we are constantly checking new measurements with stored model.
+      They are generally used to speed up specific module. 
+      Systems rely on large amounts of high bandwidth data transfer. 
+      Cloud compute also used somewhat in industry as well as custom hardware.
+    </p>
 
     <figure class="l-body">
       <d-figure id=""></d-figure>
@@ -138,17 +152,12 @@
       </figure>
     </figure>
 
-
-
-
-
-
     <p>
-      Hardware: we need parallelism, but also distributed storage
-
-      Discussion of bits x milimetres metric. 
-
-      What current graph processing hardware is emerging. How would a message passing inference algorithm be well satisfy practical constraints. 
+      Now hardware is being designed specifically for AI and even Spatial AI.
+      Graph processors, such as the Graphcore's IPU make general design choices towards enabling the kind of local graph based processing required for many efficient AI applications.
+      Algorithms which involve local compute and minimise data transfer will be efficient on this new wave of processing hardware.
+      These algorithms would have a local message passing character on a graph. 
+      The figure below illustrates the reduced data flow and increased parallelism that an algorithm based around local message passing can acheive on a graph processor.
     </p>
 
     <figure class="l-body">
@@ -157,23 +166,22 @@
       </figure>
     </figure>
 
-    <h2>Factor graphs</h2>
+    <h2>Factor graphs and Spatial AI</h2>
 
     <p>
-      We have a strong feeling that algorithms which can operate with purely local computation and in-place data storage on a graph, 
+      As we have described, our proposition is that algorithms which can operate with purely local computation and in-place data storage on a graph, 
       and communicate via message passing, will fit well with coming computer hardware.
-      With this in mind, we now explore Spatial AI problems as graphs, through the link between probability distributions and graphical models.
+      With this in mind, we now explore the graphs involved in Spatial AI problems through the link between probability distributions and graphical models.
     </p>  
-
 
     <h3>Graphical Models</h3>
 
     <p>
       Graphical models are a graph-based representation of a probability distribution which captures compactly the structure or factorisation of the distribution.
-      They are useful as they provide a simple way to visualise the compositional structure of problems and because complex computations can be understood as graphical manipulations.
-      Graphical models are comprised of nodes that represent a random variable and edges that represent probabilistic relationships between the variables.
+      They are useful as graphs provide a simple way to visualise the compositional structure of problems and additionally graphical manipulations provide a basis for understanding complex computations in these problems.
+      Graphical models are comprised of nodes that represent a random variable (or subset of random variables) and edges that represent probabilistic relationships between the variables.
       <!-- There are directed (Bayesian networks), undirected (Markov Random Fields) and factor graphs.  -->
-      They are particularly insightful for representing distributions over random variables with a sparse conditional dependence structure.
+      They are particularly insightful when representing distributions over random variables with a sparse conditional dependence structure.
     </p>
 
 
@@ -197,15 +205,83 @@
       <!-- Consider for example in bundle adjustment, the generative model for particular feature (measurement) is a function of only the pose of a single keyframe and the 3D location of the landmark. -->
     </p>
 
+    <p>
+      We now briefly discuss spatial estimation problems using Bayesian probability theory to understand the probability distributions we are interested in modelling graphically.
+    </p>
+
+    <h3>Bayesian Inference and Gaussian distributions</h3>
+
+    <p>
+      Before presenting the graphical representation of spatial estimation problems, we first discuss the probability distributions involved using Bayesian probability theory.
+      Spatial estimation problems invovle the probabilistic fusion of multiple sources of uncertain data.
+      More concretely, we are interested in characterising our knowledge about a set of random variables <d-math>X</d-math> that describe a representation of the world and/or an agent, given a set of noisy sensor measurements <d-math>Z</d-math>
+      <d-footnote>To give an example, in the problem of pose graph optimisation, <d-math>X</d-math> are the poses and <d-math>Z</d-math> are the relative pose measurements. </d-footnote>.
+      In the language of Bayesian probability theory, this amounts to performing probabilistic inference to determine the conditional posterior density <d-math>P(X | Z)</d-math>.
+      In order to guide the inference component to learn a robust model <d-math>P(X | Z)</d-math>, we require a generative model or likelihood <d-math>P(Z | X)</d-math> which simulates sensor measurements given a configuration of <d-math>X</d-math>.
+      The generation of sensor measurements is modelled by separating the generative model into a measurement function <d-math>h(X)</d-math> and a noise model <d-math>\eta</d-math>. 
+    </p>
+
+    <d-math block="">
+      Z = h(X) + \eta
+    </d-math>
+
+    <p>
+      For most spatial estimation problems, the physical process that generated the sensor measurements is well understood. We can therefore hand-design <d-math>h(X)</d-math> to simulate the measurement generation.
+      Meanwhile, the noise model captures the random noise expected in our sensor readings.
+      The generative model (likelihood) is related to the posterior which we want to estimate by Bayes' Rule:
+    </p>
+
+    <d-math block="">
+      P(X|Z) = \frac{P(Z|X)P(X)}{P(Z)} 
+    </d-math>
+
+    <p>
+      where <d-math>P(X)</d-math> is the prior on <d-math>X</d-math> and <d-math>P(Z)</d-math> is the marginal likelihood.
+    </p>
+
+    <p>
+      The probability densities above can take any form, however it is commonly assumed in spatial estimation problems that all distributions are multivariate Gaussians
+      <d-footnote>Measurement distributions often have longer tails, posterior distributions may be mulitmodal. </d-footnote>.
+      Multivariate Gaussian distributions have two equivalent parametrisations: 
+      the covariance form <d-math>\mathcal{N}(\mu, \Sigma)</d-math> and the information form <d-math>\mathcal{N}^{-1}(\eta, \Lambda)</d-math>. 
+    </p>
+
+    <d-math block="">
+      \mathcal{N}(x; \mu, \Sigma) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma|}} \exp{(-\frac{1}{2} (x - \mu)^\top \Sigma^{-1} (x - \mu))}
+    </d-math>
+
+    <d-math block="">
+      \mathcal{N}^{-1}(x; \eta, \Lambda) = \frac{1}{\sqrt{(2 \pi)^k |\Lambda^{-1}|}} \exp{(-\frac{1}{2} \eta^\top \Lambda^{-1} \eta)} \exp{(-\frac{1}{2} x^\top \Lambda x + \eta^\top x)}
+    </d-math>
+
+    <p>
+      where <d-math>\Lambda = \Sigma^{-1}</d-math> and <d-math>\eta = \Sigma^{-1} \mu</d-math>.
+    </p>
+    <p>
+      The assumption of a Gaussian measurement distribution is implemented by choosing a Gaussian noise model for the generative model <d-math>\eta \sim \mathcal{N}(0, \Sigma_n)</d-math>.
+      This leads to a likelihood:
+    </p>
+
+    <d-math block="">
+      P(Z|X) = \mathcal{N}(Z; h(X), \Sigma_n) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma_n|}} \exp{(-\frac{1}{2} (Z - h(X))^\top \Sigma_n^{-1} (Z - h(X)))}
+    </d-math>
+
+    <p>
+      Similarly using prior knowledge we can construct Gaussian distributions for the prior and marginal likelihood. 
+      Following Bayes' Rule we can then recover the desired posterior.
+    </p>
+
+    <p>
+      Now that we have established that we are modelling the posterior density <d-math>P(X|Z)</d-math>, we will discuss factor graphs as the graphical model of choice for representing this distribution.
+    </p>
 
     <h3>Factor Graphs</h3>
 
     <p>
-      Factor graphs, in particular, have been commonly used in Spatial AI problems <d-cite key="Dellaert:Kaess:Foundations2017"></d-cite>.  
-      Factor graphs are a bipartite graphical model that can represent the factorisation of any function <d-math>g</d-math>, for example a probability density function.
-      They consist of a set of variable nodes <d-math>X = \{ x_i\}</d-math> for the variables we want to model and a set of factor nodes <d-math>F = \{ f_i \}</d-math> each of which connect to a subset of the variables <d-math>X_i\subset X</d-math>.
+      Factor graphs are a bipartitie graphical model that have been commonly used to represent the posterior density in Spatial AI problems <d-cite key="Dellaert:Kaess:Foundations2017"></d-cite>.  
+      They consist of a set of variable nodes <d-math>X = \{ x_i\}</d-math> for the numerical parameters of the system we want to model and a set of factor nodes <d-math>F = \{ f_i \}</d-math> each of which connect to a subset of the variable nodes <d-math>X_i\subset X</d-math>.
       Each factor describes a probabilistic constraint between a subset of the variables <d-math>X_i</d-math> with an arbitrary function <d-math>f_i(X_i)</d-math>.
-      In this way a factor graph represents the factorisation of a global function <d-math>g(X)</d-math> as:
+      In this way a factor graph visually represents the factorisation of a global function <d-math>g(X)</d-math> as:
     </p>
 
     <d-math block="">
@@ -213,7 +289,7 @@
     </d-math>
 
     <p>
-      We can apply this machinery to spatial estimation problems, with the factor graph defining the posterior conditional density function.
+      By identifying the factorisation of the posterior density function we can use factor graphs to represent spatial estimation problems.
     </p>
     
     <figure class="eq-grid">
@@ -236,7 +312,7 @@
         <d-math> ~~~~~~~~~~~~~~~~~~\propto~~~~ </d-math>
       </div>
       <div style="grid-row: 3; grid-column: 2;">
-        <d-math>  \prod_i \psi(X_i;z_i) \prod_j \phi(x_j) </d-math>
+        <d-math>  \prod_i \psi(X_i;z_i) \prod_j P(x_j) </d-math>
       </div>
 
       <div style="grid-row: 4; grid-column: 1;">
@@ -249,98 +325,37 @@
     </figure>
 
     <p>
-      As the measurements <d-math>Z</d-math> are given, we have dropped <d-math>P(Z)</d-math>. 
+      In going from the first to the second line, we assume that all measurements are independent and that the prior distribution of each variable is independent.
+      As the measurements <d-math>Z</d-math> are given, we then drop <d-math>P(Z)</d-math>. 
       The likelihood <d-math>P(Z|X)</d-math> is a function of Z given a choice of X, however with <d-math>Z</d-math> given, we are interested in all densities as a function of X.
-      Hence we define <d-math>\psi(X_i; Z)</d-math> which is the likelihood as a function of X for the given <d-math>Z</d-math>.
-      It is no longer a normalised distribution and no longer takes the Gaussian form unless the measurement function is linear.
+      Hence we define <d-math>\psi(X_i; z_i)</d-math> which is the likelihood as a function of X for the given measurements <d-math>Z</d-math>
+      <d-footnote>
+        Note that <d-math>\psi(X_i; z_i)</d-math> is not a normalised distribution. 
+        In addition if <d-math>P(z_i | X_i)</d-math> is a Gaussian then <d-math>\psi(X_i; z_i)</d-math> is only Gaussian if the measurement function <d-math>h(X_i)</d-math> is linear.
+      </d-footnote>.
+      The final line illustrates that a function proportional to the posterior can be factorised into two types of factors: measurement factors and prior factors
+      <d-footnote>The prior factors are often uniform distributions in which case they are independent of the variable and so can be dropped into the proportionality constant.</d-footnote>.
+      Here we display an example of a factor graphs for ...
     </p>
 
-    <p>
-      Factor graphs as a good choice for the master representation. 
-      - Most accurate, non-linear, general
-      - What we need are marginals
-      - Enables dynamic computation
-      - Batch solution always possible; practical algorithms for real-time either filter or choose
-        subset of data.
-    </p>
+    <figure class="l-page side">
+      <img src="../static/diagrams/surfacegraph.svg"></img>
+      <figcaption style="bottom: 0px;">Factor graph for...</figcaption>
+    </figure>
 
 
-    <h2>Probabilistic estimation on Factor Graphs</h2>
-
-    <h3>Bayesian Inference in Spatial Estimation</h3>
-
-    <p>
-      In spatial estimation problems, we are interested in characterising our knowledge about a set of random variables <d-math>X</d-math> that describe a representation of the world and/or an agent, given a set of noisy sensor measurements <d-math>Z</d-math>.
-      In the language of Bayesian probability theory, this amounts to performing probabilistic inference to determine the conditional posterior density <d-math>P(X | Z)</d-math>.
-      In order to guide the inference component to learn a robust model <d-math>P(X | Z)</d-math>, we require a generative model or likelihood <d-math>P(Z | X)</d-math> which simulates sensor measurements given a configuration of <d-math>X</d-math>.
-      The generation of sensor measurements is modelled by separating the generative model into a measurement function <d-math>h(X)</d-math> and a noise model <d-math>\eta</d-math>. 
-    </p>
-
-    <d-math block="">
-      Z = h(X) + \eta
-    </d-math>
-
-    <p>
-      As the physical process that generated the sensor measurements is well understood, we can hand-design <d-math>h(X)</d-math> to simulate the measurement generation.
-      Meanwhile, the noise model captures the random noise expected in our sensor readings.
-      The generative model is related to the posterior which we want to determine by Bayes' Rule:
-    </p>
-
-    <d-math block="">
-      P(X|Z) = \frac{P(Z|X) P(X)}{P(Z)} 
-    </d-math>
-
-    <p>
-      where <d-math>P(X)</d-math> is the prior on <d-math>X</d-math> and <d-math>P(Z)</d-math> is the marginal likelihood.
-    </p>
-
-    <h3>Gaussian Distribution</h3>
-
-    <p>
-      The probability densities above can take any form, however it is commonly assumed in spatial estimation problems that all distributions are multivariate Gaussians
-      <d-footnote>Measurement distributions often have longer tails, posterior distributions may be mulitmodal. </d-footnote>.
-      Multivariate Gaussian distributions have two equivalent parametrisations: 
-      the covariance form <d-math>\mathcal{N}(\mu, \Sigma)</d-math> and the information form <d-math>\mathcal{N}^{-1}(\eta, \Lambda)</d-math>. 
-    </p>
-
-    <d-math block="">
-      \mathcal{N}(x; \mu, \Sigma) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma|}} \exp{(-\frac{1}{2} (x - \mu)^\top \Sigma^{-1} (x - \mu))}
-    </d-math>
-
-    <d-math block="">
-      \mathcal{N}^{-1}(x; \eta, \Lambda) = \frac{1}{\sqrt{(2 \pi)^k |\Lambda^{-1}|}} \exp{(-\frac{1}{2} \eta^\top \Lambda^{-1} \eta)} \exp{(-\frac{1}{2} x^\top \Lambda x + \eta^\top x)}
-    </d-math>
-
-    <p>
-      where <d-math>\Lambda = \Sigma^{-1}</d-math> and <d-math>\eta = \Sigma^{-1} \mu</d-math>.
-    </p>
-    <p>
-      The assumption of a Gaussian data / measurement distribution is implemented by choosing a Gaussian noise model for the generative model <d-math>\eta \sim \mathcal{N}(0, \Sigma_n)</d-math>.
-      This leads to a likelihood:
-    </p>
-
-    <d-math block="">
-      P(Z|X) = \mathcal{N}(Z; h(X), \Sigma_n) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma_n|}} \exp{(-\frac{1}{2} (Z - h(X))^\top \Sigma_n^{-1} (Z - h(X)))}
-    </d-math>
-
-    <p>
-      Similarly using prior knowledge we can construct Gaussian distributions for the prior and marginal likelihood. 
-      Following Bayes' Rule we can then recover the desired posterior.
-    </p>
-
-    <p>
-      Generally, it can be computationally intractable or impractical to determinine the density <d-math>P(X|Z)</d-math>.
-      Inference is answering queries about the marginal or conditional posterior distribution. 
-      Instead we commonly use logical reasoning to infer iteratively by optimisation, the most likely configuration of X that explains our observations.
-      This process is known as MAP inference and formally it estimates  <d-math>X^* = argmax_X P(X|Z)</d-math>.
-      In comparison, in GBP, we infer the marginals <d-math>P(x_i)</d-math> for each variable. 
-      As the posterior is Gaussian, the MAP solution is equal to means of the GBP solution marginal distributions.
-    </p>
+    <h2>Factor Graphs and Probabilistic Inference</h2>
     
-    <h3> Graphical models and the Gaussian Information form </h3>
-
     <p>
-      As we have described, in spatial estimation problems, we model the posterior as a Gaussian which is composed of a product of Gaussian factors.
+      Generally, it can be computationally intractable or impractical to determinine the full normalised posterior density <d-math>P(X|Z)</d-math>.
+      Instead, we are usually interested in answering queries about the posterior such as finding the mode or the marginal distributions for each variable.
+      We will now discuss various inference techniques and use factor graphs to relate the techniques to our goal of finding an inference algorithm with a message passing character.
+    </p>
+
+    <h3>Manipulations on factor graphs</h3>
+
+<!-- 
+    <p>
       We choose to represent the posterior Gaussian in the information form as it exposes the one-to-one relationship between graphical models and matrices.
       A zero element in the covariance matrix means the two variables are marginally independent without observing the other variables.
       While a zero element in the information matrix means that the variables are conditionally independent given the other variables are observed.
@@ -362,36 +377,66 @@
 
     <figure class="l-body">
         <figcaption>Illustration of information form and MRF? And factor graph?</figcaption>
-    </figure>
+    </figure> -->
 
 
-    <h3> Inference as manipulations on a Graphical model </h3>
 
     <p>
-      Each factor is a Gaussian distribution which we can easily convert between the covariance and information form as it is low dimensional.
-      We want to compute the marginal distribution of each random variable.
-      If we have <d-math>P(X|Z)</d-math> in the covariance form, we can read off the marginals.
-      To get the posterior in the covariance form we need to take products of the Gaussian factors.
-      Taking products of Gaussians is difficult in the covariance form, while it is easy in the information form. 
-      Therefore another approach is to compute <d-math>P(X|Z)</d-math> in the information form and then convert it to the covariance form. 
-      This requires the inversion of a large NxN matrix.
-      Distributed solutions that can be best understood as message passing on the corresponding factor graph.
+      Solving to find the mode of a Gaussian posterior is equivalent to least squares minimisation which involves solving a linear system (iteratively for a non-linear measurement function).
+      The linear system is solved by inverting the information matrix.
+      The sparsity structure of the information matrix is related to the factorisation of the posterior.
+      This solution method can be understood graphically as collecting all of the factors globally before performing a global inversion.
     </p>
 
     <p>
-      Variable elimination is on the facotr graph is equivalent to operations during GN optimisation.
+      Many years of research has investigated how to exploit the sparsity in the information matrix to speed up the linear solver.
+      All practical systems make assumptions about the structure of the factor graph.
+      Some examples...
+      Variable elimination
     </p>
 
     <p>
-      If we want to compute the marginal distributions, and we introduce the a new type of graphical model, factor graphs, then inference can be seen as simply message passing on a factor graph.
-      This is a purely local operation!
+      iSAM is moving in the right direction and we share the vision of the factor graph as the master representation. 
+      We believe that as we move towards solving more diverse spatial AI problems with more heterogeneous factors, we need to move away from making any assumptions.
+      This leads us towards algorithms with local compute which also fit in with the characteristics we identified for new graph processing hardware. 
     </p>
 
+    <p>
+      Gaussian Belief propagation has exactly this character.
+      It is a message passing algorithm which computes the marginals with only local compute on a factor graph. 
+      We now enumerate the key arguments for the use of GBP in Spatail AI.
+    </p>
 
     <h2 id="gbp">Why Gaussian Belief Propagation? </h2>
 
-    <p>We argue that Gaussian Belief Propagation (GBP) is a strong algorithmic framework for the distributed, generic and incremental probabilistic estimation that we need in Spatial AI. 
-       Here we describe how GBP can be the foundation for high performance smart robots and devices which operate within the constraints of real products.</p>
+    <p>
+      We argue that Gaussian Belief Propagation (GBP) is a strong algorithmic framework for the distributed, generic and incremental probabilistic estimation that we need in Spatial AI. 
+      Here we describe how GBP can be the foundation for high performance smart robots and devices which operate within the constraints of real products.
+    </p>
+
+
+    <h3>Factor graphs as the master representation</h3>
+
+    <p>
+      We advocate the factor graphs not only a useful tool for inspecting problems and computation but that factor graphs are a promising choice for the master representation of the posterior density in Spatial AI problems for the following reasons.
+      <ul>
+        <li>
+          They are completely general and can represent any non-linear distribution or function.
+        </li>
+        <li>
+          They enable and encourage dynamic, parallel, in-place computation. 
+          By thinking about computation as manipulations on a factor graph.
+          Practical algorithms for real-time either filter or choose subset of data.
+        </li>
+        <li>
+          Despite the above, doing centralised computation is always possible (e.g. taking the batch solution).
+        </li>
+        <li>
+          What we need are marginals which is local property.
+        </li>
+      </ul>
+    
+    </p>
 
     <h3>Low power requires distributed computation and storage to fit new hardware
     </h3>
@@ -637,11 +682,11 @@
       </figure>
     </figure>
 
-    <figure class="l-body">
+    <!-- <figure class="l-body">
       <d-figure id="Graph"></d-figure>
         <figcaption>d3 graph.</figcaption>
       </figure>
-    </figure>
+    </figure> -->
 
 
     <p> Lastly we can introduce smoothness factors, for instance enforcing landmarks to be co-linear.</p>
