@@ -1,6 +1,7 @@
 import * as m from 'ml-matrix';
 import * as gauss from '../gaussian';
 import { getEllipse } from '../gaussian';
+import * as nlm from "../gbp/nonlinear_meas_fn.js";
 
 var offset_distance_tolerance = 10;
 
@@ -77,7 +78,7 @@ export class FactorGraph {
       this.update_node_id();
       return true;
     }
-    else if (node.type == 'factor_node') {
+    else if (node.type == "linear_factor" || node.type == "nonlinear_factor") {
       // Id corresponds to a factor_node
       this.factor_nodes = this.factor_nodes.filter(factor_node => factor_node.id != node.id);
       for (var i = 0; i < this.var_nodes.length; i++) {
@@ -187,6 +188,14 @@ export class FactorGraph {
     return total_error;
   }
 
+  relinearize() {
+    for (var i = 0; i < this.factor_nodes.length; i ++) {
+      if (this.factor_nodes[i].type == "nonlinear_factor") {
+        this.factor_nodes[i].compute_factor();
+      }
+    }
+  }
+
   compute_MAP() {
     var total_dofs = 0;
     for (var i = 0; i < this.var_nodes.length; i ++) {
@@ -230,7 +239,7 @@ export class FactorGraph {
       this.var_nodes[i].MAP_ellipse.cy = means.get(2 * i + 1, 0);
       this.var_nodes[i].MAP_ellipse.rx = Math.sqrt(values[0][0]);
       this.var_nodes[i].MAP_ellipse.ry = Math.sqrt(values[0][1]);
-      this.var_nodes[i].MAP_ellipse.angle = values[1];
+      this.var_nodes[i].MAP_ellipse.angle = values[1] / Math.PI * 180;
     }
     return [means, bigCov];
   }
@@ -287,7 +296,7 @@ export class VariableNode {
     this.belief_ellipse.cy = this.belief.getMean().get(1, 0);
     this.belief_ellipse.rx = Math.sqrt(values[0][0]);
     this.belief_ellipse.ry = Math.sqrt(values[0][1]);
-    this.belief_ellipse.angle = values[1];
+    this.belief_ellipse.angle = values[1] / Math.PI * 180;
   }
 
   receive_message(graph) {
@@ -316,7 +325,7 @@ export class VariableNode {
 
 export class LinearFactor {
   constructor(dofs, id, adj_ids) {
-    this.type = 'factor_node';
+    this.type = "linear_factor";
     this.dofs = dofs;
     this.id = id;
     this.adj_ids = adj_ids;//.sort((a, b) => a - b);
@@ -327,7 +336,7 @@ export class LinearFactor {
     this.jacs = [];
     this.meas = [];
     this.meas_noise = [];
-    this.lambdas = [];
+    this.lambda = [];
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.incoming_id = null;
     this.messages = [];
@@ -337,13 +346,114 @@ export class LinearFactor {
     this.y = 0;
   }
 
+  meas_func(node1_coords, node2_coords) {
+    if ((node1_coords instanceof m.Matrix) && (node2_coords instanceof m.Matrix)) {
+      return new m.Matrix([
+        [node2_coords.get(0, 0) - node1_coords.get(0, 0)],
+        [node2_coords.get(1, 0) - node1_coords.get(1, 0)]
+      ]);
+    } else{
+      return new m.Matrix([
+        [node2_coords[0] - node1_coords[0]],
+        [node2_coords[1] - node1_coords[1]]
+      ]);
+    }
+  }
+
   compute_factor() {
     this.factor.eta = m.Matrix.zeros(this.dofs, 1);
     this.factor.lam = m.Matrix.zeros(this.dofs, this.dofs);
     for (var i = 0; i < this.jacs.length; i++) {
-      this.factor.eta.add(this.jacs[i].transpose().mmul(this.meas[i]).mul(this.lambdas[i]));
-      this.factor.lam.add(this.jacs[i].transpose().mmul(this.jacs[i]).mul(this.lambdas[i]));
+      this.factor.eta.add(this.jacs[i].transpose().mmul(this.meas).mul(this.lambda[i]));
+      this.factor.lam.add(this.jacs[i].transpose().mmul(this.jacs[i]).mul(this.lambda[i]));
     }
+  }
+
+  pass_message(graph, id = null) {
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      if (!id || id == this.adj_ids[i]) {
+        var eta_factor = this.factor.eta.clone();
+        var lam_factor = this.factor.lam.clone();
+
+        // Take product with incoming messages, general for factor connected to arbitrary num var nodes
+        var mess_start_dim = 0;
+        for (var j = 0; j < this.adj_ids.length; j++) {
+          if (i != j) {
+            const eta_prod = m.Matrix.sub(this.adj_beliefs[j].eta, this.messages[j].eta);
+            const lam_prod = m.Matrix.sub(this.adj_beliefs[j].lam, this.messages[j].lam);
+            new m.MatrixSubView(eta_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, 0, 0).add(eta_prod);
+            new m.MatrixSubView(lam_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1).add(lam_prod);
+          }
+          mess_start_dim += this.adj_var_dofs[j];
+        }
+
+        // For factor connecting 2 variable nodes
+        if (i == 0) {
+          var eo = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
+          var eno = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
+          var loo = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
+          var lnono = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
+          var lnoo = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
+          var lono = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
+        } else if (i == 1) {
+          var eno = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
+          var eo = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
+          var lnono = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
+          var loo = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
+          var lono = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
+          var lnoo = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
+        }
+
+        const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
+        const block = lono.mmul(m.inverse(lnono));
+        message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
+        message.eta.mul(1 - this.eta_damping);
+        message.eta.add(this.messages[i].eta.mul(this.eta_damping));
+        message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
+        this.messages[i] = message;
+      }
+    }
+  }
+}
+
+export class NonLinearFactor {
+  constructor(dofs, id, adj_ids, meas_func, jac_func) {
+    this.type = "nonlinear_factor";
+    this.dofs = dofs;
+    this.id = id;
+    this.adj_ids = adj_ids;//.sort((a, b) => a - b);
+    this.adj_var_dofs = [];
+    this.adj_beliefs = [];
+
+    // To compute factor when factor is combination of many factor types (e.g. measurement and smoothness)
+    this.jacs = [];
+    this.meas = [];
+    this.meas_noise = [];
+    this.lambda = [];
+    this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
+    this.lin_point;
+    this.meas_func = meas_func;
+    this.jac_func = jac_func;
+
+    this.incoming_id = null;
+    this.messages = [];
+    this.eta_damping = 0.;
+
+    this.x = 0;
+    this.y = 0;
+  }
+
+  compute_factor() {
+    const node1_coords = this.adj_beliefs[0].getMean();
+    const node2_coords = this.adj_beliefs[1].getMean();
+    this.lin_point = new m.Matrix([[node1_coords.get(0, 0)], [node1_coords.get(1, 0)], 
+                                  [node2_coords.get(0, 0)], [node2_coords.get(1, 0)]]);
+    var jac = this.jac_func(node1_coords, node2_coords);
+
+    const measurement = this.meas_func(node1_coords, node2_coords);
+    const bracket = jac.mmul(this.lin_point).add(this.meas).sub(measurement);
+    this.factor.eta = (jac.transpose().mmul(this.lambda)).mmul(bracket);
+    this.factor.lam = (jac.transpose().mmul(this.lambda)).mmul(jac);
   }
 
   pass_message(graph, id = null) {

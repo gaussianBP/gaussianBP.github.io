@@ -1,6 +1,4 @@
-1. Select area and duplicate selected graph
-    plot area is not very large, too many nodes can cause the beliefs to overlap, bad for visualization
-2. Predefined graph templates for selection
-3. Message passing animations
-4. Show some info while hovering over nodes
-    maybe a 3D bell curve visualization of the belief
+1. Can't converge on complex graphs, check sync mode
+2. eta damping doesn't work
+3. optimize web element init and update algorithm
+4. add controls of number of var nodes, number of connections and range of connections for investigating speed of convergence

@@ -1,24 +1,34 @@
 <script>
   import { onMount } from "svelte";
-  import { tweened } from "svelte/motion"
+  import { tweened } from "svelte/motion";
   import { fade } from "svelte/transition";
   import * as easing from "svelte/easing";
-  import * as pg from "../playground/playground.js";
+  import * as playground from "../playground/playground.js";
   import { print } from "../playground/playground.js";
+  import * as nlm from "../gbp/nonlinear_meas_fn.js";
   import { onInterval } from "../util.js";
   import * as m from "ml-matrix";
   import * as r from "random";
   import * as gauss from "../gaussian";
 
   // GBP
-  const var_node_prior_std = 60;
-  const factor_node_prior_std = 10;
-  const meas_jac = new m.Matrix([[-1, 0, 1, 0], [0, -1, 0, 1]]);
-  var var_lambda = 1 / Math.pow(var_node_prior_std, 2);
-  var factor_lambda = 1 / Math.pow(factor_node_prior_std, 2);
-  const random_noise = r.normal(0, 10);
-  var eta_damping = 0;
+  const var_prior_std = 50;
+  const var_lambda = 1 / Math.pow(var_prior_std, 2);
+  const linear_prior_std = 10;
+  const distance_prior_std = 10;
+  const angle_prior_std = 0.5;
+  const linear_jac = new m.Matrix([[-1, 0, 1, 0], [0, -1, 0, 1]]);
+  const linear_lambda = 1 / Math.pow(linear_prior_std, 2);
+  const nonlinear_lambda = new m.Matrix([
+    [1 / Math.pow(angle_prior_std, 2), 0],
+    [0, 1 / Math.pow(distance_prior_std, 2)]
+  ]);
+  const linear_noise = r.normal(0, 5);
+  const nonlinear_dist_noise = r.normal(0, 5);
+  const nonlinear_angle_noise = r.normal(0, 0.2);
+  var eta_damping = 0.9;
   const new_gauss = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
+  var use_linear_factor = false;
   var forward_sweep = true;
   var passed_message = false;
   var is_tree_graph = true;
@@ -31,7 +41,7 @@
   // Playground
   var graph;
   var n_var_nodes = 22;
-  var sync_schedule = true;
+  var sync_schedule = false;
   var bidir_sweep = true;
   var message_idx = 0;
   var last_message_idx = null;
@@ -55,7 +65,7 @@
   // Message passing animation
   const clear_message_highlight_delay = 0.5;
   var pause_one_iter = false;
-  var animation_in_progress = false;  // set to true to prevent new input during animation
+  var animation_in_progress = false; // set to true to prevent new input during animation
   var highlight_node = null;
   $: message_bubbles = [];
   $: update_var_node_cov = {
@@ -75,14 +85,13 @@
   var counter = 0;
   var edit_mode = true;
   var passing_message = false;
-  var show_bp_mean = true;
-  var show_bp_cov = true;
+  var show_belief_mean = true;
+  var show_belief_cov = true;
   var show_MAP_mean = true;
   var show_MAP_cov = true;
-  var show_animations = true;
   var show_ground_truth = true;
   var show_edges = true;
-  var messages = [];  //  { message: null, timestamp: null, duration: null };
+  var messages = []; //  { message: null, timestamp: null, duration: null };
 
   $: var_nodes = [];
   $: factor_nodes = [];
@@ -98,7 +107,7 @@
   onInterval(() => pass_message_interval(), 1000 * time_res);
 
   function create_new_playground(n_var_nodes = 2) {
-    graph = new pg.FactorGraph();
+    graph = new playground.FactorGraph();
     for (var i = 0; i < n_var_nodes; i++) {
       if (i < 8) {
         add_var_node(50 + 100 * i, 50, i * 2);
@@ -118,7 +127,6 @@
           i * 2 - 1
         );
       }
-      
     }
     // for (var i = 0; i < parseInt(Math.random() * n_var_nodes); i ++) { //
     //   add_factor_node(
@@ -132,65 +140,93 @@
 
   function reset_playground() {
     console.clear();
-    edit_mode = true;
     var_nodes = [];
     factor_nodes = [];
     edges = [];
     message_idx = 0;
     total_iter = 0;
-    passed_message = true;
+    passing_message = false;
+    passed_message = false;
     graph = create_new_playground(n_var_nodes);
+    update_web_elements();
+    if (!edit_mode) {
+      update_eta_damping(0);
+      sync_pass_message();
+      update_eta_damping();
+      graph.compute_MAP();
+    }
     update_playground();
-    update_web_element();
-    sync_pass_message();
+    clear_highlight_node();
+    clear_message_bubbles();
     graph.compute_MAP();
     total_error_distance = parseInt(graph.compute_error());
     belief_MAP_diff = parseInt(graph.compare_to_MAP());
   }
 
   function update_playground() {
-    graph.update_node_id();
-    graph.update_factor_node_location();
+    if (edit_mode) {
+      graph.update_node_id();
+      graph.update_factor_node_location();
+    }
+    graph.update_cov_ellipse();
     var_nodes = graph.var_nodes;
     factor_nodes = graph.factor_nodes;
-    graph.update_cov_ellipse();
+    update_web_elements();
     update_edge();
     update_messages();
     update_message_animation();
   }
 
   function set_message_progress(source_timeout = null, target_timeout = null) {
-    animation_in_progress = true;
-    if (!source_timeout || source_timeout > 0.5 * iter_sec) {
-      source_timeout = 0.5 * iter_sec;
+    if (iter_sec) {
+      animation_in_progress = true;
+      if (!source_timeout || source_timeout > 0.5 * iter_sec) {
+        source_timeout = 0.5 * iter_sec;
+      }
+      if (!target_timeout || target_timeout > 0.5 * iter_sec) {
+        target_timeout = 0.5 * iter_sec;
+      }
+      source_progress.set(1, { duration: 0 });
+      source_progress.set(0, {
+        duration: source_timeout * 1000,
+        easing: easing.sineOut
+      });
+      message_progress.set(0, { duration: 0 });
+      message_progress.set(1, {
+        duration: iter_sec * 1000,
+        easing: easing.sineOut
+      });
+      target_progress.set(0, { duration: 0 });
+      setTimeout(() => {
+        target_progress.set(1, {
+          duration: target_timeout * 1000,
+          easing: easing.sineOut
+        });
+      }, (iter_sec - target_timeout) * 1000);
+      setTimeout(() => {
+        target_progress.set(0, {
+          duration: target_timeout * 1000,
+          easing: easing.sineOut
+        });
+      }, iter_sec * 1000);
+      setTimeout(() => {
+        source_progress.set(1, { duration: 0 });
+        message_progress.set(0, { duration: 0 });
+        animation_in_progress = false;
+        clear_message_bubbles();
+      }, (iter_sec + target_timeout) * 1000);
     }
-    if (!target_timeout || target_timeout > 0.5 * iter_sec) {
-      target_timeout = 0.5 * iter_sec;
-    }
-    source_progress.set(1, {duration: 0});
-    source_progress.set(0, {duration: source_timeout * 1000, easing: easing.sineOut});
-    message_progress.set(0, {duration: 0});
-    message_progress.set(1, {duration: iter_sec * 1000, easing: easing.sineOut});
-    target_progress.set(0, {duration: 0});
-    setTimeout(() => {target_progress.set(1, {duration: target_timeout * 1000, easing: easing.sineOut})}, (iter_sec - target_timeout) * 1000);
-    setTimeout(() => {target_progress.set(0, {duration: target_timeout * 1000, easing: easing.sineOut})}, iter_sec * 1000);
-    setTimeout(() => {
-      source_progress.set(1, {duration: 0});
-      message_progress.set(0, {duration: 0});
-      animation_in_progress = false;
-      clear_message_bubble();
-    }, (iter_sec + target_timeout) * 1000);
   }
 
   function pass_message_interval() {
     // Enables pass message in adjustable interval
     if (!edit_mode && passing_message) {
-      if (counter >= iter_sec * 10 - 1) {
+      if (counter >= iter_sec * 10 - 1 || !iter_sec) {
         counter = 0;
         if (!pause_one_iter) {
+          graph.relinearize();
           pass_message();
-        }
-        else {
+        } else {
           pause_one_iter = false;
         }
       } else {
@@ -215,39 +251,71 @@
     var node = graph.find_node(message_idx);
     if (node.type == "var_node") {
       update_var_node_cov.node_id = node.id;
-      update_var_node_cov.old_belief_ellipse = Object.assign({}, node.belief_ellipse);
+      update_var_node_cov.old_belief_ellipse = Object.assign(
+        {},
+        node.belief_ellipse
+      );
       node.pass_message(graph);
       node.update_cov_ellipse();
-      update_var_node_cov.new_belief_ellipse = Object.assign({}, node.belief_ellipse);
-      target_progress.set(0, {duration: 0});
-      update_var_node_cov_progress.set(1, {duration: iter_sec * 1000, easing: easing.sineOut});
+      update_var_node_cov.new_belief_ellipse = Object.assign(
+        {},
+        node.belief_ellipse
+      );
+      if (Math.abs(update_var_node_cov.new_belief_ellipse.angle - update_var_node_cov.old_belief_ellipse.angle) >= 90) {
+        update_var_node_cov.new_belief_ellipse.angle = 90 - update_var_node_cov.old_belief_ellipse.angle;
+      }
+      target_progress.set(0, { duration: 0 });
+      update_var_node_cov_progress.set(1, {
+        duration: iter_sec * 1000,
+        easing: easing.sineOut
+      });
       setTimeout(() => {
-        update_var_node_cov_progress.set(0, {duration: 0});
+        update_var_node_cov_progress.set(0, { duration: 0 });
         update_var_node_cov = {
           node_id: null,
           old_belief_ellipse: null,
           new_belief_ellipse: null
         };
       }, iter_sec * 1000);
+      if (!iter_sec) {
+        highlight_node = node;
+      }
       if (graph.find_node(message_idx + 1) && (forward_sweep || !bidir_sweep)) {
         // normal forward sweeping for bidirection or unidirection
-        message_idx ++;
+        message_idx++;
       } else if (!graph.find_node(message_idx + 1) && !bidir_sweep) {
         // go back to 0 when reaching the end for unidirection
         message_idx = 0;
-      } else if (!graph.find_node(message_idx - 1) && !forward_sweep && bidir_sweep) {
+        total_iter++;
+      } else if (
+        !graph.find_node(message_idx - 1) &&
+        !forward_sweep &&
+        bidir_sweep
+      ) {
         // backward sweeping reached 0 for bidireciton, start forward sweeping
-        message_idx ++;
-        forward_sweep = true
-      } else if (graph.find_node(message_idx - 1) && !forward_sweep && bidir_sweep) {
+        message_idx++;
+        forward_sweep = true;
+        total_iter++;
+      } else if (
+        graph.find_node(message_idx - 1) &&
+        !forward_sweep &&
+        bidir_sweep
+      ) {
         // normal backward sweeping for bidirection
-        message_idx --;
-      } else if (!graph.find_node(message_idx + 1) && forward_sweep && bidir_sweep) {
+        message_idx--;
+      } else if (
+        !graph.find_node(message_idx + 1) &&
+        forward_sweep &&
+        bidir_sweep
+      ) {
         // forward sweeping reached the end for bidireciton, start backward sweeping
-        message_idx --;
+        message_idx--;
         forward_sweep = false;
-      } 
-    } else if (node.type == "factor_node") {
+      }
+    } else if (
+      node.type == "linear_factor" ||
+      node.type == "nonlinear_factor"
+    ) {
       message_idx = node.adj_ids.filter(id => id != last_message_idx)[0];
       node.pass_message(graph, message_idx);
       if (forward_sweep) {
@@ -267,8 +335,7 @@
           ry2: graph.find_node(node.adj_ids[1]).belief_ellipse.ry,
           angle2: graph.find_node(node.adj_ids[1]).belief_ellipse.angle
         };
-      }
-      else {
+      } else {
         var message_bubble = {
           node1_id: graph.find_node(node.adj_ids[1]).id,
           node2_id: graph.find_node(node.adj_ids[0]).id,
@@ -286,25 +353,86 @@
           angle2: graph.find_node(node.adj_ids[0]).belief_ellipse.angle
         };
       }
-      message_bubbles.push(message_bubble);
-      set_message_progress(0.5, 0.5);
+      if (iter_sec) {
+        message_bubbles.push(message_bubble);
+        set_message_progress(0.5, 0.5);
+      }
     }
     last_message_idx = node.id;
-    if (node.type == 'factor_node' && graph.find_node(message_idx).type == 'factor_node') {
-      pause_one_iter = true;
-    }
     passed_message = true;
   }
 
-  function pass_message(iter = null) {
+  function pass_message() {
     if (sync_schedule) {
-      // TODO: two message passing schedules, which one?
       sync_pass_message();
     } else {
       sweep_pass_message();
     }
     total_error_distance = parseInt(graph.compute_error());
     belief_MAP_diff = parseInt(graph.compare_to_MAP());
+  }
+
+  function update_web_elements() {
+    document.getElementById("edit_mode_radio_button").checked = edit_mode;
+    document.getElementById("play_mode_radio_button").checked = !edit_mode;
+    if (!edit_mode) {
+      document.getElementById("edit_mode_setting_div").style.display = "none";
+      document.getElementById("play_mode_setting_div").style.display = "block";
+    } else {
+      document.getElementById("edit_mode_setting_div").style.display = "block";
+      document.getElementById("play_mode_setting_div").style.display = "none";
+    }
+    document.getElementById(
+      "linear_factor_radio_button"
+    ).checked = use_linear_factor;
+    document.getElementById(
+      "nonlinear_factor_radio_button"
+    ).checked = !use_linear_factor;
+    if (sync_schedule) {
+      document.getElementById("bidir_sweep_checkbox_div").style.display =
+        "none";
+    } else {
+      document.getElementById("bidir_sweep_checkbox_div").style.display =
+        "inline-block";
+    }
+    if (is_tree_graph) {
+      document.getElementById("sweep_mode_radio_button").disabled = false;
+      document.getElementById("toggle_bidir_sweep_checkbox").disabled = false;
+    } else {
+      sync_schedule = true;
+      bidir_sweep = false;
+      document.getElementById("sweep_mode_radio_button").disabled = true;
+      document.getElementById("toggle_bidir_sweep_checkbox").disabled = true;
+    }
+    document.getElementById("sync_mode_radio_button").checked = sync_schedule;
+    document.getElementById("sweep_mode_radio_button").checked = !sync_schedule;
+    document.getElementById("toggle_bidir_sweep_checkbox").checked = bidir_sweep;
+    if (
+      graph.factor_nodes.some(
+        factor_node => factor_node.type == "nonlinear_factor"
+      )
+    ) {
+      document.getElementById("eta_damping_range_div").style.display = "block";
+    } else {
+      document.getElementById("eta_damping_range_div").style.display = "none";
+    }
+    if (passing_message) {
+      document.getElementById("animation_speed_range").disabled = true;
+      document.getElementById("eta_damping_range").disabled = true;
+    } else {
+      document.getElementById("animation_speed_range").disabled = false;
+      document.getElementById("eta_damping_range").disabled = false;
+    }
+    document.getElementById(
+      "toggle_belief_mean_checkbox"
+    ).checked = show_belief_mean;
+    document.getElementById("toggle_belief_cov_checkbox").checked = show_belief_cov;
+    document.getElementById("toggle_MAP_mean_checkbox").checked = show_MAP_mean;
+    document.getElementById("toggle_MAP_cov_checkbox").checked = show_MAP_cov;
+    document.getElementById(
+      "toggle_ground_truth_checkbox"
+    ).checked = show_ground_truth;
+    document.getElementById("toggle_edges_checkbox").checked = show_edges;
   }
 
   function update_edge() {
@@ -326,14 +454,18 @@
           edges.push(edge);
         }
       }
+      is_tree_graph = graph.var_nodes.every(
+        var_node => var_node.adj_ids.length <= 2
+      );
     } else {
       for (var i = 0; i < graph.factor_nodes.length; i++) {
         var node1 = graph.find_node(graph.factor_nodes[i].adj_ids[0]);
         var node2 = graph.find_node(graph.factor_nodes[i].adj_ids[1]);
+        // the edge between nodes
         var edge = {
           node1_id: node1.id,
           node2_id: node2.id,
-          type: 0, // type 0 is the edge between nodes
+          type: 0,
           x1: node1.belief_ellipse.cx,
           y1: node1.belief_ellipse.cy,
           x2: node2.belief_ellipse.cx,
@@ -343,36 +475,57 @@
       }
       for (var i = 0; i < graph.var_nodes.length; i++) {
         var var_node = graph.var_nodes[i];
-        var edge1 = {
-          node1_id: var_node.id,
-          node2_id: var_node.id,
-          type: 1, // type 1 is the edge between belief mean and ground truth in play mode
-          x1: var_node.belief_ellipse.cx,
-          y1: var_node.belief_ellipse.cy,
-          x2: var_node.x,
-          y2: var_node.y
-        };
-        var edge2 = {
-          node1_id: var_node.id,
-          node2_id: var_node.id,
-          type: 2, // type 2 is the edge between belief mean and MAP mean in play mode
-          x1: var_node.belief_ellipse.cx,
-          y1: var_node.belief_ellipse.cy,
-          x2: var_node.MAP_ellipse.cx,
-          y2: var_node.MAP_ellipse.cy
-        };
-        var edge3 = {
-          node1_id: var_node.id,
-          node2_id: var_node.id,
-          type: 3, // type 3 is the edge between MAP mean and ground truth when belief is not shown in play mode
-          x1: var_node.x,
-          y1: var_node.y,
-          x2: var_node.MAP_ellipse.cx,
-          y2: var_node.MAP_ellipse.cy
-        };
-        edges.push(edge1);
-        edges.push(edge2);
-        edges.push(edge3);
+        if (
+          !edit_mode &&
+          show_ground_truth &&
+          (show_belief_mean || show_belief_cov)
+        ) {
+          // the edge between belief mean and ground truth in play mode
+          var edge = {
+            node1_id: var_node.id,
+            node2_id: var_node.id,
+            type: 1,
+            x1: var_node.belief_ellipse.cx,
+            y1: var_node.belief_ellipse.cy,
+            x2: var_node.x,
+            y2: var_node.y
+          };
+          edges.push(edge);
+        }
+        if (
+          !edit_mode &&
+          (show_belief_mean || show_belief_cov) &&
+          (show_MAP_mean || show_MAP_cov)
+        ) {
+          // the edge between belief mean and MAP mean in play mode
+          var edge = {
+            node1_id: var_node.id,
+            node2_id: var_node.id,
+            type: 2,
+            x1: var_node.belief_ellipse.cx,
+            y1: var_node.belief_ellipse.cy,
+            x2: var_node.MAP_ellipse.cx,
+            y2: var_node.MAP_ellipse.cy
+          };
+          edges.push(edge);
+        }
+        if (
+          !edit_mode &&
+          show_ground_truth &&
+          (show_MAP_mean || show_MAP_cov)
+        ) {
+          // the edge between MAP mean and ground truth when belief is not shown in play mode
+          var edge = {
+            node1_id: var_node.id,
+            node2_id: var_node.id,
+            type: 3,
+            x1: var_node.x,
+            y1: var_node.y,
+            x2: var_node.MAP_ellipse.cx,
+            y2: var_node.MAP_ellipse.cy
+          };
+          edges.push(edge);
+        }
       }
     }
   }
@@ -382,7 +535,7 @@
       highlight_node = graph.find_node(highlight_node.id);
     }
     if (message_bubbles) {
-      for (var i = 0; i < message_bubbles.length; i ++) {
+      for (var i = 0; i < message_bubbles.length; i++) {
         var node1 = graph.find_node(message_bubbles[i].node1_id);
         var node2 = graph.find_node(message_bubbles[i].node2_id);
         message_bubbles[i].cx1 = node1.belief_ellipse.cx;
@@ -410,7 +563,7 @@
     if (!id) {
       id = graph.var_nodes.length + graph.factor_nodes.length;
     }
-    const var_node = new pg.VariableNode(2, id, x, y);
+    const var_node = new playground.VariableNode(2, id, x, y);
     if (id == 0) {
       var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);
     } else {
@@ -419,11 +572,20 @@
     var_node.prior.eta = var_node.prior.lam.mmul(
       new m.Matrix([[var_node.x], [var_node.y]])
     );
+    var_node.belief.eta = var_node.prior.eta.clone();
+    var_node.belief.lam = var_node.prior.lam.clone();
     graph.var_nodes.push(var_node);
-    clear_previous_message();
   }
 
   function add_factor_node(node1_id, node2_id, id = null) {
+    if (use_linear_factor) {
+      add_linear_factor(node1_id, node2_id, id);
+    } else {
+      add_nonlinear_factor(node1_id, node2_id, id);
+    }
+  }
+
+  function add_linear_factor(node1_id, node2_id, id = null) {
     var node1 = graph.find_node(parseInt(node1_id));
     var node2 = graph.find_node(parseInt(node2_id));
     if (!id) {
@@ -436,15 +598,21 @@
       node1.id != node2.id
     ) {
       // No existing edge between node1 and node2
-      const factor_node = new pg.LinearFactor(4, id, [node1.id, node2.id]);
-      factor_node.meas_noise = [random_noise(), random_noise()];
-      var measurement = new m.Matrix([
-        [node2.x - node1.x + factor_node.meas_noise[0]],
-        [node2.y - node1.y + factor_node.meas_noise[1]]
-        ]);
-      factor_node.jacs = [meas_jac];
-      factor_node.meas = [measurement];
-      factor_node.lambdas = [factor_lambda];
+      const factor_node = new playground.LinearFactor(4, id, [
+        node1.id,
+        node2.id
+      ]);
+      factor_node.meas_noise = new m.Matrix([
+        [linear_noise()],
+        [linear_noise()]
+      ]);
+      factor_node.meas = factor_node.meas_func(
+        [node1.x, node1.y],
+        [node2.x, node2.y]
+      );
+      factor_node.meas.add(factor_node.meas_noise);
+      factor_node.jacs = [linear_jac];
+      factor_node.lambda = [linear_lambda];
       factor_node.adj_var_dofs = [2, 2];
       factor_node.adj_beliefs = [node1.belief, node2.belief];
       factor_node.messages = [new_gauss, new_gauss];
@@ -452,10 +620,61 @@
       graph.factor_nodes.push(factor_node);
       node1.adj_ids.push(id);
       node2.adj_ids.push(id);
-      clear_previous_message();
-      if (node1.adj_ids.length > 2 || node2.adj_ids.length > 2) {  // if any node has more than 2 adj factors
-        is_tree_graph = false;
+      node1.receive_message(graph);
+      node2.receive_message(graph);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  function add_nonlinear_factor(node1_id, node2_id, id = null) {
+    var node1 = graph.find_node(parseInt(node1_id));
+    var node2 = graph.find_node(parseInt(node2_id));
+    if (!id) {
+      id = graph.var_nodes.length + graph.factor_nodes.length;
+    }
+    if (
+      !graph.find_factor_node(node1.id, node2.id) &&
+      node1.type == "var_node" &&
+      node2.type == "var_node" &&
+      node1.id != node2.id
+    ) {
+      // No existing edge between node1 and node2
+      if (node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >= 0) {
+        var meas_func = nlm.measFnR;
+        var jac_func = nlm.jacFnR;
+      } else {
+        var meas_func = nlm.measFnL;
+        var jac_func = nlm.jacFnL;
       }
+      const factor_node = new playground.NonLinearFactor(
+        4,
+        id,
+        [node1.id, node2.id],
+        meas_func,
+        jac_func
+      );
+      factor_node.meas_noise = new m.Matrix([
+        [nonlinear_angle_noise()],
+        [nonlinear_dist_noise()]
+      ]);
+      factor_node.meas = factor_node.meas_func(
+        node1.belief.getMean(),
+        node2.belief.getMean()
+      );
+      factor_node.meas.add(factor_node.meas_noise);
+      factor_node.eta_damping = eta_damping;
+      factor_node.lambda = nonlinear_lambda;
+      factor_node.adj_var_dofs = [2, 2];
+      factor_node.adj_beliefs = [node1.belief, node2.belief];
+      factor_node.messages = [new_gauss, new_gauss];
+      factor_node.compute_factor();
+      graph.factor_nodes.push(factor_node);
+      node1.adj_ids.push(id);
+      node2.adj_ids.push(id);
+      node1.receive_message(graph);
+      node2.receive_message(graph);
       return true;
     } else {
       return false;
@@ -466,24 +685,28 @@
     highlight_node = null;
   }
 
-  function clear_message_bubble() {
+  function clear_message_bubbles() {
     message_bubbles = [];
-    message_progress.set(0, {duration: 0});
+    message_progress.set(0, { duration: 0 });
   }
 
   function clear_previous_message() {
-    for (var i = 0; i < graph.var_nodes.length; i ++) {
+    for (var i = 0; i < graph.var_nodes.length; i++) {
       var var_node = graph.var_nodes[i];
       var_node.belief.lam = var_node.prior.lam.clone();
       var_node.belief.eta = var_node.prior.eta.clone();
     }
-    for (var i = 0; i < graph.factor_nodes.length; i ++) {
+    for (var i = 0; i < graph.factor_nodes.length; i++) {
       var factor_node = graph.factor_nodes[i];
-      factor_node.adj_beliefs = factor_node.adj_ids.map(adj_id => graph.find_node(adj_id).belief);
+      factor_node.adj_beliefs = factor_node.adj_ids.map(
+        adj_id => graph.find_node(adj_id).belief
+      );
       factor_node.messages = [new_gauss, new_gauss];
       factor_node.compute_factor();
     }
     passed_message = false;
+    message_idx = 0;
+    print(1);
   }
 
   function mousedown_handler(e) {
@@ -519,28 +742,23 @@
 
   function mouseup_handler(e) {
     click_time = Date.now() - mousedown_time;
-    if (moving_node && node_mousedown.type == 'var_node') {
+    if (moving_node && node_mousedown.type == "var_node") {
       clear_previous_message();
       node_mousedown.prior.eta = node_mousedown.prior.lam.mmul(
-        new m.Matrix([[node_mousedown.x], [node_mousedown.y]]));
+        new m.Matrix([[node_mousedown.x], [node_mousedown.y]])
+      );
       node_mousedown.belief.eta = node_mousedown.prior.eta.clone();
       node_mousedown.belief.lam = node_mousedown.prior.lam.clone();
-      for (var i = 0; i < node_mousedown.adj_ids.length; i ++) {
+      for (var i = 0; i < node_mousedown.adj_ids.length; i++) {
         var factor_node = graph.find_node(node_mousedown.adj_ids[i]);
-        var measurement = new m.Matrix([
-          [
-            graph.find_node(factor_node.adj_ids[1]).x -
-              graph.find_node(factor_node.adj_ids[0]).x +
-              factor_node.meas_noise[0]
-          ],
-          [
-            graph.find_node(factor_node.adj_ids[1]).y -
-              graph.find_node(factor_node.adj_ids[0]).y +
-              factor_node.meas_noise[1]
-          ]
-        ]);
-        factor_node.adj_beliefs = factor_node.adj_ids.map(adj_id => graph.find_node(adj_id).belief);
-        factor_node.meas = [measurement];
+        factor_node.meas = factor_node.meas_func(
+          graph.find_node(factor_node.adj_ids[0]).belief.getMean(),
+          graph.find_node(factor_node.adj_ids[1]).belief.getMean()
+        );
+        factor_node.meas.add(factor_node.meas_noise);
+        factor_node.adj_beliefs = factor_node.adj_ids.map(
+          adj_id => graph.find_node(adj_id).belief
+        );
         factor_node.compute_factor();
       }
     }
@@ -580,6 +798,7 @@
             last_node_clicked.type == "var_node"
           ) {
             add_factor_node(last_node_clicked.id, node_clicked.id);
+            clear_previous_message();
             last_node_clicked = null;
           } else {
             last_node_clicked = node_clicked;
@@ -596,7 +815,6 @@
 
   function play_click_handler(e) {
     // TODO: Improve click algorithm
-    // FIXME: bug that doesn't recognize nodes
     node_clicked = null;
     node_clicked = e.path.find(element => element.classList == "node_g");
     if (click_time <= click_time_span && mouse_up && !animation_in_progress) {
@@ -607,28 +825,41 @@
           last_node_clicked = node_clicked;
           highlight_node = node_clicked;
         } else {
-          if (
-            node_clicked.id == last_node_clicked.id
-          ) {
+          if (node_clicked.id == last_node_clicked.id) {
             // double clicked
             update_var_node_cov.node_id = node_clicked.id;
-            update_var_node_cov.old_belief_ellipse = Object.assign({}, node_clicked.belief_ellipse);
+            update_var_node_cov.old_belief_ellipse = Object.assign(
+              {},
+              node_clicked.belief_ellipse
+            );
             graph.pass_message(node_clicked.id, node_clicked.id);
             node_clicked.update_cov_ellipse();
-            update_var_node_cov.new_belief_ellipse = Object.assign({}, node_clicked.belief_ellipse);
-            target_progress.set(0, {duration: 0});
-            update_var_node_cov_progress.set(1, {duration: clear_message_highlight_delay * 1000, easing: easing.sineOut});
+            update_var_node_cov.new_belief_ellipse = Object.assign(
+              {},
+              node_clicked.belief_ellipse
+            );
+            if (Math.abs(update_var_node_cov.new_belief_ellipse.angle - update_var_node_cov.old_belief_ellipse.angle) >= 90) {
+              update_var_node_cov.new_belief_ellipse.angle = 90 - update_var_node_cov.old_belief_ellipse.angle;
+            }
+            target_progress.set(0, { duration: 0 });
+            update_var_node_cov_progress.set(1, {
+              duration: clear_message_highlight_delay * 1000,
+              easing: easing.sineOut
+            });
             setTimeout(() => {
-              update_var_node_cov_progress.set(0, {duration: 0});
+              update_var_node_cov_progress.set(0, { duration: 0 });
               update_var_node_cov = {
                 node_id: null,
                 old_belief_ellipse: null,
                 new_belief_ellipse: null
               };
             }, clear_message_highlight_delay * 1000);
-            for (var i = 0; i < node_clicked.adj_ids.length; i ++) {
-              var adj_var_node = graph.find_node(graph.find_node(node_clicked.adj_ids[i]
-                ).adj_ids.filter(id => id != node_clicked.id)[0]);
+            for (var i = 0; i < node_clicked.adj_ids.length; i++) {
+              var adj_var_node = graph.find_node(
+                graph
+                  .find_node(node_clicked.adj_ids[i])
+                  .adj_ids.filter(id => id != node_clicked.id)[0]
+              );
               var message_bubble = {
                 node1_id: node_clicked.id,
                 node2_id: adj_var_node.id,
@@ -647,9 +878,12 @@
               };
               message_bubbles.push(message_bubble);
             }
-            set_message_progress(clear_message_highlight_delay, clear_message_highlight_delay);
+            set_message_progress(
+              clear_message_highlight_delay,
+              clear_message_highlight_delay
+            );
             clear_highlight_node();
-          } else if (node_clicked.id != last_node_clicked.id){
+          } else if (node_clicked.id != last_node_clicked.id) {
             clear_highlight_node();
             var message_bubble = {
               node1_id: last_node_clicked.id,
@@ -669,9 +903,15 @@
             };
             message_bubbles.push(message_bubble);
             setTimeout(() => {
-              graph.pass_message(message_bubble.node1_id, message_bubble.node2_id);
+              graph.pass_message(
+                message_bubble.node1_id,
+                message_bubble.node2_id
+              );
             }, iter_sec * 1000);
-            set_message_progress(clear_message_highlight_delay, clear_message_highlight_delay);
+            set_message_progress(
+              clear_message_highlight_delay,
+              clear_message_highlight_delay
+            );
           }
           total_error_distance = parseInt(graph.compute_error());
           belief_MAP_diff = parseInt(graph.compare_to_MAP());
@@ -687,36 +927,8 @@
     last_click_time = Date.now();
   }
 
-  function update_web_element() {
-    document.getElementById("edit_mode_radio_button").checked = edit_mode;
-    document.getElementById("play_mode_radio_button").checked = !edit_mode;
-    document.getElementById("sync_mode_radio_button").checked = sync_schedule;
-    document.getElementById("sweep_mode_radio_button").checked = !sync_schedule;
-    document.getElementById(
-      "toggle_bidir_sweep_checkbox"
-    ).checked = bidir_sweep && !sync_schedule;
-    document.getElementById("toggle_MAP_mean_checkbox").checked = show_MAP_mean;
-    document.getElementById("toggle_MAP_cov_checkbox").checked = show_MAP_cov;
-    document.getElementById("toggle_bp_mean_checkbox").checked = show_bp_mean;
-    document.getElementById("toggle_bp_cov_checkbox").checked = show_bp_cov;
-    document.getElementById(
-      "toggle_animations_checkbox"
-    ).checked = show_animations;
-    document.getElementById(
-      "toggle_ground_truth_checkbox"
-    ).checked = show_ground_truth;
-    document.getElementById(
-      "toggle_edges_checkbox"
-    ).checked = show_edges;
-    if (edit_mode) {
-      document.getElementById("message_passing_setting_div").style.display =
-        "none";
-    }
-    bidir_sweep = bidir_sweep && !sync_schedule;
-  }
-
   function update_messages() {
-    for (var i = 0; i < messages.length; i ++) {
+    for (var i = 0; i < messages.length; i++) {
       if (messages[i].message) {
         if (Date.now() - messages[i].timestamp >= messages[i].duration) {
           // Clear message if message has expired
@@ -732,14 +944,12 @@
       !document.getElementById("play_mode_radio_button").checked;
     if (!edit_mode) {
       if (!passed_message) {
+        clear_previous_message();
+        update_eta_damping(0);
         sync_pass_message();
+        update_eta_damping();
       }
       graph.compute_MAP();
-      document.getElementById("message_passing_setting_div").style.display =
-        "block";
-    } else {
-      document.getElementById("message_passing_setting_div").style.display =
-        "none";
     }
     total_error_distance = parseInt(graph.compute_error());
     belief_MAP_diff = parseInt(graph.compare_to_MAP());
@@ -748,10 +958,13 @@
     highlight_node = null;
     passing_message = false;
     total_iter = 0;
+    clear_highlight_node();
+    clear_message_bubbles();
   }
 
   function click_add_var_node() {
     add_var_node();
+    clear_previous_message();
   }
 
   function toggle_passing_message() {
@@ -760,42 +973,36 @@
       counter = iter_sec * 10 - 1;
     }
     clear_highlight_node();
-    clear_message_bubble();
+    clear_message_bubbles();
+  }
+
+  function toggle_factor() {
+    use_linear_factor =
+      document.getElementById("linear_factor_radio_button").checked &&
+      !document.getElementById("nonlinear_factor_radio_button").checked;
+    reset_playground();
   }
 
   function toggle_schedule() {
-    if (is_tree_graph) {
-      sync_schedule =
-        document.getElementById("sync_mode_radio_button").checked &&
-        !document.getElementById("sweep_mode_radio_button").checked;
-    } else {
-      // disable sweep mode when graph has multiple branches
-      document.getElementById("sync_mode_radio_button").checked = true;
-      document.getElementById("sweep_mode_radio_button").checked = false;
-    }
-    if (sync_schedule) {
-      bidir_sweep = false;
-      document.getElementById(
-        "toggle_bidir_sweep_checkbox"
-      ).checked = bidir_sweep;
-    }
-    total_iter = 0;
+    sync_schedule =
+      document.getElementById("sync_mode_radio_button").checked &&
+      !document.getElementById("sweep_mode_radio_button").checked;
   }
 
   function toggle_bidir_sweep() {
     if (!sync_schedule) {
-      bidir_sweep = document.getElementById("toggle_bidir_sweep_checkbox").checked;
-    } else {
-      document.getElementById("toggle_bidir_sweep_checkbox").checked = false;
+      bidir_sweep = document.getElementById("toggle_bidir_sweep_checkbox")
+        .checked;
     }
   }
 
-  function toggle_bp_mean() {
-    show_bp_mean = document.getElementById("toggle_bp_mean_checkbox").checked;
+  function toggle_belief_mean() {
+    show_belief_mean = document.getElementById("toggle_belief_mean_checkbox")
+      .checked;
   }
 
-  function toggle_bp_cov() {
-    show_bp_cov = document.getElementById("toggle_bp_cov_checkbox").checked;
+  function toggle_belief_cov() {
+    show_belief_cov = document.getElementById("toggle_belief_cov_checkbox").checked;
   }
 
   function toggle_MAP_mean() {
@@ -806,24 +1013,23 @@
     show_MAP_cov = document.getElementById("toggle_MAP_cov_checkbox").checked;
   }
 
-  function toggle_animations() {
-    show_animations = document.getElementById("toggle_animations_checkbox")
-      .checked;
-  }
-
   function toggle_ground_truth() {
     show_ground_truth = document.getElementById("toggle_ground_truth_checkbox")
       .checked;
   }
 
   function toggle_edges() {
-    show_edges = document.getElementById("toggle_edges_checkbox")
-      .checked;
+    show_edges = document.getElementById("toggle_edges_checkbox").checked;
   }
 
-  function update_eta_damping() {
+  function update_eta_damping(eta = null) {
+    if (eta == null) {
+      eta = eta_damping;
+    }
     for (var i = 0; i < graph.factor_nodes.length; i++) {
-      graph.factor_nodes[i].eta_damping = eta_damping;
+      if (graph.factor_nodes[i].type == "nonlinear_factor") {
+        graph.factor_nodes[i].eta_damping = eta;
+      }
     }
   }
 
@@ -874,27 +1080,23 @@
               stroke="black"
               stroke-width="1" />
           {/if}
-          {#if edge.type == 0 && !edit_mode && (show_bp_mean || show_bp_cov)}
-            {#if edge.node1_id == update_var_node_cov.node_id && show_animations}
+          {#if edge.type == 0 && !edit_mode && (show_belief_mean || show_belief_cov)}
+            {#if edge.node1_id == update_var_node_cov.node_id && iter_sec}
               <line
-                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cx * ( 1 - $update_var_node_cov_progress)}
-                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cy * ( 1 - $update_var_node_cov_progress)}
+                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
+                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
                 x2={edge.x2}
                 y2={edge.y2}
                 stroke="black"
                 stroke-width="1"
                 stroke-opacity="0.5" />
             {/if}
-            {#if edge.node2_id == update_var_node_cov.node_id && show_animations}
+            {#if edge.node2_id == update_var_node_cov.node_id && iter_sec}
               <line
                 x1={edge.x1}
                 y1={edge.y1}
-                x2={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cx * ( 1 - $update_var_node_cov_progress)}
-                y2={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cy * ( 1 - $update_var_node_cov_progress)}
+                x2={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
+                y2={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
                 stroke="black"
                 stroke-width="1"
                 stroke-opacity="0.5" />
@@ -910,13 +1112,11 @@
                 stroke-opacity="0.5" />
             {/if}
           {/if}
-          {#if edge.type == 1 && !edit_mode && show_ground_truth && (show_bp_mean || show_bp_cov)}
-            {#if edge.node1_id == update_var_node_cov.node_id && show_animations}
+          {#if edge.type == 1 && !edit_mode && show_ground_truth && (show_belief_mean || show_belief_cov)}
+            {#if edge.node1_id == update_var_node_cov.node_id && iter_sec}
               <line
-                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cx * ( 1 - $update_var_node_cov_progress)}
-                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cy * ( 1 - $update_var_node_cov_progress)}
+                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
+                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
                 x2={edge.x2}
                 y2={edge.y2}
                 stroke="black"
@@ -935,13 +1135,11 @@
                 stroke-dasharray="2, 4" />
             {/if}
           {/if}
-          {#if edge.type == 2 && !edit_mode && (show_MAP_mean || show_MAP_cov) && (show_bp_mean || show_bp_cov)}
-            {#if edge.node1_id == update_var_node_cov.node_id && show_animations}
+          {#if edge.type == 2 && !edit_mode && (show_MAP_mean || show_MAP_cov) && (show_belief_mean || show_belief_cov)}
+            {#if edge.node1_id == update_var_node_cov.node_id && iter_sec}
               <line
-                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cx * ( 1 - $update_var_node_cov_progress)}
-                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cy * ( 1 - $update_var_node_cov_progress)}
+                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
+                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
                 x2={edge.x2}
                 y2={edge.y2}
                 stroke="black"
@@ -960,7 +1158,7 @@
                 stroke-dasharray="2, 4" />
             {/if}
           {/if}
-          {#if edge.type == 3 && !edit_mode && (show_MAP_mean || show_MAP_cov) && show_ground_truth && !(show_bp_mean || show_bp_cov)}
+          {#if edge.type == 3 && !edit_mode && (show_MAP_mean || show_MAP_cov) && show_ground_truth && !(show_belief_mean || show_belief_cov)}
             <line
               x1={edge.x1}
               y1={edge.y1}
@@ -991,15 +1189,27 @@
             id={factor_node.id}
             transform="translate({factor_node.x}
             {factor_node.y})">
-            <rect
-              class="node"
-              x={-10}
-              y={-10}
-              width={20}
-              height={20}
-              stroke="blue"
-              fill="white"
-              fill-opacity={1.0} />
+            {#if factor_node.type == "linear_factor"}
+              <rect
+                class="node"
+                x={-10}
+                y={-10}
+                width={20}
+                height={20}
+                stroke="blue"
+                fill="white"
+                fill-opacity={1.0} />
+            {:else}
+              <rect
+                class="node"
+                x={-10}
+                y={-10}
+                width={20}
+                height={20}
+                stroke="purple"
+                fill="white"
+                fill-opacity={1.0} />
+            {/if}
             <text
               class="node_id"
               x={0}
@@ -1023,16 +1233,16 @@
             stroke="red"
             fill="white"
             fill-opacity={1.0} />
-            <text
-              class="node_text"
-              x={var_node.x}
-              y={var_node.y + 5}
-              text-anchor="middle"
-              stroke="black"
-              font-size={12}
-              style="user-select: none">
-              {var_node.id}
-            </text>
+          <text
+            class="node_text"
+            x={var_node.x}
+            y={var_node.y + 5}
+            text-anchor="middle"
+            stroke="black"
+            font-size={12}
+            style="user-select: none">
+            {var_node.id}
+          </text>
         {:else}
           {#if show_MAP_cov}
             <ellipse
@@ -1041,51 +1251,46 @@
               cy={var_node.MAP_ellipse.cy}
               rx={var_node.MAP_ellipse.rx}
               ry={var_node.MAP_ellipse.ry}
-              transform="rotate({var_node.MAP_ellipse.angle})"
+              transform="rotate({var_node.MAP_ellipse.angle}, {var_node.MAP_ellipse.cx}, {var_node.MAP_ellipse.cy})"
               stroke="blue"
               fill="url(#MAP_cov_gradient)"
               stroke-opacity={0.5}
               fill-opacity={0} />
           {/if}
-          {#if show_bp_cov}
-            {#if var_node.id == update_var_node_cov.node_id && show_animations}
+          {#if show_belief_cov}
+            {#if var_node.id == update_var_node_cov.node_id && iter_sec}
               <ellipse
-                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cx * ( 1 - $update_var_node_cov_progress)}
-                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cy * ( 1 - $update_var_node_cov_progress)}
-                rx={update_var_node_cov.new_belief_ellipse.rx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.rx * ( 1 - $update_var_node_cov_progress)}
-                ry={update_var_node_cov.new_belief_ellipse.ry * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.ry * ( 1 - $update_var_node_cov_progress)}
-                transform="rotate({update_var_node_cov.new_belief_ellipse.angle * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.angle * ( 1 - $update_var_node_cov_progress)})"
+                class="node_belief_cov"
+                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
+                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
+                rx={update_var_node_cov.new_belief_ellipse.rx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.rx * (1 - $update_var_node_cov_progress)}
+                ry={update_var_node_cov.new_belief_ellipse.ry * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.ry * (1 - $update_var_node_cov_progress)}
+                transform="rotate({update_var_node_cov.new_belief_ellipse.angle * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.angle * (1 - $update_var_node_cov_progress)},
+                                  {update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)},
+                                  {update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)})"
                 stroke="red"
                 fill="url(#bp_cov_gradient)"
                 stroke-opacity={0.75} />
               <ellipse
-                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cx * ( 1 - $update_var_node_cov_progress)}
-                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cy * ( 1 - $update_var_node_cov_progress)}
-                rx={update_var_node_cov.new_belief_ellipse.rx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.rx * ( 1 - $update_var_node_cov_progress)}
-                ry={update_var_node_cov.new_belief_ellipse.ry * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.ry * ( 1 - $update_var_node_cov_progress)}
-                transform="rotate({update_var_node_cov.new_belief_ellipse.angle * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.angle * ( 1 - $update_var_node_cov_progress)})"
+                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
+                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
+                rx={update_var_node_cov.new_belief_ellipse.rx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.rx * (1 - $update_var_node_cov_progress)}
+                ry={update_var_node_cov.new_belief_ellipse.ry * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.ry * (1 - $update_var_node_cov_progress)}
+                transform="rotate({update_var_node_cov.new_belief_ellipse.angle * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.angle * (1 - $update_var_node_cov_progress)},
+                                  {update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)},
+                                  {update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)})"
                 stroke="red"
                 stroke-width={2}
                 fill="red"
-                fill-opacity={0.25}/>
+                fill-opacity={0.25} />
             {:else}
               <ellipse
-                class="node_bp_cov"
+                class="node_belief_cov"
                 cx={var_node.belief_ellipse.cx}
                 cy={var_node.belief_ellipse.cy}
                 rx={var_node.belief_ellipse.rx}
                 ry={var_node.belief_ellipse.ry}
-                transform="rotate({var_node.belief_ellipse.angle})"
+                transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
                 stroke="red"
                 fill="url(#bp_cov_gradient)"
                 stroke-opacity={0.75} />
@@ -1102,20 +1307,18 @@
               stroke-opacity={1}
               fill-opacity={1} />
           {/if}
-          {#if show_bp_mean}
-            {#if var_node.id == update_var_node_cov.node_id && show_animations}
+          {#if show_belief_mean}
+            {#if var_node.id == update_var_node_cov.node_id && iter_sec}
               <circle
-                class="node_MAP_mean"
-                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cx * ( 1 - $update_var_node_cov_progress)}
-                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + 
-                    update_var_node_cov.old_belief_ellipse.cy * ( 1 - $update_var_node_cov_progress)}
+                class="node_belief_mean"
+                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
+                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
                 r={2}
                 stroke="red"
-                fill="red"/>
+                fill="red" />
             {:else}
               <circle
-                class="node_bp_mean"
+                class="node_belief_mean"
                 cx={var_node.belief_ellipse.cx}
                 cy={var_node.belief_ellipse.cy}
                 r={2}
@@ -1138,28 +1341,28 @@
           {/if}
         {/if}
       {/each}
-      {#if message_bubbles && show_animations}
+      {#if message_bubbles && iter_sec}
         {#each message_bubbles as message_bubble}
-          {#if $source_progress && show_bp_cov && message_bubble.node1_display}
+          {#if $source_progress && show_belief_cov && message_bubble.node1_display}
             <ellipse
               cx={message_bubble.cx1}
               cy={message_bubble.cy1}
               rx={message_bubble.rx1}
-              ry={message_bubble.rx1}
-              transform="rotate({message_bubble.angle1})"
+              ry={message_bubble.ry1}
+              transform="rotate({message_bubble.angle1}, {message_bubble.cx1}, {message_bubble.cy1})"
               stroke="red"
               stroke-width={2}
               stroke-opacity={$source_progress}
               fill="red"
               fill-opacity={0.25 * $source_progress} />
           {/if}
-          {#if $target_progress && show_bp_cov && message_bubble.node2_display}
+          {#if $target_progress && show_belief_cov && message_bubble.node2_display}
             <ellipse
               cx={message_bubble.cx2}
               cy={message_bubble.cy2}
               rx={message_bubble.rx2}
-              ry={message_bubble.rx2}
-              transform="rotate({message_bubble.angle2})"
+              ry={message_bubble.ry2}
+              transform="rotate({message_bubble.angle2}, {message_bubble.cx2}, {message_bubble.cy2})"
               stroke="red"
               stroke-width={2}
               stroke-opacity={$target_progress}
@@ -1176,18 +1379,18 @@
             opacity={1 - 4 * ($message_progress - 0.5) * ($message_progress - 0.5)} />
         {/each}
       {/if}
-      {#if highlight_node && show_animations}
-        {#if show_bp_cov}
+      {#if highlight_node}
+        {#if show_belief_cov}
           <ellipse
             cx={highlight_node.belief_ellipse.cx}
             cy={highlight_node.belief_ellipse.cy}
             rx={highlight_node.belief_ellipse.rx}
             ry={highlight_node.belief_ellipse.ry}
-            transform="rotate({highlight_node.belief_ellipse.angle})"
+            transform="rotate({highlight_node.belief_ellipse.angle}, {highlight_node.belief_ellipse.cx}, {highlight_node.belief_ellipse.cy})"
             stroke="red"
             stroke-width={2}
             fill="red"
-            fill-opacity={0.25}/>
+            fill-opacity={0.25} />
         {:else}
           <circle
             class="node_MAP_mean"
@@ -1195,7 +1398,7 @@
             cy={highlight_node.belief_ellipse.cy}
             r={5}
             stroke="red"
-            fill="red"/>
+            fill="red" />
         {/if}
       {/if}
       {#each var_nodes as var_node}
@@ -1212,15 +1415,29 @@
               fill="red"
               fill-opacity={0} />
           {:else}
-            <circle
-              class="node"
-              cx={var_node.belief_ellipse.cx}
-              cy={var_node.belief_ellipse.cy}
-              r={10}
-              stroke="red"
-              stroke-opacity={0}
-              fill="red"
-              fill-opacity={0} />
+            {#if show_belief_cov}
+              <ellipse
+                cx={var_node.belief_ellipse.cx}
+                cy={var_node.belief_ellipse.cy}
+                rx={var_node.belief_ellipse.rx}
+                ry={var_node.belief_ellipse.ry}
+                transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
+                stroke="red"
+                stroke-width={0}
+                fill="red"
+                fill-opacity={0} />
+            {/if}
+            {#if show_belief_mean}
+              <circle
+                class="node"
+                cx={var_node.belief_ellipse.cx}
+                cy={var_node.belief_ellipse.cy}
+                r={10}
+                stroke="red"
+                stroke-opacity={0}
+                fill="red"
+                fill-opacity={0} />
+            {/if}
           {/if}
         </g>
       {/each}
@@ -1271,7 +1488,7 @@
               class="btn"
               on:click={toggle_passing_message}
               style="width:200px; border:2px solid black">
-              Pause Message Passing
+              Pause
             </button>
           </label>
         {:else}
@@ -1306,19 +1523,42 @@
         </label>
       </div>
     </div>
-    <div id="node_info_div" style="display: none;">
-      {#if node_onhover}
-        {#if node_onhover.type == 'var_node'}
-          <b>id</b>
-          = {node_onhover.id}
+    <div id="edit_mode_setting_div" style="display: block;">
+      <div style="display: inline-block;">
+        Factor Type:
+        <br />
+        <label class="radio-inline" style="color: blue">
+          <input
+            type="radio"
+            id="linear_factor_radio_button"
+            name="toggle_factor_type_radio_button"
+            on:click={toggle_factor} />
+          Linear
+        </label>
+        <label class="radio-inline" style="color: purple">
+          <input
+            type="radio"
+            id="nonlinear_factor_radio_button"
+            name="toggle_factor_type_radio_button"
+            on:click={toggle_factor} />
+          Nonlinear
+        </label>
+      </div>
+      <br />
+      <div id="node_info_div" style="display: none;">
+        {#if node_onhover}
+          {#if node_onhover.type == 'var_node'}
+            <b>id</b>
+            = {node_onhover.id}
+          {/if}
+          {#if node_onhover.type == 'linear_factor' || node_onhover.type == 'nonlinear_factor'}
+            <b>id</b>
+            = {node_onhover.id}
+          {/if}
         {/if}
-        {#if node_onhover.type == 'factor_node'}
-          <b>id</b>
-          = {node_onhover.id}
-        {/if}
-      {/if}
+      </div>
     </div>
-    <div id="message_passing_setting_div" style="display: none;">
+    <div id="play_mode_setting_div" style="display: none;">
       <div style="display: inline-block;">
         Message Passing Schedule:
         <br />
@@ -1338,36 +1578,82 @@
             on:click={toggle_schedule} />
           Sweep
         </label>
-        <label class="checkbox-inline" style="user-select: none">
+        <div id="bidir_sweep_checkbox_div">
+          <label class="checkbox-inline">
+            <input
+              type="checkbox"
+              id="toggle_bidir_sweep_checkbox"
+              on:click={toggle_bidir_sweep} />
+            Bidir
+          </label>
+        </div>
+      </div>
+      <div id="eta_damping_range_div" style="display: none;">
+        <label class="range-inline">
+          &eta Damping:
+          <b>{eta_damping}</b>
           <input
-            type="checkbox"
-            id="toggle_bidir_sweep_checkbox"
-            on:click={toggle_bidir_sweep} />
-          Bidir
+            type="range"
+            id="eta_damping_range"
+            min="0"
+            max="0.9"
+            step="0.1"
+            bind:value={eta_damping}
+            on:change={update_eta_damping}
+            style="width:200px;" />
         </label>
       </div>
-      <!-- <label>
-        &eta Damping: <b>{eta_damping}</b>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.1"
-          bind:value={eta_damping}
-          on:change={update_eta_damping}
-          style="width:200px;" />
-      </label> -->
-      <label>
+      <label class="range-inline">
         Animation Speed:
         <b>{iter_sec}</b>
         <input
           type="range"
-          min="0.1"
+          id="animation_speed_range"
+          min="0"
           max="5"
           step={time_res}
           bind:value={iter_sec}
           style="width:200px;" />
       </label>
+      <br />
+      <div style="display: inline-block;">
+        <span style="color: red">
+          <b>Belief:</b>
+        </span>
+        <label class="checkbox-inline">
+          <input
+            type="checkbox"
+            id="toggle_belief_mean_checkbox"
+            on:click={toggle_belief_mean} />
+          Mean
+        </label>
+        <label class="checkbox-inline">
+          <input
+            type="checkbox"
+            id="toggle_belief_cov_checkbox"
+            on:click={toggle_belief_cov} />
+          Cov
+        </label>
+      </div>
+      <div style="display: inline-block;">
+        <span style="color: blue">
+          <b>MAP:</b>
+        </span>
+        <label class="checkbox-inline">
+          <input
+            type="checkbox"
+            id="toggle_MAP_mean_checkbox"
+            on:click={toggle_MAP_mean} />
+          Mean
+        </label>
+        <label class="checkbox-inline">
+          <input
+            type="checkbox"
+            id="toggle_MAP_cov_checkbox"
+            on:click={toggle_MAP_cov} />
+          Cov
+        </label>
+      </div>
       <br />
       <div style="display: inline-block;">
         <label class="checkbox-inline" style="user-select: none; color: green">
@@ -1379,54 +1665,7 @@
         </label>
       </div>
       <br />
-      <div style="display: inline-block;">
-        <span style="color: red">
-          <b>Belief:</b>
-        </span>
-        <label class="checkbox-inline" style="user-select: none">
-          <input
-            type="checkbox"
-            id="toggle_bp_mean_checkbox"
-            on:click={toggle_bp_mean} />
-          Mean
-        </label>
-        <label class="checkbox-inline" style="user-select: none">
-          <input
-            type="checkbox"
-            id="toggle_bp_cov_checkbox"
-            on:click={toggle_bp_cov} />
-          Cov
-        </label>
-      </div>
-      <div style="display: inline-block;">
-        <span style="color: blue">
-          <b>MAP:</b>
-        </span>
-        <label class="checkbox-inline" style="user-select: none">
-          <input
-            type="checkbox"
-            id="toggle_MAP_mean_checkbox"
-            on:click={toggle_MAP_mean} />
-          Mean
-        </label>
-        <label class="checkbox-inline" style="user-select: none">
-          <input
-            type="checkbox"
-            id="toggle_MAP_cov_checkbox"
-            on:click={toggle_MAP_cov} />
-          Cov
-        </label>
-      </div>
-      <br />
-      <label class="checkbox-inline" style="user-select: none">
-        <input
-          type="checkbox"
-          id="toggle_animations_checkbox"
-          on:click={toggle_animations} />
-        Animations
-      </label>
-      <br />
-      <label class="checkbox-inline" style="user-select: none">
+      <label class="checkbox-inline">
         <input
           type="checkbox"
           id="toggle_edges_checkbox"
