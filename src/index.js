@@ -3,6 +3,11 @@ import * as _unused from "raw-loader!./index.ejs";
 // TODO: disable before publishing
 
 
+import Spring from "./diagrams/spring.svelte";
+const SpringComponent = new Spring({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#spring')
+});
+
 import GaussProduct from "./diagrams/gauss_product.svelte";
 const GaussProdComponent = new GaussProduct({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#gaussprod')
