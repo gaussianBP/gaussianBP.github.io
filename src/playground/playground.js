@@ -75,7 +75,6 @@ export class FactorGraph {
       this.var_nodes = this.var_nodes.filter(var_node => var_node.id != node.id);
       // Also remove this node from adj_ids
       this.factor_nodes = this.factor_nodes.filter(factor_node => !factor_node.adj_ids.includes(node.id));
-      this.update_node_id();
       return true;
     }
     else if (node.type == "linear_factor" || node.type == "nonlinear_factor") {
@@ -84,7 +83,6 @@ export class FactorGraph {
       for (var i = 0; i < this.var_nodes.length; i++) {
         this.var_nodes[i].adj_ids = this.var_nodes[i].adj_ids.filter(adj_id => adj_id != node.id);
       }
-      this.update_node_id();
       return true;
     }
     else {

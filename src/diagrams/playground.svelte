@@ -15,7 +15,7 @@
   const var_prior_std = 50;
   const var_lambda = 1 / Math.pow(var_prior_std, 2);
   const linear_prior_std = 10;
-  const distance_prior_std = 10;
+  const distance_prior_std = 20;
   const angle_prior_std = 0.5;
   const linear_jac = new m.Matrix([[-1, 0, 1, 0], [0, -1, 0, 1]]);
   const linear_lambda = 1 / Math.pow(linear_prior_std, 2);
@@ -148,19 +148,18 @@
     passing_message = false;
     passed_message = false;
     graph = create_new_playground(n_var_nodes);
-    update_web_elements();
-    if (!edit_mode) {
+    if (!passed_message) {
+      clear_previous_message();
       update_eta_damping(0);
       sync_pass_message();
-      update_eta_damping();
-      graph.compute_MAP();
+      update_eta_damping(0.9);
     }
-    update_playground();
     clear_highlight_node();
     clear_message_bubbles();
+    update_playground();
     graph.compute_MAP();
-    total_error_distance = parseInt(graph.compute_error());
-    belief_MAP_diff = parseInt(graph.compare_to_MAP());
+    total_error_distance = graph.compute_error();
+    belief_MAP_diff = graph.compare_to_MAP();
   }
 
   function update_playground() {
@@ -226,6 +225,9 @@
         if (!pause_one_iter) {
           graph.relinearize();
           pass_message();
+          if (belief_MAP_diff <= 0.5) {
+            passing_message = false;
+          }
         } else {
           pause_one_iter = false;
         }
@@ -236,15 +238,16 @@
   }
 
   function sync_pass_message() {
-    for (
-      var i = 0;
-      i < graph.var_nodes.length + graph.factor_nodes.length;
-      i++
-    ) {
-      graph.find_node(i).pass_message(graph);
+    for (var i = 0; i < graph.factor_nodes.length; i++) {
+      graph.factor_nodes[i].pass_message(graph);
+    }
+    for (var i = 0; i < graph.var_nodes.length; i++) {
+      graph.var_nodes[i].pass_message(graph);
     }
     passed_message = true;
     total_iter++;
+    total_error_distance = graph.compute_error();
+    belief_MAP_diff = graph.compare_to_MAP();
   }
 
   function sweep_pass_message() {
@@ -360,6 +363,8 @@
     }
     last_message_idx = node.id;
     passed_message = true;
+    total_error_distance = graph.compute_error();
+    belief_MAP_diff = graph.compare_to_MAP();
   }
 
   function pass_message() {
@@ -368,8 +373,6 @@
     } else {
       sweep_pass_message();
     }
-    total_error_distance = parseInt(graph.compute_error());
-    belief_MAP_diff = parseInt(graph.compare_to_MAP());
   }
 
   function update_web_elements() {
@@ -423,16 +426,6 @@
       document.getElementById("animation_speed_range").disabled = false;
       document.getElementById("eta_damping_range").disabled = false;
     }
-    document.getElementById(
-      "toggle_belief_mean_checkbox"
-    ).checked = show_belief_mean;
-    document.getElementById("toggle_belief_cov_checkbox").checked = show_belief_cov;
-    document.getElementById("toggle_MAP_mean_checkbox").checked = show_MAP_mean;
-    document.getElementById("toggle_MAP_cov_checkbox").checked = show_MAP_cov;
-    document.getElementById(
-      "toggle_ground_truth_checkbox"
-    ).checked = show_ground_truth;
-    document.getElementById("toggle_edges_checkbox").checked = show_edges;
   }
 
   function update_edge() {
@@ -664,7 +657,7 @@
         node2.belief.getMean()
       );
       factor_node.meas.add(factor_node.meas_noise);
-      factor_node.eta_damping = eta_damping;
+      // factor_node.eta_damping = eta_damping;
       factor_node.lambda = nonlinear_lambda;
       factor_node.adj_var_dofs = [2, 2];
       factor_node.adj_beliefs = [node1.belief, node2.belief];
@@ -706,7 +699,6 @@
     }
     passed_message = false;
     message_idx = 0;
-    print(1);
   }
 
   function mousedown_handler(e) {
@@ -792,6 +784,7 @@
           ) {
             // Remove the node if double clicked
             graph.remove_node(node_clicked.id);
+            graph.update_node_id();
             last_node_clicked = null;
           } else if (
             node_clicked.type == "var_node" &&
@@ -913,8 +906,8 @@
               clear_message_highlight_delay
             );
           }
-          total_error_distance = parseInt(graph.compute_error());
-          belief_MAP_diff = parseInt(graph.compare_to_MAP());
+          total_error_distance = graph.compute_error();
+          belief_MAP_diff = graph.compare_to_MAP();
           last_node_clicked = null;
         }
       } else {
@@ -946,13 +939,15 @@
       if (!passed_message) {
         clear_previous_message();
         update_eta_damping(0);
+        print(graph.factor_nodes.map(factor_node => factor_node.eta_damping));
         sync_pass_message();
-        update_eta_damping();
+        print(graph.factor_nodes.map(factor_node => factor_node.eta_damping));
+        update_eta_damping(0.9);
       }
       graph.compute_MAP();
     }
-    total_error_distance = parseInt(graph.compute_error());
-    belief_MAP_diff = parseInt(graph.compare_to_MAP());
+    total_error_distance = graph.compute_error();
+    belief_MAP_diff = graph.compare_to_MAP();
     node_clicked = null;
     last_node_clicked = null;
     highlight_node = null;
@@ -996,40 +991,15 @@
     }
   }
 
-  function toggle_belief_mean() {
-    show_belief_mean = document.getElementById("toggle_belief_mean_checkbox")
-      .checked;
-  }
-
-  function toggle_belief_cov() {
-    show_belief_cov = document.getElementById("toggle_belief_cov_checkbox").checked;
-  }
-
-  function toggle_MAP_mean() {
-    show_MAP_mean = document.getElementById("toggle_MAP_mean_checkbox").checked;
-  }
-
-  function toggle_MAP_cov() {
-    show_MAP_cov = document.getElementById("toggle_MAP_cov_checkbox").checked;
-  }
-
-  function toggle_ground_truth() {
-    show_ground_truth = document.getElementById("toggle_ground_truth_checkbox")
-      .checked;
-  }
-
-  function toggle_edges() {
-    show_edges = document.getElementById("toggle_edges_checkbox").checked;
-  }
-
   function update_eta_damping(eta = null) {
     if (eta == null) {
       eta = eta_damping;
     }
     for (var i = 0; i < graph.factor_nodes.length; i++) {
-      if (graph.factor_nodes[i].type == "nonlinear_factor") {
-        graph.factor_nodes[i].eta_damping = eta;
-      }
+      graph.factor_nodes[i].eta_damping = eta;
+      // if (graph.factor_nodes[i].type == "nonlinear_factor") {
+        // graph.factor_nodes[i].eta_damping = eta;
+      // }
     }
   }
 
@@ -1448,9 +1418,9 @@
     <div id="playground_info_div">
       <b>Iterations: {total_iter}</b>
       <br />
-      <b>Total Error: {total_error_distance}</b>
+      <b>Total Error: {parseInt(total_error_distance)}</b>
       <br />
-      <b>Difference to MAP: {belief_MAP_diff}</b>
+      <b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>
       <br />
     </div>
     <div id="playground_setting_div">
@@ -1532,7 +1502,7 @@
             type="radio"
             id="linear_factor_radio_button"
             name="toggle_factor_type_radio_button"
-            on:click={toggle_factor} />
+            on:change={toggle_factor} />
           Linear
         </label>
         <label class="radio-inline" style="color: purple">
@@ -1540,7 +1510,7 @@
             type="radio"
             id="nonlinear_factor_radio_button"
             name="toggle_factor_type_radio_button"
-            on:click={toggle_factor} />
+            on:change={toggle_factor} />
           Nonlinear
         </label>
       </div>
@@ -1599,7 +1569,6 @@
             max="0.9"
             step="0.1"
             bind:value={eta_damping}
-            on:change={update_eta_damping}
             style="width:200px;" />
         </label>
       </div>
@@ -1624,14 +1593,14 @@
           <input
             type="checkbox"
             id="toggle_belief_mean_checkbox"
-            on:click={toggle_belief_mean} />
+            bind:checked={show_belief_mean} />
           Mean
         </label>
         <label class="checkbox-inline">
           <input
             type="checkbox"
             id="toggle_belief_cov_checkbox"
-            on:click={toggle_belief_cov} />
+            bind:checked={show_belief_cov} />
           Cov
         </label>
       </div>
@@ -1643,14 +1612,14 @@
           <input
             type="checkbox"
             id="toggle_MAP_mean_checkbox"
-            on:click={toggle_MAP_mean} />
+            bind:checked={show_MAP_mean} />
           Mean
         </label>
         <label class="checkbox-inline">
           <input
             type="checkbox"
             id="toggle_MAP_cov_checkbox"
-            on:click={toggle_MAP_cov} />
+            bind:checked={show_MAP_cov} />
           Cov
         </label>
       </div>
@@ -1660,7 +1629,7 @@
           <input
             type="checkbox"
             id="toggle_ground_truth_checkbox"
-            on:click={toggle_ground_truth} />
+            bind:checked={show_ground_truth} />
           <b>Ground Truth</b>
         </label>
       </div>
@@ -1669,7 +1638,7 @@
         <input
           type="checkbox"
           id="toggle_edges_checkbox"
-          on:click={toggle_edges} />
+          bind:checked={show_edges} />
         Edges
       </label>
     </div>
