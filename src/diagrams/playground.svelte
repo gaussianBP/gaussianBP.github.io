@@ -14,8 +14,8 @@
   // GBP
   const var_prior_std = 50;
   const var_lambda = 1 / Math.pow(var_prior_std, 2);
-  const linear_prior_std = 10;
-  const distance_prior_std = 20;
+  const linear_prior_std = 30;
+  const distance_prior_std = 30;
   const angle_prior_std = 0.5;
   const linear_jac = new m.Matrix([[-1, 0, 1, 0], [0, -1, 0, 1]]);
   const linear_lambda = 1 / Math.pow(linear_prior_std, 2);
@@ -26,21 +26,22 @@
   const linear_noise = r.normal(0, 5);
   const nonlinear_dist_noise = r.normal(0, 5);
   const nonlinear_angle_noise = r.normal(0, 0.2);
-  var eta_damping = 0.9;
+  var eta_damping = 0.;
   const new_gauss = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
   var use_linear_factor = false;
   var forward_sweep = true;
   var passed_message = false;
   var is_tree_graph = true;
+  var overconfidence = 0;
 
   // svg
   var svg;
   var svg_width = 800;
-  var svg_height = 500;
+  var svg_height = 800;
 
   // Playground
   var graph;
-  var n_var_nodes = 22;
+  var n_var_nodes = 28;
   var sync_schedule = false;
   var bidir_sweep = true;
   var message_idx = 0;
@@ -111,29 +112,29 @@
     for (var i = 0; i < n_var_nodes; i++) {
       if (i < 8) {
         add_var_node(50 + 100 * i, 50, i * 2);
-      } else if (i < 12) {
+      } else if (i < 15) {
         add_var_node(750, 50 + 100 * (i - 7), i * 2);
-      } else if (i < 18) {
-        add_var_node(50 + 100 * (18 - i), 450, i * 2);
-      } else if (i < 23) {
-        add_var_node(50, 50 + 100 * (22 - i), i * 2);
+      } else if (i < 22) {
+        add_var_node(50 + 100 * (21 - i), 750, i * 2);
+      } else if (i < 28) {
+        add_var_node(50, 50 + 100 * (28 - i), i * 2);
       } else {
-        return graph;
+        break;
       }
       if (i > 0) {
         add_factor_node(
-          graph.var_nodes[i - 1].id,
-          graph.var_nodes[i].id,
+          (i - 1) * 2,
+          i * 2,
           i * 2 - 1
         );
       }
     }
-    // for (var i = 0; i < parseInt(Math.random() * n_var_nodes); i ++) { //
-    //   add_factor_node(
-    //       graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id,
-    //       graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id
-    //     );
-    // }
+    for (var i = 0; i < parseInt(Math.random() * n_var_nodes); i ++) { //
+      add_factor_node(
+          graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id,
+          graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id
+        );
+    }
     console.log(graph);
     return graph;
   }
@@ -144,22 +145,15 @@
     factor_nodes = [];
     edges = [];
     message_idx = 0;
-    total_iter = 0;
     passing_message = false;
     passed_message = false;
     graph = create_new_playground(n_var_nodes);
-    if (!passed_message) {
-      clear_previous_message();
-      update_eta_damping(0);
-      sync_pass_message();
-      update_eta_damping(0.9);
-    }
+    sync_pass_message();
+    graph.compute_MAP();
+    total_iter = 0;
     clear_highlight_node();
     clear_message_bubbles();
     update_playground();
-    graph.compute_MAP();
-    total_error_distance = graph.compute_error();
-    belief_MAP_diff = graph.compare_to_MAP();
   }
 
   function update_playground() {
@@ -170,6 +164,7 @@
     graph.update_cov_ellipse();
     var_nodes = graph.var_nodes;
     factor_nodes = graph.factor_nodes;
+    overconfidence = graph.compute_overconfidence();
     update_web_elements();
     update_edge();
     update_messages();
@@ -225,7 +220,7 @@
         if (!pause_one_iter) {
           graph.relinearize();
           pass_message();
-          if (belief_MAP_diff <= 0.5) {
+          if (belief_MAP_diff <= 0.1) {
             passing_message = false;
           }
         } else {
@@ -248,6 +243,7 @@
     total_iter++;
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
+    
   }
 
   function sweep_pass_message() {
@@ -365,6 +361,7 @@
     passed_message = true;
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
+    overconfidence = graph.compute_overconfidence();
   }
 
   function pass_message() {
@@ -410,21 +407,10 @@
     document.getElementById("sync_mode_radio_button").checked = sync_schedule;
     document.getElementById("sweep_mode_radio_button").checked = !sync_schedule;
     document.getElementById("toggle_bidir_sweep_checkbox").checked = bidir_sweep;
-    if (
-      graph.factor_nodes.some(
-        factor_node => factor_node.type == "nonlinear_factor"
-      )
-    ) {
-      document.getElementById("eta_damping_range_div").style.display = "block";
-    } else {
-      document.getElementById("eta_damping_range_div").style.display = "none";
-    }
     if (passing_message) {
       document.getElementById("animation_speed_range").disabled = true;
-      document.getElementById("eta_damping_range").disabled = true;
     } else {
       document.getElementById("animation_speed_range").disabled = false;
-      document.getElementById("eta_damping_range").disabled = false;
     }
   }
 
@@ -697,7 +683,10 @@
       factor_node.messages = [new_gauss, new_gauss];
       factor_node.compute_factor();
     }
+    sync_pass_message();
+    total_iter = 0;
     passed_message = false;
+    passing_message = false;
     message_idx = 0;
   }
 
@@ -920,6 +909,75 @@
     last_click_time = Date.now();
   }
 
+  function replace_factor(id = null) {
+    clear_previous_message();
+    for (var i = 0; i < graph.factor_nodes.length; i ++) {
+      var factor_node = graph.factor_nodes[i];
+      var node1 = graph.find_node(factor_node.adj_ids[0]);
+      var node2 = graph.find_node(factor_node.adj_ids[1]);
+      if (factor_node.id == id || id == null) {
+        if (factor_node.type == "linear_factor") {
+          if (node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >= 0) {
+            var meas_func = nlm.measFnR;
+            var jac_func = nlm.jacFnR;
+          } else {
+            var meas_func = nlm.measFnL;
+            var jac_func = nlm.jacFnL;
+          }
+          const new_factor_node = new playground.NonLinearFactor(
+            4,
+            factor_node.id,
+            factor_node.adj_ids,
+            meas_func,
+            jac_func
+          );
+          new_factor_node.meas_noise = new m.Matrix([
+            [nonlinear_angle_noise()],
+            [nonlinear_dist_noise()]
+          ]);
+          new_factor_node.meas = new_factor_node.meas_func(
+            node1.belief.getMean(),
+            node2.belief.getMean()
+          );
+          new_factor_node.meas.add(new_factor_node.meas_noise);
+          new_factor_node.lambda = nonlinear_lambda;
+          new_factor_node.adj_var_dofs = [2, 2];
+          new_factor_node.adj_beliefs = [node1.belief, node2.belief];
+          new_factor_node.messages = [new_gauss, new_gauss];
+          new_factor_node.compute_factor();
+          graph.factor_nodes[i] = new_factor_node;
+          node1.receive_message(graph);
+          node2.receive_message(graph);
+        } else if (factor_node.type == "nonlinear_factor") {
+          const new_factor_node = new playground.LinearFactor(
+            4,
+            factor_node.id,
+            factor_node.adj_ids,
+          );
+          new_factor_node.meas_noise = new m.Matrix([
+            [linear_noise()],
+            [linear_noise()]
+          ]);
+          new_factor_node.meas = new_factor_node.meas_func(
+            [node1.x, node1.y],
+            [node2.x, node2.y]
+          );
+          new_factor_node.meas.add(new_factor_node.meas_noise);
+          new_factor_node.jacs = [linear_jac];
+          new_factor_node.lambda = [linear_lambda];
+          new_factor_node.adj_var_dofs = [2, 2];
+          new_factor_node.adj_beliefs = [node1.belief, node2.belief];
+          new_factor_node.messages = [new_gauss, new_gauss];
+          new_factor_node.compute_factor();
+          graph.factor_nodes[i] = new_factor_node;
+          node1.receive_message(graph);
+          node2.receive_message(graph);
+        }
+      }
+    }
+    clear_previous_message();
+  }
+
   function update_messages() {
     for (var i = 0; i < messages.length; i++) {
       if (messages[i].message) {
@@ -938,11 +996,8 @@
     if (!edit_mode) {
       if (!passed_message) {
         clear_previous_message();
-        update_eta_damping(0);
-        print(graph.factor_nodes.map(factor_node => factor_node.eta_damping));
         sync_pass_message();
-        print(graph.factor_nodes.map(factor_node => factor_node.eta_damping));
-        update_eta_damping(0.9);
+        total_iter = 0;
       }
       graph.compute_MAP();
     }
@@ -975,7 +1030,7 @@
     use_linear_factor =
       document.getElementById("linear_factor_radio_button").checked &&
       !document.getElementById("nonlinear_factor_radio_button").checked;
-    reset_playground();
+    replace_factor();
   }
 
   function toggle_schedule() {
@@ -988,18 +1043,6 @@
     if (!sync_schedule) {
       bidir_sweep = document.getElementById("toggle_bidir_sweep_checkbox")
         .checked;
-    }
-  }
-
-  function update_eta_damping(eta = null) {
-    if (eta == null) {
-      eta = eta_damping;
-    }
-    for (var i = 0; i < graph.factor_nodes.length; i++) {
-      graph.factor_nodes[i].eta_damping = eta;
-      // if (graph.factor_nodes[i].type == "nonlinear_factor") {
-        // graph.factor_nodes[i].eta_damping = eta;
-      // }
     }
   }
 
@@ -1418,9 +1461,22 @@
     <div id="playground_info_div">
       <b>Iterations: {total_iter}</b>
       <br />
-      <b>Total Error: {parseInt(total_error_distance)}</b>
+      {#if total_error_distance < 1}
+        <b>Total Error: {parseInt(total_error_distance * 100) / 100}</b>
+      {:else}
+        <b>Total Error: {parseInt(total_error_distance)}</b>
+      {/if}
       <br />
-      <b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>
+      {#if belief_MAP_diff < 1}
+        <b>Difference to MAP: {parseInt(belief_MAP_diff * 100) / 100}</b>
+      {:else}
+        <b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>
+      {/if}
+      {#if overconfidence < 1}
+        <b>Overconfidence: {parseInt(overconfidence * 100) / 100}</b>
+      {:else}
+        <b>Overconfidence: {parseInt(overconfidence)}</b>
+      {/if}
       <br />
     </div>
     <div id="playground_setting_div">
@@ -1473,15 +1529,27 @@
           </label>
         {/if}
         <br />
-        <label>
-          <button
-            type="button"
-            class="btn"
-            on:click={reset_playground}
-            style="width:98px; border:2px solid black">
-            Reset
-          </button>
-        </label>
+        {#if total_iter > 0}
+          <label>
+            <button
+              type="button"
+              class="btn"
+              on:click={clear_previous_message}
+              style="width:98px; border:2px solid black">
+              Clear
+            </button>
+          </label>
+        {:else}
+          <label>
+            <button
+              type="button"
+              class="btn"
+              on:click={reset_playground}
+              style="width:98px; border:2px solid black">
+              Reset
+            </button>
+          </label>
+        {/if}
         <label>
           <button
             type="button"
@@ -1557,20 +1625,6 @@
             Bidir
           </label>
         </div>
-      </div>
-      <div id="eta_damping_range_div" style="display: none;">
-        <label class="range-inline">
-          &eta Damping:
-          <b>{eta_damping}</b>
-          <input
-            type="range"
-            id="eta_damping_range"
-            min="0"
-            max="0.9"
-            step="0.1"
-            bind:value={eta_damping}
-            style="width:200px;" />
-        </label>
       </div>
       <label class="range-inline">
         Animation Speed:

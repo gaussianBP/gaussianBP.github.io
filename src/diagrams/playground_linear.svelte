@@ -12,19 +12,20 @@
   import * as gauss from "../gaussian";
 
   // GBP
-  const var_prior_std = 50;
-  const var_lambda = 1 / Math.pow(var_prior_std, 2);
-  const linear_prior_std = 20;
+  var var_prior_std = 50;
+  var var_lambda = 1 / Math.pow(var_prior_std, 2);
+  var linear_prior_std = 20;
   const linear_jac = new m.Matrix([[-1, 0, 1, 0], [0, -1, 0, 1]]);
-  const linear_lambda = 1 / Math.pow(linear_prior_std, 2);
-  const linear_noise = r.normal(0, 10);
+  var linear_lambda = 1 / Math.pow(linear_prior_std, 2);
+  var linear_noise_mag = 10;
+  var linear_noise = r.normal(0, linear_noise_mag);
   const new_gauss = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
   var passed_message = false;
 
   // svg
   var svg;
   var svg_width = 800;
-  var svg_height = 500;
+  var svg_height = 800;
 
   // Playground
   var graph;
@@ -35,6 +36,7 @@
   const min_node_spacing = 25;
   var total_error_distance = 0;
   var belief_MAP_diff = 0;
+  var overconfidence = 0;
   var converged = false;
 
   // Message passing animation
@@ -112,6 +114,7 @@
     graph.compute_MAP();
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
+    overconfidence = graph.compute_overconfidence();
   }
 
   function update_playground() {
@@ -154,6 +157,7 @@
     total_iter++;
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
+    overconfidence = graph.compute_overconfidence();
   }
 
   function update_web_elements() {
@@ -424,6 +428,40 @@
     }
   }
 
+  function reset_prior() {
+    clear_previous_message();
+    var_lambda = 1 / Math.pow(var_prior_std, 2);
+    linear_lambda = 1 / Math.pow(linear_prior_std, 2);
+    for (var i = 0; i < graph.factor_nodes.length; i ++) {
+      var factor_node = graph.factor_nodes[i];
+      var node1 = graph.find_node(parseInt(factor_node.adj_ids[0]));
+      var node2 = graph.find_node(parseInt(factor_node.adj_ids[1]));
+      factor_node.lambda = [linear_lambda];
+      factor_node.meas_noise = new m.Matrix([
+        [linear_noise()],
+        [linear_noise()]
+      ]);
+      factor_node.meas = factor_node.meas_func(
+        [node1.x, node1.y],
+        [node2.x, node2.y]
+      );
+      factor_node.meas.add(factor_node.meas_noise);
+      factor_node.compute_factor();
+    }
+    for (var i = 0; i < graph.var_nodes.length; i ++) {
+      var var_node = graph.var_nodes[i];
+      if (var_node.id != 0) {
+        var_node.prior.lam = new m.Matrix([[var_lambda, 0], [0, var_lambda]]);
+      }
+      var_node.prior.eta = var_node.prior.lam.mmul(
+        new m.Matrix([[var_node.x], [var_node.y]])
+      );
+      var_node.belief.eta = var_node.prior.eta.clone();
+      var_node.belief.lam = var_node.prior.lam.clone();
+      var_node.pass_message(graph);
+    }
+  }
+
   function print_graph_detail() {
     print(graph);
   }
@@ -670,9 +708,22 @@
     <div id="playground_info_div">
       <b>Iterations: {total_iter}</b>
       <br />
-      <b>Total Error: {parseInt(total_error_distance)}</b>
+      {#if total_error_distance < 1}
+        <b>Total Error: {parseInt(total_error_distance * 100) / 100}</b>
+      {:else}
+        <b>Total Error: {parseInt(total_error_distance)}</b>
+      {/if}
       <br />
-      <b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>
+      {#if belief_MAP_diff < 1}
+        <b>Difference to MAP: {parseInt(belief_MAP_diff * 100) / 100}</b>
+      {:else}
+        <b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>
+      {/if}
+      {#if overconfidence < 1}
+        <b>Overconfidence: {parseInt(overconfidence * 100) / 100}</b>
+      {:else}
+        <b>Overconfidence: {parseInt(overconfidence)}</b>
+      {/if}
       <br />
     </div>
     <div id="playground_setting_div">
@@ -754,7 +805,7 @@
             type="range"
             id="n_var_nodes_range"
             min="10"
-            max="50"
+            max="100"
             step="1"
             bind:value={n_var_nodes}
             on:mouseup={reset_playground}
@@ -788,6 +839,51 @@
             step="10"
             bind:value={max_edge_length}
             on:change={reset_factors}
+            style="width:200px;" />
+        </label>
+      </div>
+      <div id="var_prior_std_range_div">
+        <label class="range-inline">
+          Var Node Prior:
+          <b>{var_prior_std}</b>
+          <input
+            type="range"
+            id="var_prior_std_range"
+            min="10"
+            max="100"
+            step="10"
+            bind:value={var_prior_std}
+            on:mouseup={reset_prior}
+            style="width:200px;" />
+        </label>
+      </div>
+      <div id="linear_prior_std_range_div">
+        <label class="range-inline">
+          Factor Prior:
+          <b>{linear_prior_std}</b>
+          <input
+            type="range"
+            id="linear_prior_std_range"
+            min="10"
+            max="100"
+            step="10"
+            bind:value={linear_prior_std}
+            on:mouseup={reset_prior}
+            style="width:200px;" />
+        </label>
+      </div>
+      <div id="linear_noise_mag_range_div">
+        <label class="range-inline">
+          Measurement Noise:
+          <b>{linear_noise_mag}</b>
+          <input
+            type="range"
+            id="linear_noise_mag_range"
+            min="0"
+            max="50"
+            step="5"
+            bind:value={linear_noise_mag}
+            on:mouseup={reset_prior}
             style="width:200px;" />
         </label>
       </div>

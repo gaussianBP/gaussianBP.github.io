@@ -260,6 +260,15 @@ export class FactorGraph {
     return Math.sqrt(Math.pow(node1.x - node2.x, 2) +
       Math.pow(node1.y - node2.y, 2));
   }
+
+  compute_overconfidence() {
+    var overconfidence = 0;
+    for (var i = 0; i < this.var_nodes.length; i ++) {
+      var var_node = this.var_nodes[i];
+      overconfidence += Math.max(0, var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry - var_node.belief_ellipse.rx * var_node.belief_ellipse.ry);
+    }
+    return overconfidence;
+  }
 }
 
 export class VariableNode {
