@@ -50,14 +50,15 @@
 
       2. Hardware:
       we have a strong feeling that algorithms which can operate with purely local computation and in-place data storage on a graph, and communicate via message passing, will fit well with coming computer hardware.
-    
+
+
       3. Inference in Spatial AI and Factor graphs
         - Bayesian inference in Spatial AI
         - Graphical models
         - Factor graphs
         - Factor graphs as master rep
         - Gaussians
-        - Gaussian posterior, sparsity relationship between inf matrix and graph
+        - Gaussian posterior, sparsity relationship between information matrix and graph
 
       3. Factor graph as master representation:
           - Most accurate, non-linear, general
@@ -74,6 +75,20 @@
       4. GBP
         - Intuitiion
         - Equations
+
+
+      Some thoughts from Andy 12/8/20
+      - can we think of GBP as the most basic form of second order optimisation,
+      of which other well known algorithms are special cases?
+      - as parallelisation gets greater, and also as asynchronicity increases,
+      does GBP get more and more advantageous?
+      
+      
+      
+    
+
+
+
       
     </p>
 
@@ -123,7 +138,7 @@
     </p>
 
     <p>
-      Current prototype Spatial AI systems, attempting to pro- cess this heterogeneous flow of data into complicated per- sistent representations via various estimation techniques, often have severe performance bottlenecks due to limits in the capacities of computation load, data storage or data transfer. 
+      Current prototype Spatial AI systems, attempting to process this heterogeneous flow of data into complicated persistent representations via various estimation techniques, often have severe performance bottlenecks due to limits in the capacities of computation load, data storage or data transfer. 
       Two lines of attack: representation and hardware.
       SemanticFusion is very complicated and requires heterogeneous computation and a lot of data movement.
     </p>
