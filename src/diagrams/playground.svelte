@@ -32,7 +32,6 @@
   var forward_sweep = true;
   var passed_message = false;
   var is_tree_graph = true;
-  var overconfidence = 0;
 
   // svg
   var svg;
@@ -42,12 +41,26 @@
   // Playground
   var graph;
   var n_var_nodes = 28;
+  var n_random_edges = 30;
   var sync_schedule = false;
   var bidir_sweep = true;
   var message_idx = 0;
   var last_message_idx = null;
   var total_error_distance = 0;
   var belief_MAP_diff = 0;
+  var overconfidence = 0;
+  var last_total_error_distance = null;
+  var last_belief_MAP_diff = null;
+  var last_overconfidence = null;
+  $: total_error_distance_list = [];
+  $: belief_MAP_diff_list = [];
+  $: overconfidence_list = [];
+  $: max_total_error_distance = null;
+  $: max_belief_MAP_diff = null;
+  $: max_overconfidence = null;
+  $: min_total_error_distance = null;
+  $: min_belief_MAP_diff = null;
+  $: min_overconfidence = null;
 
   // Drag and drop function
   const click_time_span = 100; // Threshold for time span during click
@@ -82,7 +95,7 @@
   // UI
   const time_res = 0.1; // Time resolution
   var total_iter = 0;
-  var iter_sec = 1.0;
+  var iter_sec = 0;
   var counter = 0;
   var edit_mode = true;
   var passing_message = false;
@@ -98,8 +111,16 @@
   $: factor_nodes = [];
   $: edges = [];
 
+  // Plots
+  var plot_width = 250;
+  var plot_height = 150;
+  var x_margin = 20;
+  var y_margin = 0;
+  var plot_margin = 5;
+  var y_ticks = 5;
+
   onMount(() => {
-    graph = create_new_playground(n_var_nodes);
+    // graph = create_new_playground(n_var_nodes);
     reset_playground();
   });
 
@@ -129,13 +150,13 @@
         );
       }
     }
-    for (var i = 0; i < parseInt(Math.random() * n_var_nodes); i ++) { //
+    for (var i = 0; i < n_random_edges; i ++) { //
       add_factor_node(
           graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id,
           graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id
         );
     }
-    console.log(graph);
+    print(graph);
     return graph;
   }
 
@@ -147,13 +168,25 @@
     message_idx = 0;
     passing_message = false;
     passed_message = false;
+    last_total_error_distance = null;
+    last_belief_MAP_diff = null;
+    last_overconfidence = null;
+    total_error_distance_list = [];
+    belief_MAP_diff_list = [];
+    overconfidence_list = [];
+    max_total_error_distance = null;
+    max_belief_MAP_diff = null;
+    max_overconfidence = null;
+    min_total_error_distance = null;
+    min_belief_MAP_diff = null;
+    min_overconfidence = null;
     graph = create_new_playground(n_var_nodes);
-    sync_pass_message();
     graph.compute_MAP();
+    update_playground();
+    sync_pass_message();
     total_iter = 0;
     clear_highlight_node();
     clear_message_bubbles();
-    update_playground();
   }
 
   function update_playground() {
@@ -161,10 +194,8 @@
       graph.update_node_id();
       graph.update_factor_node_location();
     }
-    graph.update_cov_ellipse();
     var_nodes = graph.var_nodes;
     factor_nodes = graph.factor_nodes;
-    overconfidence = graph.compute_overconfidence();
     update_web_elements();
     update_edge();
     update_messages();
@@ -222,6 +253,24 @@
           pass_message();
           if (belief_MAP_diff <= 0.1) {
             passing_message = false;
+            print(total_error_distance_list.map(total_error_distance => total_error_distance[0]));
+            print(belief_MAP_diff_list.map(belief_MAP_diff => belief_MAP_diff[0]));
+            print(overconfidence_list.map(overconfidence => overconfidence[0]));
+            // var total_error_distance_download = document.createElement('a');
+            // var belief_MAP_diff_download = document.createElement('b');
+            // var overconfidence_download = document.createElement('c');
+            // total_error_distance_download.href = 'data:attachment/text,' + encodeURI(total_error_distance_list.map(total_error_distance => total_error_distance[0]));
+            // belief_MAP_diff_download.href = 'data:attachment/text,' + encodeURI(belief_MAP_diff_list.map(belief_MAP_diff => belief_MAP_diff[0]));
+            // overconfidence_download.href = 'data:attachment/text,' + encodeURI(overconfidence_list.map(overconfidence => overconfidence[0]));
+            // total_error_distance_download.target = '_blank';
+            // belief_MAP_diff_download.target = '_blank';
+            // overconfidence_download.target = '_blank';
+            // total_error_distance_download.download = 'total_error_distance_list.txt';
+            // belief_MAP_diff_download.download = 'total_error_distance_list.txt';
+            // overconfidence_download.download = 'total_error_distance_list.txt';
+            // total_error_distance_download.click();
+            // belief_MAP_diff_download.click();
+            // overconfidence_download.click();
           }
         } else {
           pause_one_iter = false;
@@ -238,12 +287,34 @@
     }
     for (var i = 0; i < graph.var_nodes.length; i++) {
       graph.var_nodes[i].pass_message(graph);
+      graph.var_nodes[i].update_cov_ellipse();
     }
-    passed_message = true;
-    total_iter++;
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
-    
+    overconfidence = graph.compute_overconfidence();
+    if (passed_message) {
+      total_error_distance_list.push([last_total_error_distance, total_error_distance]);
+      belief_MAP_diff_list.push([last_belief_MAP_diff, belief_MAP_diff]);
+      overconfidence_list.push([last_overconfidence, overconfidence]);
+      max_total_error_distance = max(total_error_distance_list);
+      max_belief_MAP_diff = max(belief_MAP_diff_list);
+      max_overconfidence = max(overconfidence_list);
+      min_total_error_distance = min(total_error_distance_list);
+      min_belief_MAP_diff = min(belief_MAP_diff_list);
+      min_overconfidence = min(overconfidence_list);
+    } else {
+      max_total_error_distance = 0;
+      max_belief_MAP_diff = 0;
+      max_overconfidence = 0;
+      min_total_error_distance = 0;
+      min_belief_MAP_diff = 0;
+      min_overconfidence = 0;
+    }
+    last_total_error_distance = total_error_distance;
+    last_belief_MAP_diff = belief_MAP_diff;
+    last_overconfidence = overconfidence;
+    passed_message = true;
+    total_iter++;
   }
 
   function sweep_pass_message() {
@@ -358,10 +429,24 @@
       }
     }
     last_message_idx = node.id;
-    passed_message = true;
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
     overconfidence = graph.compute_overconfidence();
+    if (passed_message) {
+      total_error_distance_list.push([last_total_error_distance, total_error_distance]);
+      belief_MAP_diff_list.push([last_belief_MAP_diff, belief_MAP_diff]);
+      overconfidence_list.push([last_overconfidence, overconfidence]);
+    }
+    max_total_error_distance = max(total_error_distance_list);
+    max_belief_MAP_diff = max(belief_MAP_diff_list);
+    max_overconfidence = max(overconfidence_list);
+    min_total_error_distance = min(total_error_distance_list);
+    min_belief_MAP_diff = min(belief_MAP_diff_list);
+    min_overconfidence = min(overconfidence_list);
+    last_total_error_distance = total_error_distance;
+    last_belief_MAP_diff = belief_MAP_diff;
+    last_overconfidence = overconfidence;
+    passed_message = true;
   }
 
   function pass_message() {
@@ -713,11 +798,11 @@
       node_mousedown.x = current_mouse_location.x;
       node_mousedown.y = current_mouse_location.y;
     }
-    if (node_onhover && edit_mode) {
+    if (node_onhover) {
       node_onhover = graph.find_node(node_onhover.id);
-      document.getElementById("node_info_div").style.display = "inline-block";
-    } else {
-      document.getElementById("node_info_div").style.display = "none";
+      if (node_onhover.type != "var_node") {
+        node_onhover = null;
+      }
     }
   }
 
@@ -978,6 +1063,21 @@
     clear_previous_message();
   }
 
+  function update_random_edges() {
+    var random_factor_node_ids = graph.factor_nodes.filter(factor_node => factor_node.id > 2 * n_var_nodes).map(factor_node => factor_node.id);
+    for (var i = 0; i < random_factor_node_ids.length; i ++) {
+      graph.remove_node(random_factor_node_ids[i]);
+    }
+    if (n_random_edges > 0) {
+      for (var i = 0; i < n_random_edges; i ++) { //
+        add_factor_node(
+            graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id,
+            graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id
+          );
+      }
+    }
+  }
+
   function update_messages() {
     for (var i = 0; i < messages.length; i++) {
       if (messages[i].message) {
@@ -1044,6 +1144,14 @@
       bidir_sweep = document.getElementById("toggle_bidir_sweep_checkbox")
         .checked;
     }
+  }
+
+  function max(list) {
+    return Math.max(...list.map(sub_list => Math.max(...sub_list)));
+  }
+
+  function min(list) {
+    return Math.min(...list.map(sub_list => Math.min(...sub_list)));
   }
 
   function print_graph_detail() {
@@ -1467,15 +1575,25 @@
         <b>Total Error: {parseInt(total_error_distance)}</b>
       {/if}
       <br />
-      {#if belief_MAP_diff < 1}
-        <b>Difference to MAP: {parseInt(belief_MAP_diff * 100) / 100}</b>
+      {#if node_onhover && !edit_mode}
+        {#if node_onhover.type == "var_node" && passed_message}
+          <b>Node id: {node_onhover.id}</b>
+          <br />
+          <b>Difference to MAP: {parseInt(Math.sqrt(Math.pow(node_onhover.belief_ellipse.cx - node_onhover.MAP_ellipse.cx, 2) + 
+            Math.pow(node_onhover.belief_ellipse.cy - node_onhover.MAP_ellipse.cy, 2)) * 100) / 100}</b>
+          <br />
+          <b>Overconfidence: {parseInt(node_onhover.overconfidence * 10000) / 100} %</b>
+        {/if}
       {:else}
-        <b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>
-      {/if}
-      {#if overconfidence < 1}
-        <b>Overconfidence: {parseInt(overconfidence * 100) / 100}</b>
-      {:else}
-        <b>Overconfidence: {parseInt(overconfidence)}</b>
+        <b>Graph Overall</b>
+        <br />
+        {#if belief_MAP_diff < 1}
+          <b>Difference to MAP: {parseInt(belief_MAP_diff * 100) / 100}</b>
+        {:else}
+          <b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>
+        {/if}
+        <br />
+        <b>Overconfidence: {parseInt(overconfidence * 10000) / 100} %</b>
       {/if}
       <br />
     </div>
@@ -1562,6 +1680,20 @@
       </div>
     </div>
     <div id="edit_mode_setting_div" style="display: block;">
+      <label class="range-inline">
+        Random Edges:
+        <b>{n_random_edges}</b>
+        <input
+          type="range"
+          id="animation_speed_range"
+          min="0"
+          max="50"
+          step={1}
+          bind:value={n_random_edges}
+          on:change={update_random_edges}
+          style="width:200px;" />
+      </label>
+      <br />
       <div style="display: inline-block;">
         Factor Type:
         <br />
@@ -1582,21 +1714,21 @@
           Nonlinear
         </label>
       </div>
-      <br />
-      <div id="node_info_div" style="display: none;">
-        {#if node_onhover}
-          {#if node_onhover.type == 'var_node'}
-            <b>id</b>
-            = {node_onhover.id}
-          {/if}
-          {#if node_onhover.type == 'linear_factor' || node_onhover.type == 'nonlinear_factor'}
-            <b>id</b>
-            = {node_onhover.id}
-          {/if}
-        {/if}
-      </div>
     </div>
     <div id="play_mode_setting_div" style="display: none;">
+      <label class="range-inline">
+        Animation Speed:
+        <b>{iter_sec}</b>
+        <input
+          type="range"
+          id="animation_speed_range"
+          min="0"
+          max="5"
+          step={time_res}
+          bind:value={iter_sec}
+          style="width:200px;" />
+      </label>
+      <br />
       <div style="display: inline-block;">
         Message Passing Schedule:
         <br />
@@ -1626,19 +1758,6 @@
           </label>
         </div>
       </div>
-      <label class="range-inline">
-        Animation Speed:
-        <b>{iter_sec}</b>
-        <input
-          type="range"
-          id="animation_speed_range"
-          min="0"
-          max="5"
-          step={time_res}
-          bind:value={iter_sec}
-          style="width:200px;" />
-      </label>
-      <br />
       <div style="display: inline-block;">
         <span style="color: red">
           <b>Belief:</b>
@@ -1702,6 +1821,233 @@
           <p transition:fade font-size="14">{message.message}</p>
         {/if}
       {/each}
+    </div>
+  </div>
+</div>
+
+<div id="plot_container">
+  <div class="plot_div">
+    <div class="plot_svg">
+      <svg style="background-color: white;">
+        <line 
+          x1={0 + x_margin}
+          x2={plot_width + x_margin}
+          y1={plot_height + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={2} />
+        <line
+          x1={0 + x_margin}
+          x2={0 + x_margin}
+          y1={0 + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={2} />
+        <text
+          x={10}
+          y={plot_height / 2 + y_margin}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
+          Total Error From Groundtruth
+        </text>
+        <text
+          x={plot_width / 2 + x_margin}
+          y={plot_height + y_margin + 15}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none">
+          Iterations
+        </text>
+        {#if passed_message}
+          {#each Array(y_ticks + 1) as _, i}
+            <line
+              x1={x_margin}
+              x2={plot_width + x_margin}
+              y1={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
+              y2={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
+              stroke="black"
+              stroke-width="0.5"
+              stroke-opacity="0.5"
+              stroke-dasharray="2, 4" />
+            <text
+              x={2 + x_margin}
+              y={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin + 2}
+              text-anchor="left"
+              stroke="black"
+              opacity={0.75}
+              stroke-width={0.25}
+              font-size={10}
+              style="user-select: none">
+              {parseInt(((max_total_error_distance - min_total_error_distance) * i / y_ticks + min_total_error_distance) * 100) / 100}
+            </text>
+          {/each}
+          {#each total_error_distance_list as error, i}
+            <line
+              x1={plot_width * i / (total_iter + 1) + x_margin} 
+              x2={plot_width * (i + 1) / (total_iter + 1) + x_margin}
+              y1={(plot_height - 2 * plot_margin) * (1 - (error[0] - min_total_error_distance) / (max_total_error_distance - min_total_error_distance + 0.01)) + plot_margin + y_margin}
+              y2={(plot_height - 2 * plot_margin) * (1 - (error[1] - min_total_error_distance) / (max_total_error_distance - min_total_error_distance + 0.01)) + plot_margin + y_margin}
+              stroke="red"
+              stroke-width={1}
+              />
+          {/each}
+        {/if}
+      </svg>
+    </div>
+  </div>
+
+  <div class="plot_div">
+    <div class="plot_svg">
+      <svg style="background-color: white;">
+        <line 
+          x1={0 + x_margin}
+          x2={plot_width + x_margin}
+          y1={plot_height + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <line
+          x1={0 + x_margin}
+          x2={0 + x_margin}
+          y1={0 + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <text
+          x={10}
+          y={plot_height / 2 + y_margin}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
+          Difference to MAP
+        </text>
+        <text
+          x={plot_width / 2 + x_margin}
+          y={plot_height + y_margin + 15}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none">
+          Iterations
+        </text>
+        {#if passed_message}
+          {#each Array(y_ticks + 1) as _, i}
+            <line
+              x1={x_margin}
+              x2={plot_width + x_margin}
+              y1={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
+              y2={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
+              stroke="black"
+              stroke-width="0.5"
+              stroke-opacity="0.5"
+              stroke-dasharray="2, 4" />
+            <text
+              x={2 + x_margin}
+              y={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin + 2}
+              text-anchor="left"
+              stroke="black"
+              opacity={0.75}
+              stroke-width={0.25}
+              font-size={10}
+              style="user-select: none">
+              {parseInt(((max_belief_MAP_diff) * i / y_ticks) * 100) / 100}
+            </text>
+          {/each}
+          {#each belief_MAP_diff_list as diff, i}
+            <line
+              x1={plot_width * i / (total_iter + 1) + x_margin} 
+              x2={plot_width * (i + 1) / (total_iter + 1) + x_margin}
+              y1={(plot_height - 2 * plot_margin) * (1 - (diff[0]) / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
+              y2={(plot_height - 2 * plot_margin) * (1 - (diff[1]) / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
+              stroke="red"
+              stroke-width={1}
+              />
+          {/each}
+        {/if}
+      </svg>
+    </div>
+  </div>
+
+  <div class="plot_div">
+    <div class="plot_svg">
+      <svg style="background-color: white;">
+        <line 
+          x1={0 + x_margin}
+          x2={plot_width + x_margin}
+          y1={plot_height + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <line
+          x1={0 + x_margin}
+          x2={0 + x_margin}
+          y1={0 + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <text
+          x={10}
+          y={plot_height / 2 + y_margin}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
+          Overconfidence
+        </text>
+        <text
+          x={plot_width / 2 + x_margin}
+          y={plot_height + y_margin + 15}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none">
+          Iterations
+        </text>
+        {#if passed_message}
+          {#each Array(y_ticks + 1) as _, i}
+            <line
+              x1={x_margin}
+              x2={plot_width + x_margin}
+              y1={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
+              y2={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
+              stroke="black"
+              stroke-width="0.5"
+              stroke-opacity="0.5"
+              stroke-dasharray="2, 4" />
+            <text
+              x={2 + x_margin}
+              y={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin + 2}
+              text-anchor="left"
+              stroke="black"
+              opacity={0.75}
+              stroke-width={0.25}
+              font-size={10}
+              style="user-select: none">
+              {parseInt(((max_overconfidence - min_overconfidence) * i / y_ticks) * 10000) / 100} % 
+            </text>
+          {/each}
+          {#each overconfidence_list as overconfidence, i}
+            <line
+              x1={plot_width * i / (total_iter + 1) + x_margin} 
+              x2={plot_width * (i + 1) / (total_iter + 1) + x_margin}
+              y1={(plot_height - 2 * plot_margin) * (1 - (overconfidence[0]) / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
+              y2={(plot_height - 2 * plot_margin) * (1 - (overconfidence[1]) / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
+              stroke="red"
+              stroke-width={1}
+              />
+          {/each}
+        {/if}
+      </svg>
     </div>
   </div>
 </div>

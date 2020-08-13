@@ -64,7 +64,8 @@ d-figure.fullscreen{
 
 #playground-container {
   position: relative;
-  width: 75%;
+  width: 800px;
+  height: 800px;
   float: left;
   margin-right:5px;
 }
@@ -74,6 +75,28 @@ d-figure.fullscreen{
   width: 24%;
   float: left;
   font-size: 16px;
+}
+
+#plot_container {
+  display: inline-block;
+  position: relative;
+}
+
+.plot_div {
+  position: relative;
+  float: left;
+  width: 300px;
+  height: 200px;
+  background-color: white;
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.plot_svg {
+  position: relative;
+  width: 270px;
+  height: 170px;
+  background-color: white;
 }
 
 .buttons-panel {

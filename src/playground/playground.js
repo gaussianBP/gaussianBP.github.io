@@ -262,12 +262,14 @@ export class FactorGraph {
   }
 
   compute_overconfidence() {
-    var overconfidence = 0;
+    var belief_area = 0;
+    var MAP_area = 0;
     for (var i = 0; i < this.var_nodes.length; i ++) {
       var var_node = this.var_nodes[i];
-      overconfidence += Math.max(0, var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry - var_node.belief_ellipse.rx * var_node.belief_ellipse.ry);
+      belief_area += var_node.belief_ellipse.rx * var_node.belief_ellipse.ry;
+      MAP_area += var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry;
     }
-    return overconfidence;
+    return Math.max(0, (MAP_area - belief_area) / MAP_area);
   }
 }
 
@@ -279,6 +281,7 @@ export class VariableNode {
     this.belief = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.prior = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.adj_ids = [];
+    this.overconfidence = 0;
     this.x = x;
     this.y = y;
     this.belief_ellipse = {
@@ -304,6 +307,8 @@ export class VariableNode {
     this.belief_ellipse.rx = Math.sqrt(values[0][0]);
     this.belief_ellipse.ry = Math.sqrt(values[0][1]);
     this.belief_ellipse.angle = values[1] / Math.PI * 180;
+    this.overconfidence = Math.max(0, (this.MAP_ellipse.rx * this.MAP_ellipse.ry - this.belief_ellipse.rx * this.belief_ellipse.ry) / 
+      (this.MAP_ellipse.rx * this.MAP_ellipse.ry));
   }
 
   receive_message(graph) {
