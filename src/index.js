@@ -18,15 +18,15 @@ const Gbp1dComponent_d3 = new Gbp1d_d3({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#gbp1d')
 });
 
-// import Playground from "./diagrams/playground.svelte";
-// const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#playground')
-// });
-
-import Playground_linear from "./diagrams/playground_linear.svelte";
-const PlaygroundLinearComponent = new Playground_linear({ // eslint-disable-line no-unused-vars
+import Playground from "./diagrams/playground.svelte";
+const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#playground')
 });
+
+// import Testground from "./diagrams/testground.svelte";
+// const TestgroundComponent = new Testground({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#playground')
+// });
 
 // import RobotSim from "./diagrams/gbp2d_linear.svelte";
 // const RobotSimComponent = new RobotSim({ // eslint-disable-line no-unused-vars

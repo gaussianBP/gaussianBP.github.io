@@ -49,18 +49,16 @@
   var total_error_distance = 0;
   var belief_MAP_diff = 0;
   var overconfidence = 0;
+  var overconfident_node_num = 0;
   var last_total_error_distance = null;
   var last_belief_MAP_diff = null;
   var last_overconfidence = null;
-  $: total_error_distance_list = [];
   $: belief_MAP_diff_list = [];
   $: overconfidence_list = [];
-  $: max_total_error_distance = null;
+  $: overconfident_node_num_list = [];
   $: max_belief_MAP_diff = null;
   $: max_overconfidence = null;
-  $: min_total_error_distance = null;
   $: min_belief_MAP_diff = null;
-  $: min_overconfidence = null;
 
   // Drag and drop function
   const click_time_span = 100; // Threshold for time span during click
@@ -93,8 +91,9 @@
   const update_var_node_cov_progress = tweened(0);
 
   // UI
-  const time_res = 0.1; // Time resolution
-  var total_iter = 0;
+  const time_res = 0.1; // time resolution
+  var total_iter = 0;  // this counts how many times the overall graph has completed a sweep/sync
+  var iter = 0;  // this counts each individual sweep
   var iter_sec = 0;
   var counter = 0;
   var edit_mode = true;
@@ -171,20 +170,18 @@
     last_total_error_distance = null;
     last_belief_MAP_diff = null;
     last_overconfidence = null;
-    total_error_distance_list = [];
     belief_MAP_diff_list = [];
     overconfidence_list = [];
-    max_total_error_distance = null;
+    overconfident_node_num_list = [];
     max_belief_MAP_diff = null;
     max_overconfidence = null;
-    min_total_error_distance = null;
     min_belief_MAP_diff = null;
-    min_overconfidence = null;
     graph = create_new_playground(n_var_nodes);
     graph.compute_MAP();
     update_playground();
     sync_pass_message();
     total_iter = 0;
+    iter = 0;
     clear_highlight_node();
     clear_message_bubbles();
   }
@@ -253,7 +250,6 @@
           pass_message();
           if (belief_MAP_diff <= 0.1) {
             passing_message = false;
-            print(total_error_distance_list.map(total_error_distance => total_error_distance[0]));
             print(belief_MAP_diff_list.map(belief_MAP_diff => belief_MAP_diff[0]));
             print(overconfidence_list.map(overconfidence => overconfidence[0]));
             // var total_error_distance_download = document.createElement('a');
@@ -292,29 +288,25 @@
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
     overconfidence = graph.compute_overconfidence();
+    overconfident_node_num = graph.var_nodes.filter(var_node => var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry - var_node.belief_ellipse.rx * var_node.belief_ellipse.ry > 0).length;
     if (passed_message) {
-      total_error_distance_list.push([last_total_error_distance, total_error_distance]);
       belief_MAP_diff_list.push([last_belief_MAP_diff, belief_MAP_diff]);
       overconfidence_list.push([last_overconfidence, overconfidence]);
-      max_total_error_distance = max(total_error_distance_list);
+      overconfident_node_num_list.push([overconfident_node_num, graph.var_nodes.length - overconfident_node_num]);
       max_belief_MAP_diff = max(belief_MAP_diff_list);
       max_overconfidence = max(overconfidence_list);
-      min_total_error_distance = min(total_error_distance_list);
       min_belief_MAP_diff = min(belief_MAP_diff_list);
-      min_overconfidence = min(overconfidence_list);
     } else {
-      max_total_error_distance = 0;
       max_belief_MAP_diff = 0;
       max_overconfidence = 0;
-      min_total_error_distance = 0;
       min_belief_MAP_diff = 0;
-      min_overconfidence = 0;
     }
     last_total_error_distance = total_error_distance;
     last_belief_MAP_diff = belief_MAP_diff;
     last_overconfidence = overconfidence;
     passed_message = true;
-    total_iter++;
+    total_iter ++;
+    iter ++;
   }
 
   function sweep_pass_message() {
@@ -352,34 +344,34 @@
       }
       if (graph.find_node(message_idx + 1) && (forward_sweep || !bidir_sweep)) {
         // normal forward sweeping for bidirection or unidirection
-        message_idx++;
+        message_idx ++;
       } else if (!graph.find_node(message_idx + 1) && !bidir_sweep) {
         // go back to 0 when reaching the end for unidirection
         message_idx = 0;
-        total_iter++;
+        total_iter ++;
       } else if (
         !graph.find_node(message_idx - 1) &&
         !forward_sweep &&
         bidir_sweep
       ) {
         // backward sweeping reached 0 for bidireciton, start forward sweeping
-        message_idx++;
+        message_idx ++;
         forward_sweep = true;
-        total_iter++;
+        total_iter ++;
       } else if (
         graph.find_node(message_idx - 1) &&
         !forward_sweep &&
         bidir_sweep
       ) {
         // normal backward sweeping for bidirection
-        message_idx--;
+        message_idx --;
       } else if (
         !graph.find_node(message_idx + 1) &&
         forward_sweep &&
         bidir_sweep
       ) {
         // forward sweeping reached the end for bidireciton, start backward sweeping
-        message_idx--;
+        message_idx --;
         forward_sweep = false;
       }
     } else if (
@@ -432,20 +424,19 @@
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
     overconfidence = graph.compute_overconfidence();
+    overconfident_node_num = graph.var_nodes.filter(var_node => var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry - var_node.belief_ellipse.rx * var_node.belief_ellipse.ry > 0).length;
     if (passed_message) {
-      total_error_distance_list.push([last_total_error_distance, total_error_distance]);
       belief_MAP_diff_list.push([last_belief_MAP_diff, belief_MAP_diff]);
       overconfidence_list.push([last_overconfidence, overconfidence]);
+      overconfident_node_num_list.push([overconfident_node_num, graph.var_nodes.length - overconfident_node_num]);
     }
-    max_total_error_distance = max(total_error_distance_list);
     max_belief_MAP_diff = max(belief_MAP_diff_list);
     max_overconfidence = max(overconfidence_list);
-    min_total_error_distance = min(total_error_distance_list);
     min_belief_MAP_diff = min(belief_MAP_diff_list);
-    min_overconfidence = min(overconfidence_list);
     last_total_error_distance = total_error_distance;
     last_belief_MAP_diff = belief_MAP_diff;
     last_overconfidence = overconfidence;
+    iter ++;
     passed_message = true;
   }
 
@@ -1064,7 +1055,7 @@
   }
 
   function update_random_edges() {
-    var random_factor_node_ids = graph.factor_nodes.filter(factor_node => factor_node.id > 2 * n_var_nodes).map(factor_node => factor_node.id);
+    var random_factor_node_ids = graph.factor_nodes.filter(factor_node => factor_node.id > graph.var_nodes[graph.var_nodes.length - 1].id).map(factor_node => factor_node.id);
     for (var i = 0; i < random_factor_node_ids.length; i ++) {
       graph.remove_node(random_factor_node_ids[i]);
     }
@@ -1835,81 +1826,6 @@
           y1={plot_height + y_margin}
           y2={plot_height + y_margin}
           stroke="black"
-          stroke-width={2} />
-        <line
-          x1={0 + x_margin}
-          x2={0 + x_margin}
-          y1={0 + y_margin}
-          y2={plot_height + y_margin}
-          stroke="black"
-          stroke-width={2} />
-        <text
-          x={10}
-          y={plot_height / 2 + y_margin}
-          text-anchor="middle"
-          stroke="black"
-          stroke-width={0.25}
-          font-size={10}
-          style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
-          Total Error From Groundtruth
-        </text>
-        <text
-          x={plot_width / 2 + x_margin}
-          y={plot_height + y_margin + 15}
-          text-anchor="middle"
-          stroke="black"
-          stroke-width={0.25}
-          font-size={10}
-          style="user-select: none">
-          Iterations
-        </text>
-        {#if passed_message}
-          {#each Array(y_ticks + 1) as _, i}
-            <line
-              x1={x_margin}
-              x2={plot_width + x_margin}
-              y1={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
-              y2={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
-              stroke="black"
-              stroke-width="0.5"
-              stroke-opacity="0.5"
-              stroke-dasharray="2, 4" />
-            <text
-              x={2 + x_margin}
-              y={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin + 2}
-              text-anchor="left"
-              stroke="black"
-              opacity={0.75}
-              stroke-width={0.25}
-              font-size={10}
-              style="user-select: none">
-              {parseInt(((max_total_error_distance - min_total_error_distance) * i / y_ticks + min_total_error_distance) * 100) / 100}
-            </text>
-          {/each}
-          {#each total_error_distance_list as error, i}
-            <line
-              x1={plot_width * i / (total_iter + 1) + x_margin} 
-              x2={plot_width * (i + 1) / (total_iter + 1) + x_margin}
-              y1={(plot_height - 2 * plot_margin) * (1 - (error[0] - min_total_error_distance) / (max_total_error_distance - min_total_error_distance + 0.01)) + plot_margin + y_margin}
-              y2={(plot_height - 2 * plot_margin) * (1 - (error[1] - min_total_error_distance) / (max_total_error_distance - min_total_error_distance + 0.01)) + plot_margin + y_margin}
-              stroke="red"
-              stroke-width={1}
-              />
-          {/each}
-        {/if}
-      </svg>
-    </div>
-  </div>
-
-  <div class="plot_div">
-    <div class="plot_svg">
-      <svg style="background-color: white;">
-        <line 
-          x1={0 + x_margin}
-          x2={plot_width + x_margin}
-          y1={plot_height + y_margin}
-          y2={plot_height + y_margin}
-          stroke="black"
           stroke-width={1.5} />
         <line
           x1={0 + x_margin}
@@ -1943,30 +1859,30 @@
             <line
               x1={x_margin}
               x2={plot_width + x_margin}
-              y1={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
-              y2={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
+              y1={(plot_height - plot_margin) * i / y_ticks + plot_margin + y_margin}
+              y2={(plot_height - plot_margin) * i / y_ticks + plot_margin + y_margin}
               stroke="black"
               stroke-width="0.5"
               stroke-opacity="0.5"
               stroke-dasharray="2, 4" />
             <text
               x={2 + x_margin}
-              y={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin + 2}
+              y={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin + 2}
               text-anchor="left"
               stroke="black"
               opacity={0.75}
               stroke-width={0.25}
               font-size={10}
               style="user-select: none">
-              {parseInt(((max_belief_MAP_diff) * i / y_ticks) * 100) / 100}
+              {parseInt(((max_belief_MAP_diff) * (y_ticks - i) / y_ticks) * 100) / 100}
             </text>
           {/each}
           {#each belief_MAP_diff_list as diff, i}
             <line
-              x1={plot_width * i / (total_iter + 1) + x_margin} 
-              x2={plot_width * (i + 1) / (total_iter + 1) + x_margin}
-              y1={(plot_height - 2 * plot_margin) * (1 - (diff[0]) / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
-              y2={(plot_height - 2 * plot_margin) * (1 - (diff[1]) / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
+              x1={(plot_width - 2 * plot_margin) * i / (iter + 1) + plot_margin + x_margin}
+              x2={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
+              y1={(plot_height - plot_margin) * (1 - (diff[0]) / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
+              y2={(plot_height - plot_margin) * (1 - (diff[1]) / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
               stroke="red"
               stroke-width={1}
               />
@@ -2018,32 +1934,129 @@
             <line
               x1={x_margin}
               x2={plot_width + x_margin}
-              y1={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
-              y2={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin}
+              y1={(plot_height - plot_margin) * i / y_ticks + plot_margin + y_margin}
+              y2={(plot_height - plot_margin) * i / y_ticks + plot_margin + y_margin}
               stroke="black"
               stroke-width="0.5"
               stroke-opacity="0.5"
               stroke-dasharray="2, 4" />
             <text
               x={2 + x_margin}
-              y={(plot_height - 2 * plot_margin) * (y_ticks - i) / y_ticks + plot_margin + y_margin + 2}
+              y={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin + 2}
               text-anchor="left"
               stroke="black"
               opacity={0.75}
               stroke-width={0.25}
               font-size={10}
               style="user-select: none">
-              {parseInt(((max_overconfidence - min_overconfidence) * i / y_ticks) * 10000) / 100} % 
+              {parseInt((max_overconfidence * (y_ticks - i) / y_ticks) * 10000) / 100} % 
             </text>
           {/each}
           {#each overconfidence_list as overconfidence, i}
             <line
-              x1={plot_width * i / (total_iter + 1) + x_margin} 
-              x2={plot_width * (i + 1) / (total_iter + 1) + x_margin}
-              y1={(plot_height - 2 * plot_margin) * (1 - (overconfidence[0]) / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
-              y2={(plot_height - 2 * plot_margin) * (1 - (overconfidence[1]) / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
+              x1={(plot_width - 2 * plot_margin) * i / (iter + 1) + plot_margin + x_margin}
+              x2={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
+              y1={(plot_height - plot_margin) * (1 - (overconfidence[0]) / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
+              y2={(plot_height - plot_margin) * (1 - (overconfidence[1]) / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
               stroke="red"
               stroke-width={1}
+              />
+          {/each}
+        {/if}
+      </svg>
+    </div>
+  </div>
+
+  <div class="plot_div">
+    <div class="plot_svg">
+      <svg style="background-color: white;">
+        <line 
+          x1={0 + x_margin}
+          x2={plot_width + x_margin}
+          y1={plot_height / 2 + y_margin}
+          y2={plot_height / 2 + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <line
+          x1={0 + x_margin}
+          x2={0 + x_margin}
+          y1={0 + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <text
+          x={10}
+          y={plot_height / 2 + y_margin}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
+          Under/Overconfident Node Num
+        </text>
+        <text
+          x={plot_width / 2 + x_margin}
+          y={plot_height + y_margin + 15}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none">
+          Iterations
+        </text>
+        {#if passed_message}
+          {#each Array(y_ticks + 1) as _, i}
+            <line
+              x1={x_margin}
+              x2={plot_width + x_margin}
+              y1={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin}
+              y2={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin}
+              stroke="black"
+              stroke-width="0.5"
+              stroke-opacity="0.5"
+              stroke-dasharray="2, 4" />
+            {#if (plot_height - 2 * plot_margin) * i / y_ticks + plot_margin < plot_height / 2}
+              <text
+                x={2 + x_margin}
+                y={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin + 2}
+                text-anchor="left"
+                stroke="black"
+                opacity={0.75}
+                stroke-width={0.25}
+                font-size={10}
+                style="user-select: none">
+                {parseInt(graph.var_nodes.length * (y_ticks - i * 2) / y_ticks)}
+              </text>
+            {:else}
+              <text
+                x={2 + x_margin}
+                y={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin + 2}
+                text-anchor="left"
+                stroke="black"
+                opacity={0.75}
+                stroke-width={0.25}
+                font-size={10}
+                style="user-select: none">
+                {parseInt(graph.var_nodes.length * i * 2 / y_ticks) - graph.var_nodes.length}
+              </text>
+            {/if}
+          {/each}
+          {#each overconfident_node_num_list as overconfidence_node_num, i}
+            <line
+              x1={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
+              x2={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
+              y1={plot_height / 2 + y_margin}
+              y2={(plot_height / 2 - plot_margin) * (1 - overconfidence_node_num[0] / graph.var_nodes.length) + plot_margin + y_margin}
+              stroke="red"
+              stroke-width={2}
+              />
+            <line
+              x1={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
+              x2={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
+              y1={plot_height / 2 + y_margin}
+              y2={(plot_height / 2 - plot_margin) * (1 + overconfidence_node_num[1] / graph.var_nodes.length) + plot_margin + y_margin}
+              stroke="blue"
+              stroke-width={2}
               />
           {/each}
         {/if}
