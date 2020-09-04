@@ -269,7 +269,7 @@ export class FactorGraph {
       belief_area += var_node.belief_ellipse.rx * var_node.belief_ellipse.ry;
       MAP_area += var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry;
     }
-    return Math.max(0, (MAP_area - belief_area) / MAP_area);
+    return Math.max(0, 1 - belief_area / MAP_area);
   }
 }
 

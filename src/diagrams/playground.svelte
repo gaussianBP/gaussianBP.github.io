@@ -14,8 +14,8 @@
   // GBP
   const var_prior_std = 50;
   const var_lambda = 1 / Math.pow(var_prior_std, 2);
-  const linear_prior_std = 30;
-  const distance_prior_std = 30;
+  const linear_prior_std = 40;
+  const distance_prior_std = 40;
   const angle_prior_std = 0.5;
   const linear_jac = new m.Matrix([[-1, 0, 1, 0], [0, -1, 0, 1]]);
   const linear_lambda = 1 / Math.pow(linear_prior_std, 2);
@@ -139,7 +139,8 @@
       } else if (i < 28) {
         add_var_node(50, 50 + 100 * (28 - i), i * 2);
       } else {
-        break;
+        // break;
+        add_var_node(svg_width * Math.random(), svg_height * Math.random(), i * 2);
       }
       if (i > 0) {
         add_factor_node(
@@ -252,21 +253,6 @@
             passing_message = false;
             print(belief_MAP_diff_list.map(belief_MAP_diff => belief_MAP_diff[0]));
             print(overconfidence_list.map(overconfidence => overconfidence[0]));
-            // var total_error_distance_download = document.createElement('a');
-            // var belief_MAP_diff_download = document.createElement('b');
-            // var overconfidence_download = document.createElement('c');
-            // total_error_distance_download.href = 'data:attachment/text,' + encodeURI(total_error_distance_list.map(total_error_distance => total_error_distance[0]));
-            // belief_MAP_diff_download.href = 'data:attachment/text,' + encodeURI(belief_MAP_diff_list.map(belief_MAP_diff => belief_MAP_diff[0]));
-            // overconfidence_download.href = 'data:attachment/text,' + encodeURI(overconfidence_list.map(overconfidence => overconfidence[0]));
-            // total_error_distance_download.target = '_blank';
-            // belief_MAP_diff_download.target = '_blank';
-            // overconfidence_download.target = '_blank';
-            // total_error_distance_download.download = 'total_error_distance_list.txt';
-            // belief_MAP_diff_download.download = 'total_error_distance_list.txt';
-            // overconfidence_download.download = 'total_error_distance_list.txt';
-            // total_error_distance_download.click();
-            // belief_MAP_diff_download.click();
-            // overconfidence_download.click();
           }
         } else {
           pause_one_iter = false;
@@ -288,7 +274,7 @@
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
     overconfidence = graph.compute_overconfidence();
-    overconfident_node_num = graph.var_nodes.filter(var_node => var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry - var_node.belief_ellipse.rx * var_node.belief_ellipse.ry > 0).length;
+    overconfident_node_num = graph.var_nodes.filter(var_node => 1 - (var_node.belief_ellipse.rx * var_node.belief_ellipse.ry) / (var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry) > 0.005).length;
     if (passed_message) {
       belief_MAP_diff_list.push([last_belief_MAP_diff, belief_MAP_diff]);
       overconfidence_list.push([last_overconfidence, overconfidence]);
@@ -761,9 +747,16 @@
     }
     sync_pass_message();
     total_iter = 0;
+    iter = 0;
     passed_message = false;
     passing_message = false;
     message_idx = 0;
+    belief_MAP_diff_list = [];
+    overconfidence_list = [];
+    overconfident_node_num_list = [];
+    max_belief_MAP_diff = null;
+    max_overconfidence = null;
+    min_belief_MAP_diff = null;
   }
 
   function mousedown_handler(e) {
@@ -1055,6 +1048,7 @@
   }
 
   function update_random_edges() {
+    clear_previous_message();
     var random_factor_node_ids = graph.factor_nodes.filter(factor_node => factor_node.id > graph.var_nodes[graph.var_nodes.length - 1].id).map(factor_node => factor_node.id);
     for (var i = 0; i < random_factor_node_ids.length; i ++) {
       graph.remove_node(random_factor_node_ids[i]);
@@ -1181,6 +1175,45 @@
           <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
         </radialGradient>
       </defs>
+      {#if !edit_mode}
+      <line 
+        x1={19}
+        x2={121}
+        y1={20}
+        y2={20}
+        stroke="black"
+        stroke-width={1} />
+      <line 
+        x1={20}
+        x2={20}
+        y1={20}
+        y2={25}
+        stroke="black"
+        stroke-width={1} />
+      <line 
+        x1={70}
+        x2={70}
+        y1={20}
+        y2={25}
+        stroke="black"
+        stroke-width={1} />
+      <line 
+        x1={120}
+        x2={120}
+        y1={20}
+        y2={25}
+        stroke="black"
+        stroke-width={1} />
+      <text
+        x={70}
+        y={15}
+        text-anchor="middle"
+        stroke="black"
+        stroke-width={0.5}
+        font-size={10}
+        style="user-select: none">
+        length of 100 pixel</text>
+      {/if}
       {#if show_edges}
         {#each edges as edge}
           {#if edge.type == 0 && edit_mode}
@@ -1585,6 +1618,7 @@
         {/if}
         <br />
         <b>Overconfidence: {parseInt(overconfidence * 10000) / 100} %</b>
+      <b>Overconfident Node: {overconfident_node_num}</b>
       {/if}
       <br />
     </div>
@@ -1993,6 +2027,24 @@
           font-size={10}
           style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
           Under/Overconfident Node Num
+        </text>
+        <text
+          x={plot_width + x_margin - 40}
+          y={plot_height + y_margin - 5}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}>
+          Underconfident
+        </text>
+        <text
+          x={plot_width + x_margin - 40}
+          y={y_margin + 10}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}>
+          Overconfident
         </text>
         <text
           x={plot_width / 2 + x_margin}
