@@ -195,6 +195,7 @@ export class FactorGraph {
   }
 
   compute_MAP() {
+    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     var total_dofs = 0;
     for (var i = 0; i < this.var_nodes.length; i ++) {
       total_dofs += this.var_nodes[i].dofs;
@@ -312,6 +313,7 @@ export class VariableNode {
   }
 
   receive_message(graph) {
+    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     this.belief.eta = this.prior.eta.clone();
     this.belief.lam = this.prior.lam.clone();
     for (var i = 0; i < this.adj_ids.length; i++) {
@@ -322,6 +324,7 @@ export class VariableNode {
   }
 
   send_message(graph) {
+    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     for (var i = 0; i < this.adj_ids.length; i++) {
       var factor_node = graph.find_node(this.adj_ids[i]);
       var idx = factor_node.adj_ids.indexOf(this.id);
@@ -373,6 +376,7 @@ export class LinearFactor {
   }
 
   compute_factor() {
+    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     this.factor.eta = m.Matrix.zeros(this.dofs, 1);
     this.factor.lam = m.Matrix.zeros(this.dofs, this.dofs);
     for (var i = 0; i < this.jacs.length; i++) {
@@ -382,6 +386,7 @@ export class LinearFactor {
   }
 
   pass_message(graph, id = null) {
+    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     for (var i = 0; i < this.adj_ids.length; i++) {
       if (!id || id == this.adj_ids[i]) {
         var eta_factor = this.factor.eta.clone();
@@ -456,6 +461,7 @@ export class NonLinearFactor {
   }
 
   compute_factor() {
+    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     const node1_coords = this.adj_beliefs[0].getMean();
     const node2_coords = this.adj_beliefs[1].getMean();
     this.lin_point = new m.Matrix([[node1_coords.get(0, 0)], [node1_coords.get(1, 0)], 
@@ -469,6 +475,7 @@ export class NonLinearFactor {
   }
 
   pass_message(graph, id = null) {
+    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     for (var i = 0; i < this.adj_ids.length; i++) {
       if (!id || id == this.adj_ids[i]) {
         var eta_factor = this.factor.eta.clone();
