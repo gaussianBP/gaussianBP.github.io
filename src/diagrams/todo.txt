@@ -22,3 +22,8 @@ gauss prod
 - shade the 1std
 - change pointer to wasd
 - move landmarks to the edge and add planar factors
+
+spring model
+- update mouse handlers
+- further investigate how to use animeJs with svelte
+- add GBP

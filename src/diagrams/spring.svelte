@@ -8,14 +8,22 @@
 
   import { onInterval, pannable } from '../util.js';
 
+  import anime from 'animejs';
+
   // Visual varaibles
   let canvas;
+  let svg;
+  var svg_width = 1200;
+  var svg_height = 300;
+
   let var_node_radius = 10;
 
   let then; // time of start of vis
   let started = false;
   let gt_node_radius = 15;
   let x_buffer = 150;
+  let stroke_width = 4;
+  $: var_nodes_length = 0;
 
   // Measurement model std
   let lmk_prior_std = 100;
@@ -43,75 +51,39 @@
   let mode = 0;
 
   onMount(() => {
-    const ctx = canvas.getContext("2d");
-    ctx.lineWidth = 4;
+    // const ctx = canvas.getContext("2d");
+    // ctx.lineWidth = 4;
 
     graph = new gbp.FactorGraph();
-	  creategraph(graph, n_var_nodes, spring_const);
-
+    creategraph(graph, n_var_nodes, spring_const);
+    var_nodes_length = graph.var_nodes.length;
+    svg_width = svg.clientWidth;
+    svg_height = svg.clientHeight;
 	// nlm.checkJac(graph.pose_nodes[0].belief.getMean(), graph.lmk_nodes[0].belief.getMean());
 
     then = Date.now();
+    anime.timeline({
+      easing: 'easeInSine',
+      autoplay: true,
+      duration: 3500
+    }).add({
+      targets: '#line_0',
+      opacity: [0, 1]
+    });
   });
 
 	onInterval(() => updateVis(), 60);
 
-// ******************************* Drawing functions *******************************
-
-
-  function drawGtNodes() {
-    const ctx = canvas.getContext("2d");
-
-    for(let c=0; c<graph.var_nodes.length; c++) {
-      var x = gt_locs[c];
-
-      ctx.beginPath();
-      ctx.arc(x, 150, gt_node_radius, 0, Math.PI*2);
-      if (mode == 0) {
-        ctx.fillStyle = "#0095DD";
-      } else if (mode == 1) {
-        ctx.fillStyle = "#a5bcc7";
-      }
-      ctx.fill();
-      ctx.closePath();
-    }
-  }
-
-  function drawAnchor() {
-    const ctx = canvas.getContext("2d");
-
-    ctx.beginPath();
-    ctx.rect(anchor-15, 135, 30, 30, Math.PI*2);
-    ctx.fillStyle = "#00FF00";
-    ctx.fill();
-    ctx.closePath();
-
-  }
-
-  function drawLines() {
-    const ctx = canvas.getContext("2d");
-
-    for(let c=0; c<graph.var_nodes.length-1; c++) {
-      var x1 = gt_locs[c];
-      var x2 = gt_locs[c+1];
-
-      ctx.beginPath();
-      ctx.moveTo(x1, 150);
-      ctx.lineTo(x2, 150);
-      ctx.strokeStyle = '#2F4F4F';
-      ctx.stroke();
-    }
-  }
-
   function updateVis() {
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // const ctx = canvas.getContext("2d");
+    // ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     var fpsInterval = 1000 / iters_per_sec;
     var now = Date.now();
     var elapsed = now - then;
     if (elapsed > fpsInterval) {
       then = now - (elapsed % fpsInterval);
+      var_nodes_length = graph.var_nodes.length;
       // if (sync_on) {
       //   graph.relinearise();
       //   graph.sync_iter();
@@ -124,27 +96,19 @@
     //   update_lambdas();
     // }
 
-    drawLines();
-    drawAnchor();
-    drawGtNodes();
 
-    if (mode == 1){
-      drawVarNodes();
-    }
-
-
-    var rect = canvas.getBoundingClientRect();
-    if (!(started) && (rect.top < window.innerHeight)) {
-      sync_on = true;
-      started = true;
-    }
+    // var rect = canvas.getBoundingClientRect();
+    // if (!(started) && (rect.top < window.innerHeight)) {
+    //   sync_on = true;
+    //   started = true;
+    // }
   }
 
   // *********************** Factor graph functions ************************* 
 
   function creategraph(graph, n_var_nodes, smoothness_std) {
 
-    let dist = (canvas.width - 2*x_buffer) / (n_var_nodes - 1);
+    let dist = (svg_width - 2*x_buffer) / (n_var_nodes - 1);
 
     // Create variable nodes
     for(var i=0; i<n_var_nodes; i++) {
@@ -171,7 +135,6 @@
     //   graph.var_nodes[i].adj_factors.push(new_factor);
     //   graph.var_nodes[i+1].adj_factors.push(new_factor);
     // }
-
     return graph;
   }
 
@@ -195,10 +158,9 @@
 
   // ************************ Event handlers *************************
   function handleMouseMove(e) {
-    const ctx = canvas.getContext("2d");
-		var rect = canvas.getBoundingClientRect();
-    var mouseX = canvas.width * (e.clientX - rect.left) / rect.width;
-    var mouseY = canvas.height * (e.clientY - rect.top) / rect.height;
+    const rect = e.currentTarget.getBoundingClientRect();
+    var mouseX = e.clientX - rect.x;
+    var mouseY = e.clientY - rect.y;
 
     var on = false
 
@@ -304,10 +266,58 @@
 
 <div class="demo-container">
 	<div id="gbp-container">
-		<canvas bind:this={canvas} width={1200} height={300} on:mousedown={handleMouseDown} on:mousemove={handleMouseMove} on:mouseup={handleMouseUp}></canvas>
-	    <div class="buttons-panel">
+		<!-- <canvas bind:this={canvas} width={1200} height={300} on:mousedown={handleMouseDown} on:mousemove={handleMouseMove} on:mouseup={handleMouseUp}></canvas> -->
+    <svg
+      bind:this={svg}
+      width={1200}
+      height={300} >
+      {#if var_nodes_length != 0}
+        {#each Array(var_nodes_length - 1) as _, i}
+          <line 
+            id={"line_"+i}
+            x1={gt_locs[i]}
+            y1={150}
+            x2={gt_locs[i + 1]}
+            y2={150}
+            stroke="#2F4F4F"
+            stroke-width={stroke_width}
+            />
+        {/each}
+        {#if mode == 0}
+          {#each Array(var_nodes_length) as _, i}
+            <circle 
+              id={"var_node_"+i}
+              cx={gt_locs[i]}
+              cy={150}
+              r={var_node_radius}
+              stroke="#0095DD"
+              fill="#0095DD"/>
+          {/each}
+        {/if}
+        {#if mode == 1}
+          {#each Array(var_nodes_length) as _, i}
+            <circle 
+              id={"var_node_"+i}
+              cx={gt_locs[i]}
+              cy={150}
+              r={var_node_radius}
+              stroke="#A5BCC7"
+              fill="#A5BCC7" />
+          {/each}
+        {/if}
+      {/if}
+      <rect
+        id="anchor"
+        x={anchor-15}
+        y={135}
+        width={30}
+        height={30}
+        stroke="00FF00"
+        fill="00FF00" />
+    </svg>
+    <div class="buttons-panel">
 
-	    </div>
+    </div>
 	</div>
     
     <div id="settings-panel">
