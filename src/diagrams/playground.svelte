@@ -10,6 +10,7 @@
   import * as m from "ml-matrix";
   import * as r from "random";
   import * as gauss from "../gaussian";
+  import anime from "animejs";
 
   // GBP
   const var_prior_std = 50;
@@ -17,17 +18,26 @@
   const linear_prior_std = 40;
   const distance_prior_std = 40;
   const angle_prior_std = 0.5;
-  const linear_jac = new m.Matrix([[-1, 0, 1, 0], [0, -1, 0, 1]]);
+  const linear_jac = new m.Matrix([
+    [-1, 0, 1, 0],
+    [0, -1, 0, 1],
+  ]);
   const linear_lambda = 1 / Math.pow(linear_prior_std, 2);
   const nonlinear_lambda = new m.Matrix([
     [1 / Math.pow(angle_prior_std, 2), 0],
-    [0, 1 / Math.pow(distance_prior_std, 2)]
+    [0, 1 / Math.pow(distance_prior_std, 2)],
   ]);
   const linear_noise = r.normal(0, 5);
   const nonlinear_dist_noise = r.normal(0, 5);
   const nonlinear_angle_noise = r.normal(0, 0.2);
-  var eta_damping = 0.;
-  const new_gauss = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
+  var eta_damping = 0;
+  const new_gauss = new gauss.Gaussian(
+    [[0], [0]],
+    [
+      [0, 0],
+      [0, 0],
+    ]
+  );
   var use_linear_factor = false;
   var forward_sweep = true;
   var passed_message = false;
@@ -41,7 +51,7 @@
   // Playground
   var graph;
   var n_var_nodes = 28;
-  var n_random_edges = 30;
+  var n_random_edges = 0;
   var sync_schedule = false;
   var bidir_sweep = true;
   var message_idx = 0;
@@ -80,10 +90,10 @@
   var animation_in_progress = false; // set to true to prevent new input during animation
   var highlight_node = null;
   $: message_bubbles = [];
-  $: update_var_node_cov = {
+  $: update_var_node = {
     node_id: null,
-    old_belief_ellipse: null,
-    new_belief_ellipse: null
+    old: null,
+    new: null,
   };
   const message_progress = tweened(0);
   const source_progress = tweened(0);
@@ -92,9 +102,9 @@
 
   // UI
   const time_res = 0.1; // time resolution
-  var total_iter = 0;  // this counts how many times the overall graph has completed a sweep/sync
-  var iter = 0;  // this counts each individual sweep
-  var iter_sec = 0;
+  var total_iter = 0; // this counts how many times the overall graph has completed a sweep/sync
+  var iter = 0; // this counts each individual sweep
+  var iter_sec = 1.0;
   var counter = 0;
   var edit_mode = true;
   var passing_message = false;
@@ -106,9 +116,13 @@
   var show_edges = true;
   var messages = []; //  { message: null, timestamp: null, duration: null };
 
+  var update_var_node_mean;
+  var update_var_node_cov;
+  var update_edge_type_0;
+
   $: var_nodes = [];
   $: factor_nodes = [];
-  $: edges = [];
+  var edges = [];
 
   // Plots
   var plot_width = 250;
@@ -140,21 +154,26 @@
         add_var_node(50, 50 + 100 * (28 - i), i * 2);
       } else {
         // break;
-        add_var_node(svg_width * Math.random(), svg_height * Math.random(), i * 2);
+        add_var_node(
+          svg_width * Math.random(),
+          svg_height * Math.random(),
+          i * 2
+        );
       }
       if (i > 0) {
-        add_factor_node(
-          (i - 1) * 2,
-          i * 2,
-          i * 2 - 1
-        );
+        add_factor_node((i - 1) * 2, i * 2, i * 2 - 1);
       }
     }
-    for (var i = 0; i < n_random_edges; i ++) { //
+    for (var i = 0; i < n_random_edges; i++) {
+      //
       add_factor_node(
-          graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id,
-          graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id
-        );
+        graph.var_nodes[
+          parseInt(Math.random() * graph.var_nodes.length - 2) + 1
+        ].id,
+        graph.var_nodes[
+          parseInt(Math.random() * graph.var_nodes.length - 2) + 1
+        ].id
+      );
     }
     print(graph);
     return graph;
@@ -212,24 +231,24 @@
       source_progress.set(1, { duration: 0 });
       source_progress.set(0, {
         duration: source_timeout * 1000,
-        easing: easing.sineOut
+        easing: easing.sineOut,
       });
       message_progress.set(0, { duration: 0 });
       message_progress.set(1, {
         duration: iter_sec * 1000,
-        easing: easing.sineOut
+        easing: easing.sineOut,
       });
       target_progress.set(0, { duration: 0 });
       setTimeout(() => {
         target_progress.set(1, {
           duration: target_timeout * 1000,
-          easing: easing.sineOut
+          easing: easing.sineOut,
         });
       }, (iter_sec - target_timeout) * 1000);
       setTimeout(() => {
         target_progress.set(0, {
           duration: target_timeout * 1000,
-          easing: easing.sineOut
+          easing: easing.sineOut,
         });
       }, iter_sec * 1000);
       setTimeout(() => {
@@ -251,8 +270,12 @@
           pass_message();
           if (belief_MAP_diff <= 0.1) {
             passing_message = false;
-            print(belief_MAP_diff_list.map(belief_MAP_diff => belief_MAP_diff[0]));
-            print(overconfidence_list.map(overconfidence => overconfidence[0]));
+            print(
+              belief_MAP_diff_list.map((belief_MAP_diff) => belief_MAP_diff[0])
+            );
+            print(
+              overconfidence_list.map((overconfidence) => overconfidence[0])
+            );
           }
         } else {
           pause_one_iter = false;
@@ -274,11 +297,20 @@
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
     overconfidence = graph.compute_overconfidence();
-    overconfident_node_num = graph.var_nodes.filter(var_node => 1 - (var_node.belief_ellipse.rx * var_node.belief_ellipse.ry) / (var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry) > 0.005).length;
+    overconfident_node_num = graph.var_nodes.filter(
+      (var_node) =>
+        1 -
+          (var_node.belief_ellipse.rx * var_node.belief_ellipse.ry) /
+            (var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry) >
+        0.005
+    ).length;
     if (passed_message) {
       belief_MAP_diff_list.push([last_belief_MAP_diff, belief_MAP_diff]);
       overconfidence_list.push([last_overconfidence, overconfidence]);
-      overconfident_node_num_list.push([overconfident_node_num, graph.var_nodes.length - overconfident_node_num]);
+      overconfident_node_num_list.push([
+        overconfident_node_num,
+        graph.var_nodes.length - overconfident_node_num,
+      ]);
       max_belief_MAP_diff = max(belief_MAP_diff_list);
       max_overconfidence = max(overconfidence_list);
       min_belief_MAP_diff = min(belief_MAP_diff_list);
@@ -291,38 +323,117 @@
     last_belief_MAP_diff = belief_MAP_diff;
     last_overconfidence = overconfidence;
     passed_message = true;
-    total_iter ++;
-    iter ++;
+    total_iter++;
+    iter++;
   }
 
   function sweep_pass_message() {
     var node = graph.find_node(message_idx);
     if (node.type == "var_node") {
-      update_var_node_cov.node_id = node.id;
-      update_var_node_cov.old_belief_ellipse = Object.assign(
+      update_var_node.node_id = node.id;
+      update_var_node.old = Object.assign(
         {},
         node.belief_ellipse
       );
+      update_var_node_cov = anime({
+        targets: "#node_belief_cov_"+update_var_node.node_id,
+        cx: update_var_node.old.cx,
+        cy: update_var_node.old.cy,
+        rx: update_var_node.old.rx,
+        ry: update_var_node.old.ry,
+        rotatez: update_var_node.old.angle,
+        strokeWidth:  {
+          value: 1,
+          duration: 0,
+        },
+        easing: "linear",
+        duration: iter_sec * 1000,
+      });
       node.pass_message(graph);
       node.update_cov_ellipse();
-      update_var_node_cov.new_belief_ellipse = Object.assign(
+      update_var_node.new = Object.assign(
         {},
         node.belief_ellipse
       );
-      if (Math.abs(update_var_node_cov.new_belief_ellipse.angle - update_var_node_cov.old_belief_ellipse.angle) >= 90) {
-        update_var_node_cov.new_belief_ellipse.angle = 90 - update_var_node_cov.old_belief_ellipse.angle;
-      }
       target_progress.set(0, { duration: 0 });
+      
+      update_var_node_mean = anime({
+        targets: "#node_belief_mean_"+update_var_node.node_id,
+        cx: update_var_node.new.cx,
+        cy: update_var_node.new.cy,
+        easing: "linear",
+        duration: iter_sec * 1000,
+      });
+      update_var_node_cov = anime({
+        targets: "#node_belief_cov_"+update_var_node.node_id,
+        cx: update_var_node.new.cx,
+        cy: update_var_node.new.cy,
+        rx: update_var_node.new.rx,
+        ry: update_var_node.new.ry,
+        rotatez: update_var_node.new.angle,
+        strokeWidth:  {
+          value: 2,
+          duration: 0,
+        },
+        easing: "linear",
+        duration: iter_sec * 1000,
+      });
+      update_var_node_cov = anime({
+        targets: "#node_belief_cov_overlay_"+update_var_node.node_id,
+        cx: update_var_node.new.cx,
+        cy: update_var_node.new.cy,
+        rx: update_var_node.new.rx,
+        ry: update_var_node.new.ry,
+        rotatez: update_var_node.new.angle,
+        strokeOpacity:  {
+          value: 1,
+          duration: 0,
+        },
+        fillOpacity:  {
+          value: 0.25,
+          duration: 0,
+        },
+        easing: "linear",
+        duration: iter_sec * 1000,
+      });
+
+      for (var i = 0; i < edges.length; i ++) {
+        var edge = edges[i];
+        if (edge.node1_id == update_var_node.node_id && (edge.type == 0 || edge.type == 1 || edge.type == 2)) {
+          console.log(1);
+          anime({
+            targets: "#edge_"+edge.id,
+            x1: update_var_node.new.cx,
+            y1: update_var_node.new.cy,
+            x2: edge.x2,
+            y2: edge.y2,
+            easing: "linear",
+            duration: iter_sec * 1000,
+          });
+        }
+        else if (edge.node2_id == update_var_node.node_id && edge.type == 0) {
+          anime({
+            targets: "#edge_"+edge.id,
+            x1: edge.x1,
+            y1: edge.y1,
+            x2: update_var_node.new.cx,
+            y2: update_var_node.new.cy,
+            easing: "linear",
+            duration: iter_sec * 1000,
+          });
+        }
+      }
+
       update_var_node_cov_progress.set(1, {
         duration: iter_sec * 1000,
-        easing: easing.sineOut
+        easing: easing.sineOut,
       });
       setTimeout(() => {
         update_var_node_cov_progress.set(0, { duration: 0 });
-        update_var_node_cov = {
+        update_var_node = {
           node_id: null,
-          old_belief_ellipse: null,
-          new_belief_ellipse: null
+          old: null,
+          new: null,
         };
       }, iter_sec * 1000);
       if (!iter_sec) {
@@ -330,41 +441,41 @@
       }
       if (graph.find_node(message_idx + 1) && (forward_sweep || !bidir_sweep)) {
         // normal forward sweeping for bidirection or unidirection
-        message_idx ++;
+        message_idx++;
       } else if (!graph.find_node(message_idx + 1) && !bidir_sweep) {
         // go back to 0 when reaching the end for unidirection
         message_idx = 0;
-        total_iter ++;
+        total_iter++;
       } else if (
         !graph.find_node(message_idx - 1) &&
         !forward_sweep &&
         bidir_sweep
       ) {
         // backward sweeping reached 0 for bidireciton, start forward sweeping
-        message_idx ++;
+        message_idx++;
         forward_sweep = true;
-        total_iter ++;
+        total_iter++;
       } else if (
         graph.find_node(message_idx - 1) &&
         !forward_sweep &&
         bidir_sweep
       ) {
         // normal backward sweeping for bidirection
-        message_idx --;
+        message_idx--;
       } else if (
         !graph.find_node(message_idx + 1) &&
         forward_sweep &&
         bidir_sweep
       ) {
         // forward sweeping reached the end for bidireciton, start backward sweeping
-        message_idx --;
+        message_idx--;
         forward_sweep = false;
       }
     } else if (
       node.type == "linear_factor" ||
       node.type == "nonlinear_factor"
     ) {
-      message_idx = node.adj_ids.filter(id => id != last_message_idx)[0];
+      message_idx = node.adj_ids.filter((id) => id != last_message_idx)[0];
       node.pass_message(graph, message_idx);
       if (forward_sweep) {
         var message_bubble = {
@@ -381,7 +492,7 @@
           cy2: graph.find_node(node.adj_ids[1]).belief_ellipse.cy,
           rx2: graph.find_node(node.adj_ids[1]).belief_ellipse.rx,
           ry2: graph.find_node(node.adj_ids[1]).belief_ellipse.ry,
-          angle2: graph.find_node(node.adj_ids[1]).belief_ellipse.angle
+          angle2: graph.find_node(node.adj_ids[1]).belief_ellipse.angle,
         };
       } else {
         var message_bubble = {
@@ -398,7 +509,7 @@
           cy2: graph.find_node(node.adj_ids[0]).belief_ellipse.cy,
           rx2: graph.find_node(node.adj_ids[0]).belief_ellipse.rx,
           ry2: graph.find_node(node.adj_ids[0]).belief_ellipse.ry,
-          angle2: graph.find_node(node.adj_ids[0]).belief_ellipse.angle
+          angle2: graph.find_node(node.adj_ids[0]).belief_ellipse.angle,
         };
       }
       if (iter_sec) {
@@ -410,11 +521,19 @@
     total_error_distance = graph.compute_error();
     belief_MAP_diff = graph.compare_to_MAP();
     overconfidence = graph.compute_overconfidence();
-    overconfident_node_num = graph.var_nodes.filter(var_node => var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry - var_node.belief_ellipse.rx * var_node.belief_ellipse.ry > 0).length;
+    overconfident_node_num = graph.var_nodes.filter(
+      (var_node) =>
+        var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry -
+          var_node.belief_ellipse.rx * var_node.belief_ellipse.ry >
+        0
+    ).length;
     if (passed_message) {
       belief_MAP_diff_list.push([last_belief_MAP_diff, belief_MAP_diff]);
       overconfidence_list.push([last_overconfidence, overconfidence]);
-      overconfident_node_num_list.push([overconfident_node_num, graph.var_nodes.length - overconfident_node_num]);
+      overconfident_node_num_list.push([
+        overconfident_node_num,
+        graph.var_nodes.length - overconfident_node_num,
+      ]);
     }
     max_belief_MAP_diff = max(belief_MAP_diff_list);
     max_overconfidence = max(overconfidence_list);
@@ -422,7 +541,7 @@
     last_total_error_distance = total_error_distance;
     last_belief_MAP_diff = belief_MAP_diff;
     last_overconfidence = overconfidence;
-    iter ++;
+    iter++;
     passed_message = true;
   }
 
@@ -468,7 +587,9 @@
     }
     document.getElementById("sync_mode_radio_button").checked = sync_schedule;
     document.getElementById("sweep_mode_radio_button").checked = !sync_schedule;
-    document.getElementById("toggle_bidir_sweep_checkbox").checked = bidir_sweep;
+    document.getElementById(
+      "toggle_bidir_sweep_checkbox"
+    ).checked = bidir_sweep;
     if (passing_message) {
       document.getElementById("animation_speed_range").disabled = true;
     } else {
@@ -478,25 +599,28 @@
 
   function update_edge() {
     edges = [];
+    var id = 0;
     if (edit_mode) {
       for (var i = 0; i < graph.factor_nodes.length; i++) {
         var factor_node = graph.factor_nodes[i];
         for (var j = 0; j < factor_node.adj_ids.length; j++) {
           var var_node = graph.find_node(factor_node.adj_ids[j]);
           var edge = {
+            edge_id: id,
             node1_id: var_node.id,
             node2_id: factor_node.id,
             type: 0, // type 0 is the edge between nodes
             x1: var_node.x,
             y1: var_node.y,
             x2: factor_node.x,
-            y2: factor_node.y
+            y2: factor_node.y,
           };
           edges.push(edge);
+          id += 1;
         }
       }
       is_tree_graph = graph.var_nodes.every(
-        var_node => var_node.adj_ids.length <= 2
+        (var_node) => var_node.adj_ids.length <= 2
       );
     } else {
       for (var i = 0; i < graph.factor_nodes.length; i++) {
@@ -504,15 +628,17 @@
         var node2 = graph.find_node(graph.factor_nodes[i].adj_ids[1]);
         // the edge between nodes
         var edge = {
+          edge_id: id,
           node1_id: node1.id,
           node2_id: node2.id,
           type: 0,
           x1: node1.belief_ellipse.cx,
           y1: node1.belief_ellipse.cy,
           x2: node2.belief_ellipse.cx,
-          y2: node2.belief_ellipse.cy
+          y2: node2.belief_ellipse.cy,
         };
         edges.push(edge);
+        id += 1;
       }
       for (var i = 0; i < graph.var_nodes.length; i++) {
         var var_node = graph.var_nodes[i];
@@ -523,15 +649,17 @@
         ) {
           // the edge between belief mean and ground truth in play mode
           var edge = {
+            edge_id: id,
             node1_id: var_node.id,
             node2_id: var_node.id,
             type: 1,
             x1: var_node.belief_ellipse.cx,
             y1: var_node.belief_ellipse.cy,
             x2: var_node.x,
-            y2: var_node.y
+            y2: var_node.y,
           };
           edges.push(edge);
+          id += 1;
         }
         if (
           !edit_mode &&
@@ -540,15 +668,17 @@
         ) {
           // the edge between belief mean and MAP mean in play mode
           var edge = {
+            edge_id: id,
             node1_id: var_node.id,
             node2_id: var_node.id,
             type: 2,
             x1: var_node.belief_ellipse.cx,
             y1: var_node.belief_ellipse.cy,
             x2: var_node.MAP_ellipse.cx,
-            y2: var_node.MAP_ellipse.cy
+            y2: var_node.MAP_ellipse.cy,
           };
           edges.push(edge);
+          id += 1;
         }
         if (
           !edit_mode &&
@@ -557,15 +687,17 @@
         ) {
           // the edge between MAP mean and ground truth when belief is not shown in play mode
           var edge = {
+            edge_id: id,
             node1_id: var_node.id,
             node2_id: var_node.id,
             type: 3,
             x1: var_node.x,
             y1: var_node.y,
             x2: var_node.MAP_ellipse.cx,
-            y2: var_node.MAP_ellipse.cy
+            y2: var_node.MAP_ellipse.cy,
           };
           edges.push(edge);
+          id += 1;
         }
       }
     }
@@ -606,9 +738,15 @@
     }
     const var_node = new playground.VariableNode(2, id, x, y);
     if (id == 0) {
-      var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);
+      var_node.prior.lam = new m.Matrix([
+        [1, 0],
+        [0, 1],
+      ]);
     } else {
-      var_node.prior.lam = new m.Matrix([[var_lambda, 0], [0, var_lambda]]);
+      var_node.prior.lam = new m.Matrix([
+        [var_lambda, 0],
+        [0, var_lambda],
+      ]);
     }
     var_node.prior.eta = var_node.prior.lam.mmul(
       new m.Matrix([[var_node.x], [var_node.y]])
@@ -641,11 +779,11 @@
       // No existing edge between node1 and node2
       const factor_node = new playground.LinearFactor(4, id, [
         node1.id,
-        node2.id
+        node2.id,
       ]);
       factor_node.meas_noise = new m.Matrix([
         [linear_noise()],
-        [linear_noise()]
+        [linear_noise()],
       ]);
       factor_node.meas = factor_node.meas_func(
         [node1.x, node1.y],
@@ -682,7 +820,10 @@
       node1.id != node2.id
     ) {
       // No existing edge between node1 and node2
-      if (node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >= 0) {
+      if (
+        node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >=
+        0
+      ) {
         var meas_func = nlm.measFnR;
         var jac_func = nlm.jacFnR;
       } else {
@@ -698,7 +839,7 @@
       );
       factor_node.meas_noise = new m.Matrix([
         [nonlinear_angle_noise()],
-        [nonlinear_dist_noise()]
+        [nonlinear_dist_noise()],
       ]);
       factor_node.meas = factor_node.meas_func(
         node1.belief.getMean(),
@@ -740,7 +881,7 @@
     for (var i = 0; i < graph.factor_nodes.length; i++) {
       var factor_node = graph.factor_nodes[i];
       factor_node.adj_beliefs = factor_node.adj_ids.map(
-        adj_id => graph.find_node(adj_id).belief
+        (adj_id) => graph.find_node(adj_id).belief
       );
       factor_node.messages = [new_gauss, new_gauss];
       factor_node.compute_factor();
@@ -762,7 +903,7 @@
   function mousedown_handler(e) {
     mouse_up = false;
     node_mousedown = null;
-    node_mousedown = e.path.find(element => element.classList == "node_g");
+    node_mousedown = e.path.find((element) => element.classList == "node_g");
     mousedown_time = Date.now();
     if (node_mousedown) {
       node_mousedown = graph.find_node(node_mousedown.id);
@@ -771,11 +912,11 @@
 
   function mousemove_handler(e) {
     node_onhover = null;
-    node_onhover = e.path.find(element => element.classList == "node_g");
+    node_onhover = e.path.find((element) => element.classList == "node_g");
     const rect = e.currentTarget.getBoundingClientRect();
     current_mouse_location = {
       x: e.clientX - rect.x,
-      y: e.clientY - rect.y
+      y: e.clientY - rect.y,
     };
     if (node_mousedown && edit_mode) {
       moving_node = true;
@@ -807,7 +948,7 @@
         );
         factor_node.meas.add(factor_node.meas_noise);
         factor_node.adj_beliefs = factor_node.adj_ids.map(
-          adj_id => graph.find_node(adj_id).belief
+          (adj_id) => graph.find_node(adj_id).belief
         );
         factor_node.compute_factor();
       }
@@ -828,7 +969,7 @@
   function edit_click_handler(e) {
     // TODO: Improve click algorithm
     node_clicked = null;
-    node_clicked = e.path.find(element => element.classList == "node_g");
+    node_clicked = e.path.find((element) => element.classList == "node_g");
     if (click_time <= click_time_span && mouse_up) {
       if (node_clicked) {
         node_clicked = graph.find_node(node_clicked.id);
@@ -867,7 +1008,7 @@
   function play_click_handler(e) {
     // TODO: Improve click algorithm
     node_clicked = null;
-    node_clicked = e.path.find(element => element.classList == "node_g");
+    node_clicked = e.path.find((element) => element.classList == "node_g");
     if (click_time <= click_time_span && mouse_up && !animation_in_progress) {
       if (node_clicked) {
         node_clicked = graph.find_node(node_clicked.id);
@@ -878,38 +1019,44 @@
         } else {
           if (node_clicked.id == last_node_clicked.id) {
             // double clicked
-            update_var_node_cov.node_id = node_clicked.id;
-            update_var_node_cov.old_belief_ellipse = Object.assign(
+            update_var_node.node_id = node_clicked.id;
+            update_var_node.old = Object.assign(
               {},
               node_clicked.belief_ellipse
             );
             graph.pass_message(node_clicked.id, node_clicked.id);
             node_clicked.update_cov_ellipse();
-            update_var_node_cov.new_belief_ellipse = Object.assign(
+            update_var_node.new = Object.assign(
               {},
               node_clicked.belief_ellipse
             );
-            if (Math.abs(update_var_node_cov.new_belief_ellipse.angle - update_var_node_cov.old_belief_ellipse.angle) >= 90) {
-              update_var_node_cov.new_belief_ellipse.angle = 90 - update_var_node_cov.old_belief_ellipse.angle;
+            if (
+              Math.abs(
+                update_var_node.new.angle -
+                  update_var_node.old.angle
+              ) >= 90
+            ) {
+              update_var_node.new.angle =
+                90 - update_var_node.old.angle;
             }
             target_progress.set(0, { duration: 0 });
             update_var_node_cov_progress.set(1, {
               duration: clear_message_highlight_delay * 1000,
-              easing: easing.sineOut
+              easing: easing.sineOut,
             });
             setTimeout(() => {
               update_var_node_cov_progress.set(0, { duration: 0 });
-              update_var_node_cov = {
+              update_var_node = {
                 node_id: null,
-                old_belief_ellipse: null,
-                new_belief_ellipse: null
+                old: null,
+                new: null,
               };
             }, clear_message_highlight_delay * 1000);
             for (var i = 0; i < node_clicked.adj_ids.length; i++) {
               var adj_var_node = graph.find_node(
                 graph
                   .find_node(node_clicked.adj_ids[i])
-                  .adj_ids.filter(id => id != node_clicked.id)[0]
+                  .adj_ids.filter((id) => id != node_clicked.id)[0]
               );
               var message_bubble = {
                 node1_id: node_clicked.id,
@@ -925,7 +1072,7 @@
                 cy2: adj_var_node.belief_ellipse.cy,
                 rx2: adj_var_node.belief_ellipse.rx,
                 ry2: adj_var_node.belief_ellipse.ry,
-                angle2: adj_var_node.belief_ellipse.angle
+                angle2: adj_var_node.belief_ellipse.angle,
               };
               message_bubbles.push(message_bubble);
             }
@@ -950,7 +1097,7 @@
               cy2: node_clicked.belief_ellipse.cy,
               rx2: node_clicked.belief_ellipse.rx,
               ry2: node_clicked.belief_ellipse.ry,
-              angle2: node_clicked.belief_ellipse.angle
+              angle2: node_clicked.belief_ellipse.angle,
             };
             message_bubbles.push(message_bubble);
             setTimeout(() => {
@@ -980,13 +1127,17 @@
 
   function replace_factor(id = null) {
     clear_previous_message();
-    for (var i = 0; i < graph.factor_nodes.length; i ++) {
+    for (var i = 0; i < graph.factor_nodes.length; i++) {
       var factor_node = graph.factor_nodes[i];
       var node1 = graph.find_node(factor_node.adj_ids[0]);
       var node2 = graph.find_node(factor_node.adj_ids[1]);
       if (factor_node.id == id || id == null) {
         if (factor_node.type == "linear_factor") {
-          if (node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >= 0) {
+          if (
+            node2.belief.getMean().get(0, 0) -
+              node1.belief.getMean().get(0, 0) >=
+            0
+          ) {
             var meas_func = nlm.measFnR;
             var jac_func = nlm.jacFnR;
           } else {
@@ -1002,7 +1153,7 @@
           );
           new_factor_node.meas_noise = new m.Matrix([
             [nonlinear_angle_noise()],
-            [nonlinear_dist_noise()]
+            [nonlinear_dist_noise()],
           ]);
           new_factor_node.meas = new_factor_node.meas_func(
             node1.belief.getMean(),
@@ -1021,11 +1172,11 @@
           const new_factor_node = new playground.LinearFactor(
             4,
             factor_node.id,
-            factor_node.adj_ids,
+            factor_node.adj_ids
           );
           new_factor_node.meas_noise = new m.Matrix([
             [linear_noise()],
-            [linear_noise()]
+            [linear_noise()],
           ]);
           new_factor_node.meas = new_factor_node.meas_func(
             [node1.x, node1.y],
@@ -1049,16 +1200,26 @@
 
   function update_random_edges() {
     clear_previous_message();
-    var random_factor_node_ids = graph.factor_nodes.filter(factor_node => factor_node.id > graph.var_nodes[graph.var_nodes.length - 1].id).map(factor_node => factor_node.id);
-    for (var i = 0; i < random_factor_node_ids.length; i ++) {
+    var random_factor_node_ids = graph.factor_nodes
+      .filter(
+        (factor_node) =>
+          factor_node.id > graph.var_nodes[graph.var_nodes.length - 1].id
+      )
+      .map((factor_node) => factor_node.id);
+    for (var i = 0; i < random_factor_node_ids.length; i++) {
       graph.remove_node(random_factor_node_ids[i]);
     }
     if (n_random_edges > 0) {
-      for (var i = 0; i < n_random_edges; i ++) { //
+      for (var i = 0; i < n_random_edges; i++) {
+        //
         add_factor_node(
-            graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id,
-            graph.var_nodes[parseInt(Math.random() * graph.var_nodes.length - 2) + 1].id
-          );
+          graph.var_nodes[
+            parseInt(Math.random() * graph.var_nodes.length - 2) + 1
+          ].id,
+          graph.var_nodes[
+            parseInt(Math.random() * graph.var_nodes.length - 2) + 1
+          ].id
+        );
       }
     }
   }
@@ -1132,11 +1293,11 @@
   }
 
   function max(list) {
-    return Math.max(...list.map(sub_list => Math.max(...sub_list)));
+    return Math.max(...list.map((sub_list) => Math.max(...sub_list)));
   }
 
   function min(list) {
-    return Math.min(...list.map(sub_list => Math.min(...sub_list)));
+    return Math.min(...list.map((sub_list) => Math.min(...sub_list)));
   }
 
   function print_graph_detail() {
@@ -1155,7 +1316,6 @@
 <svelte:window />
 
 <div class="demo-container">
-
   <div id="playground-container">
     <svg
       bind:this={svg}
@@ -1166,7 +1326,7 @@
       on:mouseup={mouseup_handler}
       on:click={click_handler}>
       <defs>
-        <radialGradient id="bp_cov_gradient">
+        <radialGradient id="belief_cov_gradient">
           <stop offset="0.35" stop-color="red" stop-opacity="0.5" />
           <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
         </radialGradient>
@@ -1176,48 +1336,38 @@
         </radialGradient>
       </defs>
       {#if !edit_mode}
-      <line 
-        x1={19}
-        x2={121}
-        y1={20}
-        y2={20}
-        stroke="black"
-        stroke-width={1} />
-      <line 
-        x1={20}
-        x2={20}
-        y1={20}
-        y2={25}
-        stroke="black"
-        stroke-width={1} />
-      <line 
-        x1={70}
-        x2={70}
-        y1={20}
-        y2={25}
-        stroke="black"
-        stroke-width={1} />
-      <line 
-        x1={120}
-        x2={120}
-        y1={20}
-        y2={25}
-        stroke="black"
-        stroke-width={1} />
-      <text
-        x={70}
-        y={15}
-        text-anchor="middle"
-        stroke="black"
-        stroke-width={0.5}
-        font-size={10}
-        style="user-select: none">
-        length of 100 pixel</text>
+        <line
+          x1={19}
+          x2={121}
+          y1={20}
+          y2={20}
+          stroke="black"
+          stroke-width={1} />
+        <line x1={20} x2={20} y1={20} y2={25} stroke="black" stroke-width={1} />
+        <line x1={70} x2={70} y1={20} y2={25} stroke="black" stroke-width={1} />
+        <line
+          x1={120}
+          x2={120}
+          y1={20}
+          y2={25}
+          stroke="black"
+          stroke-width={1} />
+        <text
+          x={70}
+          y={15}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.5}
+          font-size={10}
+          style="user-select: none">
+          length of 100 pixel
+        </text>
       {/if}
       {#if show_edges}
         {#each edges as edge}
           {#if edge.type == 0 && edit_mode}
             <line
+              id={"edge_type_0_"+edge.edge_id}
               x1={edge.x1}
               y1={edge.y1}
               x2={edge.x2}
@@ -1226,28 +1376,49 @@
               stroke-width="1" />
           {/if}
           {#if edge.type == 0 && !edit_mode && (show_belief_mean || show_belief_cov)}
-            {#if edge.node1_id == update_var_node_cov.node_id && iter_sec}
+            <!-- {#if edge.node1_id == update_var_node.node_id && iter_sec}
               <line
-                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
-                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
+                x1={update_var_node.new.cx * $update_var_node_cov_progress + update_var_node.old.cx * (1 - $update_var_node_cov_progress)}
+                y1={update_var_node.new.cy * $update_var_node_cov_progress + update_var_node.old.cy * (1 - $update_var_node_cov_progress)}
                 x2={edge.x2}
                 y2={edge.y2}
                 stroke="black"
                 stroke-width="1"
                 stroke-opacity="0.5" />
             {/if}
-            {#if edge.node2_id == update_var_node_cov.node_id && iter_sec}
+            {#if edge.node2_id == update_var_node.node_id && iter_sec}
               <line
                 x1={edge.x1}
                 y1={edge.y1}
-                x2={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
-                y2={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
+                x2={update_var_node.new.cx * $update_var_node_cov_progress + update_var_node.old.cx * (1 - $update_var_node_cov_progress)}
+                y2={update_var_node.new.cy * $update_var_node_cov_progress + update_var_node.old.cy * (1 - $update_var_node_cov_progress)}
+                stroke="black"
+                stroke-width="1"
+                stroke-opacity="0.5" />
+            {/if} -->
+            {#if edge.node1_id == update_var_node.node_id && iter_sec}
+              <line
+                x1={update_var_node.old.cx}
+                y1={update_var_node.old.cy}
+                x2={edge.x2}
+                y2={edge.y2}
                 stroke="black"
                 stroke-width="1"
                 stroke-opacity="0.5" />
             {/if}
-            {#if edge.node1_id != update_var_node_cov.node_id && edge.node2_id != update_var_node_cov.node_id}
+            {#if edge.node2_id == update_var_node.node_id && iter_sec}
               <line
+                x1={edge.x1}
+                y1={edge.y1}
+                x2={update_var_node.old.cx}
+                y2={update_var_node.old.cy}
+                stroke="black"
+                stroke-width="1"
+                stroke-opacity="0.5" />
+            {/if}
+            {#if edge.node1_id != update_var_node.node_id && edge.node2_id != update_var_node.node_id}
+              <line
+                id={"edge_"+edge.edge_id}
                 x1={edge.x1}
                 y1={edge.y1}
                 x2={edge.x2}
@@ -1258,18 +1429,19 @@
             {/if}
           {/if}
           {#if edge.type == 1 && !edit_mode && show_ground_truth && (show_belief_mean || show_belief_cov)}
-            {#if edge.node1_id == update_var_node_cov.node_id && iter_sec}
+            <!-- {#if edge.node1_id == update_var_node.node_id && iter_sec}
               <line
-                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
-                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
+                x1={update_var_node.new.cx * $update_var_node_cov_progress + update_var_node.old.cx * (1 - $update_var_node_cov_progress)}
+                y1={update_var_node.new.cy * $update_var_node_cov_progress + update_var_node.old.cy * (1 - $update_var_node_cov_progress)}
                 x2={edge.x2}
                 y2={edge.y2}
                 stroke="black"
                 stroke-width="1"
                 stroke-opacity="0.5"
                 stroke-dasharray="2, 4" />
-            {:else}
+            {:else} -->
               <line
+                id={"edge_"+edge.edge_id}
                 x1={edge.x1}
                 y1={edge.y1}
                 x2={edge.x2}
@@ -1278,21 +1450,22 @@
                 stroke-width="1"
                 stroke-opacity="0.5"
                 stroke-dasharray="2, 4" />
-            {/if}
+            <!-- {/if} -->
           {/if}
           {#if edge.type == 2 && !edit_mode && (show_MAP_mean || show_MAP_cov) && (show_belief_mean || show_belief_cov)}
-            {#if edge.node1_id == update_var_node_cov.node_id && iter_sec}
+            <!-- {#if edge.node1_id == update_var_node.node_id && iter_sec}
               <line
-                x1={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
-                y1={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
+                x1={update_var_node.new.cx * $update_var_node_cov_progress + update_var_node.old.cx * (1 - $update_var_node_cov_progress)}
+                y1={update_var_node.new.cy * $update_var_node_cov_progress + update_var_node.old.cy * (1 - $update_var_node_cov_progress)}
                 x2={edge.x2}
                 y2={edge.y2}
                 stroke="black"
                 stroke-width="1"
                 stroke-opacity="0.5"
                 stroke-dasharray="2, 4" />
-            {:else}
+            {:else} -->
               <line
+                id={"edge_"+edge.edge_id}
                 x1={edge.x1}
                 y1={edge.y1}
                 x2={edge.x2}
@@ -1301,10 +1474,11 @@
                 stroke-width="1"
                 stroke-opacity="0.5"
                 stroke-dasharray="2, 4" />
-            {/if}
+            <!-- {/if} -->
           {/if}
           {#if edge.type == 3 && !edit_mode && (show_MAP_mean || show_MAP_cov) && show_ground_truth && !(show_belief_mean || show_belief_cov)}
             <line
+              id={"edge_"+edge.edge_id}
               x1={edge.x1}
               y1={edge.y1}
               x2={edge.x2}
@@ -1331,10 +1505,10 @@
         {#each factor_nodes as factor_node}
           <g
             class="node_g"
-            id={factor_node.id}
+            id={"factor_node_"+factor_node.id}
             transform="translate({factor_node.x}
             {factor_node.y})">
-            {#if factor_node.type == "linear_factor"}
+            {#if factor_node.type == 'linear_factor'}
               <rect
                 class="node"
                 x={-10}
@@ -1403,43 +1577,30 @@
               fill-opacity={0} />
           {/if}
           {#if show_belief_cov}
-            {#if var_node.id == update_var_node_cov.node_id && iter_sec}
-              <ellipse
-                class="node_belief_cov"
-                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
-                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
-                rx={update_var_node_cov.new_belief_ellipse.rx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.rx * (1 - $update_var_node_cov_progress)}
-                ry={update_var_node_cov.new_belief_ellipse.ry * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.ry * (1 - $update_var_node_cov_progress)}
-                transform="rotate({update_var_node_cov.new_belief_ellipse.angle * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.angle * (1 - $update_var_node_cov_progress)},
-                                  {update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)},
-                                  {update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)})"
-                stroke="red"
-                fill="url(#bp_cov_gradient)"
-                stroke-opacity={0.75} />
-              <ellipse
-                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
-                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
-                rx={update_var_node_cov.new_belief_ellipse.rx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.rx * (1 - $update_var_node_cov_progress)}
-                ry={update_var_node_cov.new_belief_ellipse.ry * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.ry * (1 - $update_var_node_cov_progress)}
-                transform="rotate({update_var_node_cov.new_belief_ellipse.angle * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.angle * (1 - $update_var_node_cov_progress)},
-                                  {update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)},
-                                  {update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)})"
-                stroke="red"
-                stroke-width={2}
-                fill="red"
-                fill-opacity={0.25} />
-            {:else}
-              <ellipse
-                class="node_belief_cov"
-                cx={var_node.belief_ellipse.cx}
-                cy={var_node.belief_ellipse.cy}
-                rx={var_node.belief_ellipse.rx}
-                ry={var_node.belief_ellipse.ry}
-                transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
-                stroke="red"
-                fill="url(#bp_cov_gradient)"
-                stroke-opacity={0.75} />
-            {/if}
+            <ellipse
+              class="node_belief_cov"
+              id={"node_belief_cov_"+var_node.id}
+              cx={var_node.belief_ellipse.cx}
+              cy={var_node.belief_ellipse.cy}
+              rx={var_node.belief_ellipse.rx}
+              ry={var_node.belief_ellipse.ry}
+              transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
+              stroke="red"
+              fill="url(#belief_cov_gradient)"
+              stroke-opacity={0.75} />
+            <ellipse
+              class="node_belief_cov"
+              id={"node_belief_cov_overlay_"+var_node.id}
+              cx={var_node.belief_ellipse.cx}
+              cy={var_node.belief_ellipse.cy}
+              rx={var_node.belief_ellipse.rx}
+              ry={var_node.belief_ellipse.ry}
+              transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
+              stroke="red"
+              stroke-width={2}
+              stroke-opacity={0}
+              fill="red"
+              fill-opacity={0} />
           {/if}
           {#if show_MAP_mean}
             <circle
@@ -1453,25 +1614,16 @@
               fill-opacity={1} />
           {/if}
           {#if show_belief_mean}
-            {#if var_node.id == update_var_node_cov.node_id && iter_sec}
-              <circle
-                class="node_belief_mean"
-                cx={update_var_node_cov.new_belief_ellipse.cx * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cx * (1 - $update_var_node_cov_progress)}
-                cy={update_var_node_cov.new_belief_ellipse.cy * $update_var_node_cov_progress + update_var_node_cov.old_belief_ellipse.cy * (1 - $update_var_node_cov_progress)}
-                r={2}
-                stroke="red"
-                fill="red" />
-            {:else}
-              <circle
-                class="node_belief_mean"
-                cx={var_node.belief_ellipse.cx}
-                cy={var_node.belief_ellipse.cy}
-                r={2}
-                stroke="red"
-                fill="red"
-                stroke-opacity={1}
-                fill-opacity={1} />
-            {/if}
+            <circle
+              class="node_belief_mean"
+              id={"node_belief_mean_"+var_node.id}
+              cx={var_node.belief_ellipse.cx}
+              cy={var_node.belief_ellipse.cy}
+              r={2}
+              stroke="red"
+              fill="red"
+              stroke-opacity={1}
+              fill-opacity={1} />
           {/if}
           {#if show_ground_truth}
             <circle
@@ -1595,30 +1747,28 @@
       <br />
       {#if total_error_distance < 1}
         <b>Total Error: {parseInt(total_error_distance * 100) / 100}</b>
-      {:else}
-        <b>Total Error: {parseInt(total_error_distance)}</b>
-      {/if}
+      {:else}<b>Total Error: {parseInt(total_error_distance)}</b>{/if}
       <br />
       {#if node_onhover && !edit_mode}
-        {#if node_onhover.type == "var_node" && passed_message}
+        {#if node_onhover.type == 'var_node' && passed_message}
           <b>Node id: {node_onhover.id}</b>
           <br />
-          <b>Difference to MAP: {parseInt(Math.sqrt(Math.pow(node_onhover.belief_ellipse.cx - node_onhover.MAP_ellipse.cx, 2) + 
-            Math.pow(node_onhover.belief_ellipse.cy - node_onhover.MAP_ellipse.cy, 2)) * 100) / 100}</b>
+          <b>Difference to MAP:
+            {parseInt(Math.sqrt(Math.pow(node_onhover.belief_ellipse.cx - node_onhover.MAP_ellipse.cx, 2) + Math.pow(node_onhover.belief_ellipse.cy - node_onhover.MAP_ellipse.cy, 2)) * 100) / 100}</b>
           <br />
-          <b>Overconfidence: {parseInt(node_onhover.overconfidence * 10000) / 100} %</b>
+          <b>Overconfidence:
+            {parseInt(node_onhover.overconfidence * 10000) / 100}
+            %</b>
         {/if}
       {:else}
         <b>Graph Overall</b>
         <br />
         {#if belief_MAP_diff < 1}
           <b>Difference to MAP: {parseInt(belief_MAP_diff * 100) / 100}</b>
-        {:else}
-          <b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>
-        {/if}
+        {:else}<b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>{/if}
         <br />
         <b>Overconfidence: {parseInt(overconfidence * 10000) / 100} %</b>
-      <b>Overconfident Node: {overconfident_node_num}</b>
+        <b>Overconfident Node: {overconfident_node_num}</b>
       {/if}
       <br />
     </div>
@@ -1784,9 +1934,7 @@
         </div>
       </div>
       <div style="display: inline-block;">
-        <span style="color: red">
-          <b>Belief:</b>
-        </span>
+        <span style="color: red"> <b>Belief:</b> </span>
         <label class="checkbox-inline">
           <input
             type="checkbox"
@@ -1803,9 +1951,7 @@
         </label>
       </div>
       <div style="display: inline-block;">
-        <span style="color: blue">
-          <b>MAP:</b>
-        </span>
+        <span style="color: blue"> <b>MAP:</b> </span>
         <label class="checkbox-inline">
           <input
             type="checkbox"
@@ -1854,7 +2000,7 @@
   <div class="plot_div">
     <div class="plot_svg">
       <svg style="background-color: white;">
-        <line 
+        <line
           x1={0 + x_margin}
           x2={plot_width + x_margin}
           y1={plot_height + y_margin}
@@ -1893,33 +2039,32 @@
             <line
               x1={x_margin}
               x2={plot_width + x_margin}
-              y1={(plot_height - plot_margin) * i / y_ticks + plot_margin + y_margin}
-              y2={(plot_height - plot_margin) * i / y_ticks + plot_margin + y_margin}
+              y1={((plot_height - plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              y2={((plot_height - plot_margin) * i) / y_ticks + plot_margin + y_margin}
               stroke="black"
               stroke-width="0.5"
               stroke-opacity="0.5"
               stroke-dasharray="2, 4" />
             <text
               x={2 + x_margin}
-              y={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin + 2}
+              y={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin + 2}
               text-anchor="left"
               stroke="black"
               opacity={0.75}
               stroke-width={0.25}
               font-size={10}
               style="user-select: none">
-              {parseInt(((max_belief_MAP_diff) * (y_ticks - i) / y_ticks) * 100) / 100}
+              {parseInt(((max_belief_MAP_diff * (y_ticks - i)) / y_ticks) * 100) / 100}
             </text>
           {/each}
           {#each belief_MAP_diff_list as diff, i}
             <line
-              x1={(plot_width - 2 * plot_margin) * i / (iter + 1) + plot_margin + x_margin}
-              x2={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
-              y1={(plot_height - plot_margin) * (1 - (diff[0]) / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
-              y2={(plot_height - plot_margin) * (1 - (diff[1]) / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
+              x1={((plot_width - 2 * plot_margin) * i) / (iter + 1) + plot_margin + x_margin}
+              x2={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              y1={(plot_height - plot_margin) * (1 - diff[0] / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
+              y2={(plot_height - plot_margin) * (1 - diff[1] / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
               stroke="red"
-              stroke-width={1}
-              />
+              stroke-width={1} />
           {/each}
         {/if}
       </svg>
@@ -1929,7 +2074,7 @@
   <div class="plot_div">
     <div class="plot_svg">
       <svg style="background-color: white;">
-        <line 
+        <line
           x1={0 + x_margin}
           x2={plot_width + x_margin}
           y1={plot_height + y_margin}
@@ -1968,33 +2113,33 @@
             <line
               x1={x_margin}
               x2={plot_width + x_margin}
-              y1={(plot_height - plot_margin) * i / y_ticks + plot_margin + y_margin}
-              y2={(plot_height - plot_margin) * i / y_ticks + plot_margin + y_margin}
+              y1={((plot_height - plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              y2={((plot_height - plot_margin) * i) / y_ticks + plot_margin + y_margin}
               stroke="black"
               stroke-width="0.5"
               stroke-opacity="0.5"
               stroke-dasharray="2, 4" />
             <text
               x={2 + x_margin}
-              y={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin + 2}
+              y={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin + 2}
               text-anchor="left"
               stroke="black"
               opacity={0.75}
               stroke-width={0.25}
               font-size={10}
               style="user-select: none">
-              {parseInt((max_overconfidence * (y_ticks - i) / y_ticks) * 10000) / 100} % 
+              {parseInt(((max_overconfidence * (y_ticks - i)) / y_ticks) * 10000) / 100}
+              %
             </text>
           {/each}
           {#each overconfidence_list as overconfidence, i}
             <line
-              x1={(plot_width - 2 * plot_margin) * i / (iter + 1) + plot_margin + x_margin}
-              x2={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
-              y1={(plot_height - plot_margin) * (1 - (overconfidence[0]) / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
-              y2={(plot_height - plot_margin) * (1 - (overconfidence[1]) / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
+              x1={((plot_width - 2 * plot_margin) * i) / (iter + 1) + plot_margin + x_margin}
+              x2={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              y1={(plot_height - plot_margin) * (1 - overconfidence[0] / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
+              y2={(plot_height - plot_margin) * (1 - overconfidence[1] / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
               stroke="red"
-              stroke-width={1}
-              />
+              stroke-width={1} />
           {/each}
         {/if}
       </svg>
@@ -2004,7 +2149,7 @@
   <div class="plot_div">
     <div class="plot_svg">
       <svg style="background-color: white;">
-        <line 
+        <line
           x1={0 + x_margin}
           x2={plot_width + x_margin}
           y1={plot_height / 2 + y_margin}
@@ -2061,55 +2206,53 @@
             <line
               x1={x_margin}
               x2={plot_width + x_margin}
-              y1={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin}
-              y2={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin}
+              y1={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              y2={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin}
               stroke="black"
               stroke-width="0.5"
               stroke-opacity="0.5"
               stroke-dasharray="2, 4" />
-            {#if (plot_height - 2 * plot_margin) * i / y_ticks + plot_margin < plot_height / 2}
+            {#if ((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin < plot_height / 2}
               <text
                 x={2 + x_margin}
-                y={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin + 2}
+                y={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin + 2}
                 text-anchor="left"
                 stroke="black"
                 opacity={0.75}
                 stroke-width={0.25}
                 font-size={10}
                 style="user-select: none">
-                {parseInt(graph.var_nodes.length * (y_ticks - i * 2) / y_ticks)}
+                {parseInt((graph.var_nodes.length * (y_ticks - i * 2)) / y_ticks)}
               </text>
             {:else}
               <text
                 x={2 + x_margin}
-                y={(plot_height - 2 * plot_margin) * i / y_ticks + plot_margin + y_margin + 2}
+                y={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin + 2}
                 text-anchor="left"
                 stroke="black"
                 opacity={0.75}
                 stroke-width={0.25}
                 font-size={10}
                 style="user-select: none">
-                {parseInt(graph.var_nodes.length * i * 2 / y_ticks) - graph.var_nodes.length}
+                {parseInt((graph.var_nodes.length * i * 2) / y_ticks) - graph.var_nodes.length}
               </text>
             {/if}
           {/each}
           {#each overconfident_node_num_list as overconfidence_node_num, i}
             <line
-              x1={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
-              x2={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
+              x1={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              x2={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
               y1={plot_height / 2 + y_margin}
               y2={(plot_height / 2 - plot_margin) * (1 - overconfidence_node_num[0] / graph.var_nodes.length) + plot_margin + y_margin}
               stroke="red"
-              stroke-width={2}
-              />
+              stroke-width={2} />
             <line
-              x1={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
-              x2={(plot_width - 2 * plot_margin) * (i + 1) / (iter + 1) + plot_margin + x_margin}
+              x1={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              x2={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
               y1={plot_height / 2 + y_margin}
               y2={(plot_height / 2 - plot_margin) * (1 + overconfidence_node_num[1] / graph.var_nodes.length) + plot_margin + y_margin}
               stroke="blue"
-              stroke-width={2}
-              />
+              stroke-width={2} />
           {/each}
         {/if}
       </svg>
