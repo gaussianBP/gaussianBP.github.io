@@ -26,7 +26,7 @@
 		"html-webpack-plugin": "^3.2.0",
 		"json-loader": "^0.5.7",
 		"lucid-components": "0.0.6",
-		"npm": "^6.14.4",
+		"npm": "^6.14.8",
 		"raw-loader": "^4.0.0",
 		"svelte": "^3.17.1",
 		"svelte-loader": "~2.13.6",
@@ -34,6 +34,6 @@
 		"to-string-loader": "^1.1.6",
 		"webpack": "^4.41.5",
 		"webpack-cli": "^3.3.10",
-		"webpack-dev-server": "^3.10.1"
+		"webpack-dev-server": "^3.11.0"
 	}
 }
