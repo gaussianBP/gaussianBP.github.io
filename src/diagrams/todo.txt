@@ -1,3 +1,8 @@
+playground
+- total error vs difference to MAP?
+- how to automatically place nodes so they are inside svg
+
+
 Writing
 - panels with images for why gbp
 
@@ -24,6 +29,7 @@ gauss prod
 - move landmarks to the edge and add planar factors
 
 spring model
-- update mouse handlers
-- further investigate how to use animeJs with svelte
 - add GBP
+- colormap to display spring energy
+- slider for k
+- gaussian curves

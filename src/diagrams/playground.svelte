@@ -133,7 +133,6 @@
   var y_ticks = 5;
 
   onMount(() => {
-    // graph = create_new_playground(n_var_nodes);
     reset_playground();
   });
 
@@ -180,7 +179,7 @@
   }
 
   function reset_playground() {
-    console.clear();
+    // console.clear();
     var_nodes = [];
     factor_nodes = [];
     edges = [];
@@ -1125,6 +1124,7 @@
     last_click_time = Date.now();
   }
 
+  // If factors are linear they are replaced by nonlinear factors and vice-versa
   function replace_factor(id = null) {
     clear_previous_message();
     for (var i = 0; i < graph.factor_nodes.length; i++) {
@@ -1335,34 +1335,19 @@
           <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
         </radialGradient>
       </defs>
+
+      <!-- Draw bar for scale if in play mode -->
       {#if !edit_mode}
-        <line
-          x1={19}
-          x2={121}
-          y1={20}
-          y2={20}
-          stroke="black"
-          stroke-width={1} />
+        <line x1={19} x2={121} y1={20} y2={20} stroke="black" stroke-width={1} />
         <line x1={20} x2={20} y1={20} y2={25} stroke="black" stroke-width={1} />
         <line x1={70} x2={70} y1={20} y2={25} stroke="black" stroke-width={1} />
-        <line
-          x1={120}
-          x2={120}
-          y1={20}
-          y2={25}
-          stroke="black"
-          stroke-width={1} />
-        <text
-          x={70}
-          y={15}
-          text-anchor="middle"
-          stroke="black"
-          stroke-width={0.5}
-          font-size={10}
-          style="user-select: none">
-          length of 100 pixel
+        <line x1={120} x2={120} y1={20} y2={25} stroke="black" stroke-width={1} />
+        <text x={70} y={15} text-anchor="middle" stroke="black" stroke-width={0.5} font-size={10} style="user-select: none"> 
+          1 unit
         </text>
       {/if}
+
+      <!-- Draw edges -->
       {#if show_edges}
         {#each edges as edge}
           {#if edge.type == 0 && edit_mode}
@@ -1501,6 +1486,8 @@
             stroke-width="1" />
         {/if}
       {/if}
+
+      <!-- Display factors -->
       {#if edit_mode}
         {#each factor_nodes as factor_node}
           <g
@@ -1542,6 +1529,8 @@
           </g>
         {/each}
       {/if}
+
+      <!-- Display variable nodes -->
       {#each var_nodes as var_node, i}
         {#if edit_mode}
           <circle
@@ -1638,6 +1627,8 @@
           {/if}
         {/if}
       {/each}
+
+      <!-- Display message bubbles -->
       {#if message_bubbles && iter_sec}
         {#each message_bubbles as message_bubble}
           {#if $source_progress && show_belief_cov && message_bubble.node1_display}
@@ -1676,6 +1667,8 @@
             opacity={1 - 4 * ($message_progress - 0.5) * ($message_progress - 0.5)} />
         {/each}
       {/if}
+
+      
       {#if highlight_node}
         {#if show_belief_cov}
           <ellipse
@@ -1766,9 +1759,9 @@
         {#if belief_MAP_diff < 1}
           <b>Difference to MAP: {parseInt(belief_MAP_diff * 100) / 100}</b>
         {:else}<b>Difference to MAP: {parseInt(belief_MAP_diff)}</b>{/if}
-        <br />
+        <!-- <br />
         <b>Overconfidence: {parseInt(overconfidence * 10000) / 100} %</b>
-        <b>Overconfident Node: {overconfident_node_num}</b>
+        <b>Overconfident Node: {overconfident_node_num}</b> -->
       {/if}
       <br />
     </div>
@@ -2071,7 +2064,7 @@
     </div>
   </div>
 
-  <div class="plot_div">
+  <!-- <div class="plot_div">
     <div class="plot_svg">
       <svg style="background-color: white;">
         <line
@@ -2257,5 +2250,6 @@
         {/if}
       </svg>
     </div>
-  </div>
+  </div> -->
+
 </div>
