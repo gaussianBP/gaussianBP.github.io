@@ -12,6 +12,7 @@
   import * as gauss from "../gaussian";
   import anime from "animejs";
 
+
   // GBP
   const var_prior_std = 50;
   const var_lambda = 1 / Math.pow(var_prior_std, 2);
@@ -1303,6 +1304,22 @@
   function print_graph_detail() {
     print(graph);
   }
+
+  function openCity(evt, cityName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(cityName).style.display = "block";
+    evt.currentTarget.className += " active";
+  }
+
+
 </script>
 
 <style>
@@ -1314,6 +1331,7 @@
 </style>
 
 <svelte:window />
+
 
 <div class="demo-container">
   <div id="playground-container">
@@ -1989,3 +2007,267 @@
   </div>
 </div>
 
+<div id="plot_container">
+  <div class="plot_div">
+    <div class="plot_svg">
+      <svg style="background-color: white;">
+        <line
+          x1={0 + x_margin}
+          x2={plot_width + x_margin}
+          y1={plot_height + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <line
+          x1={0 + x_margin}
+          x2={0 + x_margin}
+          y1={0 + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <text
+          x={10}
+          y={plot_height / 2 + y_margin}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
+          Difference to MAP
+        </text>
+        <text
+          x={plot_width / 2 + x_margin}
+          y={plot_height + y_margin + 15}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none">
+          Iterations
+        </text>
+        {#if passed_message}
+          {#each Array(y_ticks + 1) as _, i}
+            <line
+              x1={x_margin}
+              x2={plot_width + x_margin}
+              y1={((plot_height - plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              y2={((plot_height - plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              stroke="black"
+              stroke-width="0.5"
+              stroke-opacity="0.5"
+              stroke-dasharray="2, 4" />
+            <text
+              x={2 + x_margin}
+              y={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin + 2}
+              text-anchor="left"
+              stroke="black"
+              opacity={0.75}
+              stroke-width={0.25}
+              font-size={10}
+              style="user-select: none">
+              {parseInt(((max_belief_MAP_diff * (y_ticks - i)) / y_ticks) * 100) / 100}
+            </text>
+          {/each}
+          {#each belief_MAP_diff_list as diff, i}
+            <line
+              x1={((plot_width - 2 * plot_margin) * i) / (iter + 1) + plot_margin + x_margin}
+              x2={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              y1={(plot_height - plot_margin) * (1 - diff[0] / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
+              y2={(plot_height - plot_margin) * (1 - diff[1] / (max_belief_MAP_diff + 0.01)) + plot_margin + y_margin}
+              stroke="red"
+              stroke-width={1} />
+          {/each}
+        {/if}
+      </svg>
+    </div>
+  </div>
+
+  <!-- <div class="plot_div">
+    <div class="plot_svg">
+      <svg style="background-color: white;">
+        <line
+          x1={0 + x_margin}
+          x2={plot_width + x_margin}
+          y1={plot_height + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <line
+          x1={0 + x_margin}
+          x2={0 + x_margin}
+          y1={0 + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <text
+          x={10}
+          y={plot_height / 2 + y_margin}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
+          Overconfidence
+        </text>
+        <text
+          x={plot_width / 2 + x_margin}
+          y={plot_height + y_margin + 15}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none">
+          Iterations
+        </text>
+        {#if passed_message}
+          {#each Array(y_ticks + 1) as _, i}
+            <line
+              x1={x_margin}
+              x2={plot_width + x_margin}
+              y1={((plot_height - plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              y2={((plot_height - plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              stroke="black"
+              stroke-width="0.5"
+              stroke-opacity="0.5"
+              stroke-dasharray="2, 4" />
+            <text
+              x={2 + x_margin}
+              y={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin + 2}
+              text-anchor="left"
+              stroke="black"
+              opacity={0.75}
+              stroke-width={0.25}
+              font-size={10}
+              style="user-select: none">
+              {parseInt(((max_overconfidence * (y_ticks - i)) / y_ticks) * 10000) / 100}
+              %
+            </text>
+          {/each}
+          {#each overconfidence_list as overconfidence, i}
+            <line
+              x1={((plot_width - 2 * plot_margin) * i) / (iter + 1) + plot_margin + x_margin}
+              x2={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              y1={(plot_height - plot_margin) * (1 - overconfidence[0] / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
+              y2={(plot_height - plot_margin) * (1 - overconfidence[1] / (max_overconfidence + 0.0001)) + plot_margin + y_margin}
+              stroke="red"
+              stroke-width={1} />
+          {/each}
+        {/if}
+      </svg>
+    </div>
+  </div>
+
+  <div class="plot_div">
+    <div class="plot_svg">
+      <svg style="background-color: white;">
+        <line
+          x1={0 + x_margin}
+          x2={plot_width + x_margin}
+          y1={plot_height / 2 + y_margin}
+          y2={plot_height / 2 + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <line
+          x1={0 + x_margin}
+          x2={0 + x_margin}
+          y1={0 + y_margin}
+          y2={plot_height + y_margin}
+          stroke="black"
+          stroke-width={1.5} />
+        <text
+          x={10}
+          y={plot_height / 2 + y_margin}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none; writing-mode: vertical-rl; text-orientation: mixed;">
+          Under/Overconfident Node Num
+        </text>
+        <text
+          x={plot_width + x_margin - 40}
+          y={plot_height + y_margin - 5}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}>
+          Underconfident
+        </text>
+        <text
+          x={plot_width + x_margin - 40}
+          y={y_margin + 10}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}>
+          Overconfident
+        </text>
+        <text
+          x={plot_width / 2 + x_margin}
+          y={plot_height + y_margin + 15}
+          text-anchor="middle"
+          stroke="black"
+          stroke-width={0.25}
+          font-size={10}
+          style="user-select: none">
+          Iterations
+        </text>
+        {#if passed_message}
+          {#each Array(y_ticks + 1) as _, i}
+            <line
+              x1={x_margin}
+              x2={plot_width + x_margin}
+              y1={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              y2={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin}
+              stroke="black"
+              stroke-width="0.5"
+              stroke-opacity="0.5"
+              stroke-dasharray="2, 4" />
+            {#if ((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin < plot_height / 2}
+              <text
+                x={2 + x_margin}
+                y={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin + 2}
+                text-anchor="left"
+                stroke="black"
+                opacity={0.75}
+                stroke-width={0.25}
+                font-size={10}
+                style="user-select: none">
+                {parseInt((graph.var_nodes.length * (y_ticks - i * 2)) / y_ticks)}
+              </text>
+            {:else}
+              <text
+                x={2 + x_margin}
+                y={((plot_height - 2 * plot_margin) * i) / y_ticks + plot_margin + y_margin + 2}
+                text-anchor="left"
+                stroke="black"
+                opacity={0.75}
+                stroke-width={0.25}
+                font-size={10}
+                style="user-select: none">
+                {parseInt((graph.var_nodes.length * i * 2) / y_ticks) - graph.var_nodes.length}
+              </text>
+            {/if}
+          {/each}
+          {#each overconfident_node_num_list as overconfidence_node_num, i}
+            <line
+              x1={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              x2={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              y1={plot_height / 2 + y_margin}
+              y2={(plot_height / 2 - plot_margin) * (1 - overconfidence_node_num[0] / graph.var_nodes.length) + plot_margin + y_margin}
+              stroke="red"
+              stroke-width={2} />
+            <line
+              x1={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              x2={((plot_width - 2 * plot_margin) * (i + 1)) / (iter + 1) + plot_margin + x_margin}
+              y1={plot_height / 2 + y_margin}
+              y2={(plot_height / 2 - plot_margin) * (1 + overconfidence_node_num[1] / graph.var_nodes.length) + plot_margin + y_margin}
+              stroke="blue"
+              stroke-width={2} />
+          {/each}
+        {/if}
+      </svg>
+    </div>
+  </div> -->
+
+</div>

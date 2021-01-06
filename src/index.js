@@ -23,14 +23,15 @@ const Gbp1dComponent_d3 = new Gbp1d_d3({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#gbp1d')
 });
 
-import Playground from "./diagrams/playground.svelte";
+
+import Playground from "./diagrams/playground_tabs.svelte";
 const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#playground')
 });
 
-import PlaygroundTeaser from "./diagrams/playground_teaser.svelte";
-const PlaygroundTesaerComponent = new PlaygroundTeaser({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#playgroundteaser')
+import CustomPlayground from "./diagrams/custom_playground.svelte";
+const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#custom_playground')
 });
 
 // import Testground from "./diagrams/testground.svelte";
