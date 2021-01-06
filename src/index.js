@@ -8,10 +8,10 @@ const SpringComponent = new Spring({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#spring')
 });
 
-import GaussProduct from "./diagrams/gauss_product.svelte";
-const GaussProdComponent = new GaussProduct({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#gaussprod')
-});
+// import GaussProduct from "./diagrams/gauss_product.svelte";
+// const GaussProdComponent = new GaussProduct({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#gaussprod')
+// });
 
 // import Gbp1d from "./diagrams/gbp1d.svelte";
 // const Gbp1dComponent = new Gbp1d({ // eslint-disable-line no-unused-vars
@@ -26,6 +26,11 @@ const Gbp1dComponent_d3 = new Gbp1d_d3({ // eslint-disable-line no-unused-vars
 import Playground from "./diagrams/playground.svelte";
 const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#playground')
+});
+
+import PlaygroundTeaser from "./diagrams/playground_teaser.svelte";
+const PlaygroundTesaerComponent = new PlaygroundTeaser({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#playgroundteaser')
 });
 
 // import Testground from "./diagrams/testground.svelte";

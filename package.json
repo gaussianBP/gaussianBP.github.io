@@ -8,6 +8,7 @@
 	},
 	"dependencies": {
 		"animejs": "^3.2.0",
+		"colormap": "^2.3.1",
 		"d3": "^5.15.1",
 		"ml-matrix": "^6.4.1",
 		"random": "^2.2.0"

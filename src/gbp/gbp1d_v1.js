@@ -39,13 +39,6 @@ export class FactorGraph {
 
   sync_iter() {
     this.send_messages();
-    for(var c=0; c<this.factors.length; c++) {
-      if (this.factors[c].type == "binary") {
-        console.log("binary factor message", this.factors[c].messages);
-      } else {
-        console.log("unary factor message", this.factors[c].message);
-      }
-    }
     this.update_beliefs();
   }
 
@@ -69,6 +62,14 @@ export class FactorGraph {
     const bigEta = m.Matrix.zeros(tot_dofs, 1);
     const bigLam = m.Matrix.zeros(tot_dofs, tot_dofs);
 
+    // Contribution from priors
+    for(var c=0; c<this.var_nodes.length; c++) {
+      var ix = this.var_nodes[c].id;
+      bigEta.set(ix, 0, bigEta.get(ix, 0) + this.var_nodes[c].prior.eta.get(0, 0));
+      bigLam.set(ix, ix, bigLam.get(ix, ix) + this.var_nodes[c].prior.lam.get(0, 0));
+    }
+
+    // Contribution from factors
     for(var c=0; c<this.factors.length; c++) {
       if (this.factors[c].type == "binary") {
         var ix = this.factors[c].adj_var_ids[0];
@@ -86,13 +87,15 @@ export class FactorGraph {
       }
     }
 
-    const Cov = m.inverse(bigLam);
-    const Means = Cov.mmul(bigEta);
+    var Cov = m.inverse(bigLam);
+    var Means = Cov.mmul(bigEta);
 
     for(var c=0; c<this.var_nodes.length; c++) {
       this.var_nodes[c].MAP_mean = Means.get(c, 0);
       this.var_nodes[c].MAP_std = Math.sqrt(Cov.get(c, c));
     }
+
+    return Means;
   }
 
   compare_to_MAP() {
@@ -102,7 +105,7 @@ export class FactorGraph {
     }
 
     const means = new m.Matrix([gbp_means]);
-    const map = this.computeMAP()[0];
+    var map = this.computeMAP();
     var av_diff = (map.sub(means.transpose())).norm();
     return av_diff;
   }
@@ -162,7 +165,28 @@ export class VariableNode {
 
     this.belief_path = null;
 
+    this.MAP_path = null;
+
     this.adj_factors = [];
+  }
+
+  reset_belief_and_prior(prior_mean, prior_std) {
+    // Updates the prior and sets the belief to be the prior
+    const prior_lam = 1 / (prior_std * prior_std);
+    this.prior = new gauss.Gaussian(new m.Matrix([[prior_lam * prior_mean]]), new m.Matrix([[prior_lam]]));
+    this.belief.eta = this.prior.eta.clone();
+    this.belief.lam = this.prior.lam.clone();
+  }
+
+  update_MAP_path(gauss_max_width, gauss_width_stds, STEP, map_y) {
+    var width = Math.min(gauss_width_stds * this.MAP_std, gauss_max_width);
+    const xs = d3.range(this.MAP_mean - width, this.MAP_mean + width, STEP);
+    const ys = xs.map(x => Math.exp(-.5 * (x-this.MAP_mean) * (x-this.MAP_mean) / (this.MAP_std * this.MAP_std)));
+    
+    const pts = d3.zip(xs,ys);
+    this.MAP_path = d3.line()
+      .x(d => d[0])
+      .y(d => map_y(d[1]))(pts);
   }
 
   update_path(gauss_max_width, gauss_width_stds, STEP, map_y) {
@@ -186,10 +210,8 @@ export class VariableNode {
     // Take product of incoming messages
     for(var c=0; c<this.adj_factors.length; c++) {
       if (this.adj_factors[c].type == "binary") {
-        var ix = this.adj_factors[c].adj_var_ids.indexOf(this.var_id);
-        if (ix != -1) {
-          this.belief.product(this.adj_factors[c].messages[ix])
-        }
+        var ix = this.adj_factors[c].adj_var_ids.indexOf(this.id);
+        this.belief.product(this.adj_factors[c].messages[ix])
       }
       else if (this.adj_factors[c].type == "unary") {
         this.belief.product(this.adj_factors[c].message)
@@ -199,7 +221,7 @@ export class VariableNode {
     // Send new belief to adjacent factors
     for(var c=0; c<this.adj_factors.length; c++) {
       if (this.adj_factors[c].type == "binary") {
-        var ix = this.adj_factors[c].adj_var_ids.indexOf(this.var_id);
+        var ix = this.adj_factors[c].adj_var_ids.indexOf(this.id);
         this.adj_factors[c].adj_beliefs[ix] = this.belief;
       }
       else if (this.adj_factors[c].type == "unary") {
@@ -211,15 +233,94 @@ export class VariableNode {
 }
 
 export class UnaryFactor {
-  constructor(mean, std, adj_var_id) {
+  constructor(mean, std, adj_var_id, anchor_loc, adj_belief) {
     this.type = "unary";
-    this.mean = mean;
+    this.mean = mean;  // natural length of spring is mean - anchor_loc
     this.std = std;
-    this.adj_belief = null;
+    this.adj_belief = adj_belief;
     this.adj_var_id = adj_var_id;
+
+    this.anchor_loc = anchor_loc;
+
+    this.path = null;
+    this.color = null;
+    this.filler = null;
+    this.n_periods = null;
+    this.spring_nat_length = null;
 
     this.message = null;
     this.update_message();
+  }
+
+  get_color(colors, max_energy, nshades) {
+    var energy = this.get_energy();
+    var ix = Math.min(Math.round(energy / max_energy * nshades), nshades - 1);
+    this.color = colors[ix];
+  }
+
+  update_path(map_y) {
+    var belief_mean = this.adj_belief.getMean().get(0, 0);
+    this.spring_nat_length = Math.abs(belief_mean - this.anchor_loc);
+
+    var buffer = 15;
+    const period = 30;
+    this.n_periods = Math.floor((this.spring_nat_length - 2*buffer) / period);
+    this.filler = buffer + ((this.spring_nat_length - 2*buffer) % period) / 2;
+
+    const STEP = 0.1;
+    let xs = [];
+    let ys = [];
+    if (this.anchor_loc < belief_mean) {
+      xs = d3.range(this.anchor_loc + this.filler, belief_mean - this.filler + STEP, STEP);
+      ys = xs.map(x => Math.sin((x - (this.anchor_loc + this.filler)) / period * 2 * Math.PI));  
+      xs.unshift(this.anchor_loc);
+      xs.push(belief_mean);
+    } else {
+      xs = d3.range(belief_mean + this.filler, this.anchor_loc - this.filler + STEP, STEP);
+      ys = xs.map(x => Math.sin((x - (belief_mean + this.filler)) / period * 2 * Math.PI)); 
+      xs.push(this.anchor_loc);
+      xs.unshift(belief_mean);       
+    }
+
+    // Add start and end to path
+    ys.unshift(0.);
+    ys.push(0.);
+    
+    const pts = d3.zip(xs,ys);
+    this.path = d3.line()
+      .x(d => d[0])
+      .y(d => map_y(d[1]))(pts);
+  }
+
+  update_path_init(map_y) {
+    var belief_mean = this.adj_belief.getMean().get(0, 0);
+    var spring_length = Math.abs(belief_mean - this.anchor_loc);
+
+    var period = (spring_length - 2 * this.filler) / this.n_periods;
+
+    const STEP = 0.1;
+    let xs = [];
+    let ys = [];
+    if (this.anchor_loc < belief_mean) {
+      xs = d3.range(this.anchor_loc + this.filler, belief_mean - this.filler + STEP, STEP);
+      ys = xs.map(x => Math.sin((x - (this.anchor_loc + this.filler)) / period * 2 * Math.PI));  
+      xs.unshift(this.anchor_loc);
+      xs.push(belief_mean);
+    } else {
+      xs = d3.range(belief_mean + this.filler, this.anchor_loc - this.filler + STEP, STEP);
+      ys = xs.map(x => Math.sin((x - (belief_mean + this.filler)) / period * 2 * Math.PI)); 
+      xs.push(this.anchor_loc);
+      xs.unshift(belief_mean);       
+    }
+
+    // Add start and end to path
+    ys.unshift(0.);
+    ys.push(0.);
+    
+    const pts = d3.zip(xs,ys);
+    this.path = d3.line()
+      .x(d => d[0])
+      .y(d => map_y(d[1]))(pts);
   }
 
   update_message() {
@@ -247,7 +348,70 @@ export class LinearFactor {
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
 
     this.messages = [];
+
+    this.path = null;
+    this.color = null;
+    this.spring_nat_length = null;
+    this.filler = null;
+    this.n_periods = null;
   }
+
+  get_color(colors, max_energy, nshades) {
+    var energy = this.get_energy();
+    var ix = Math.min(Math.round(energy / max_energy * nshades), nshades - 1);
+    this.color = colors[ix];
+  }
+
+  update_path(map_y) {
+    var mean0 = this.adj_beliefs[0].getMean().get(0, 0);
+    var mean1 = this.adj_beliefs[1].getMean().get(0, 0);
+    var spring_length = Math.abs(mean1 - mean0)
+    this.spring_nat_length = spring_length;
+
+    var buffer = 15;
+    const period = 30;
+    this.n_periods = Math.floor((spring_length - 2*buffer) / period);
+    this.filler = buffer + ((spring_length - 2*buffer) % period) / 2;
+
+    const STEP = 0.1;
+    const xs = d3.range(mean0 + this.filler, mean1 - this.filler + STEP, STEP);
+    const ys = xs.map(x => Math.sin((x - (mean0 + this.filler)) / period * 2 * Math.PI));
+
+    // Add start and end to path
+    xs.unshift(mean0);
+    ys.unshift(0.);
+    xs.push(mean1);
+    ys.push(0.);
+    
+    const pts = d3.zip(xs,ys);
+    this.path = d3.line()
+      .x(d => d[0])
+      .y(d => map_y(d[1]))(pts);
+  }
+
+  update_path_init(map_y) {
+    var mean0 = this.adj_beliefs[0].getMean().get(0, 0);
+    var mean1 = this.adj_beliefs[1].getMean().get(0, 0);
+    var spring_length = Math.abs(mean1 - mean0);
+
+    var period = (spring_length - 2 * this.filler) / this.n_periods;
+
+    const STEP = 0.1;
+    const xs = d3.range(mean0 + this.filler, mean1 - this.filler + STEP, STEP);
+    const ys = xs.map(x => Math.sin((x - (mean0 + this.filler)) / period * 2 * Math.PI));
+
+    // Add start and end to path
+    xs.unshift(mean0);
+    ys.unshift(0.);
+    xs.push(mean1);
+    ys.push(0.);
+    
+    const pts = d3.zip(xs,ys);
+    this.path = d3.line()
+      .x(d => d[0])
+      .y(d => map_y(d[1]))(pts);
+  }
+
 
   compute_factor() {
     this.factor.eta = m.Matrix.zeros(this.dofs, 1);

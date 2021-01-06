@@ -36,6 +36,13 @@
     <p>A visual introduction to Gaussian Belief Propagation for realtime computer vision. </p>
   </d-title>
 
+  <figure class="l-page-outset">
+    <d-figure id="playgroundteaser"></d-figure>
+      <figcaption>GBP Playground. </figcaption>
+    </figure>
+  </figure>
+
+
   <d-article>
 
     <!-- <d-contents>
@@ -55,7 +62,18 @@
     </d-contents> -->
 
 
-    <p>
+    <p style="color:orange;">
+
+
+      <b>Plan</b>
+      <br>Begin with one demo from playground
+      <br>Introduce spatial AI problem
+      <br>Describe hardware problem
+      <br>Introduce GBP and compare to other algorithms
+      <br> Give intuitive explanations of GBP with interactive diagrams
+      <br>Discuss future applications
+
+      <br><br>
       <b>Notes:</b>
 
       1. Spatial AI
@@ -95,42 +113,14 @@
       - as parallelisation gets greater, and also as asynchronicity increases,
       does GBP get more and more advantageous?
       
-      
-      
-    
+      GBP with multiple hierarchies?
 
 
-
-      
     </p>
 
-    <p>
-      Visualistion ideas:
-      <ul>
-        <li>
-          Factor graph where you message scheduling is determined by the user. i.e. they can move the mouse and messages are sent from variables near the mouse.
-        </li>
-        <li>
-          Spring interpretation of GBP for linear problems.
-        </li>
-        <li>
-          GBP with multiple hierarchies?
-        </li>
-      </ul> 
-    </p>
-    
-    <figure class="l-page-outset">
-      <d-figure id="playground"></d-figure>
-        <figcaption>GBP Playground. </figcaption>
-      </figure>
-    </figure>
 
-    <figure class="l-page">
-      <d-figure id="spring"></d-figure>
-        <figcaption>
-          Intuitive spring model visualistion of GBP.
-        </figcaption>
-    </figure>
+    <hr>
+
 
     <h2 id="spatialAI">Spatial AI </h2>
 
@@ -515,8 +505,15 @@
       Spring model.
     </p>
 
+    <figure class="l-page">
+      <d-figure id="spring"></d-figure>
+        <figcaption>
+          Intuitive spring model visualistion of GBP.
+        </figcaption>
+    </figure>
 
-    <p>
+
+    <!-- <p>
       Visualisation of messages.
     </p>
 
@@ -526,7 +523,7 @@
           A landmark is observed by two different cameras, each of which makes an uncertain measurement of the distance to the landmark and the bearing. 
           The location of the cameras are well-known with high confidence. You can change the 
         </figcaption>
-    </figure>
+    </figure> -->
 
 
     <h3> Technical introduction </h3>
@@ -667,6 +664,8 @@
     </figure>
 
 
+
+
     <p>
       Works the same with Gaussians - all variables are Gaussian distributions, as are messages and factors.
     </p>
@@ -703,9 +702,8 @@
     </p>
 
 
-    <h2 id="simulations">Simulated geometric estimation problems </h2>
+    <h2 id="simulations">Simulated estimation problems </h2>
 
-    <p> We demonstrate the positive qualities of GBP through a series of simulated geometric estimation problems. We hope this gives intuition of how inference is performed in GBP. </p>
 
     <h4 id="1dsurface">1D Surface estimation</h4>
 
@@ -717,52 +715,20 @@
       </figure>
     </figure>
 
-    <p>Can we relate this to Gaussian processes?</p>
 
-
-    <h4 id="2drobot">2D Robot Simulation </h4>
-
-    <p> How to formulate 2D measurement factors. </p>
-
-<!--     <p> We can begin with purely linear measurement factors.</p>
-
-    <figure class="l-page-outset" id="robot-container">
-      <d-figure id="RobotSim"></d-figure>
-        <figcaption>Robot simulation with linear measurement factors.</figcaption>
+    <figure class="l-page-outset">
+      <d-figure id="playground"></d-figure>
+        <figcaption>GBP Playground. </figcaption>
       </figure>
     </figure>
- -->
-    <p> We now introduce non-linear measurement factors.</p>
-
-    <figure class="l-page-outset" id="robot-nonlinear-container">
-      <d-figure id="RobotNonlinearSim"></d-figure>
-        <figcaption>Robot simulation with non-linear measurement factors.</figcaption>
-      </figure>
-    </figure>
-
-    <!-- <figure class="l-body">
-      <d-figure id="Graph"></d-figure>
-        <figcaption>d3 graph.</figcaption>
-      </figure>
-    </figure> -->
-
-
-    <p> Lastly we can introduce smoothness factors, for instance enforcing landmarks to be co-linear.</p>
-
-    <figure class="l-page-outset" id="robot-room-container">
-      <d-figure id="RobotRoomSim"></d-figure>
-        <figcaption>Robot simulation with smoothness constraints between landmarks.</figcaption>
-      </figure>
-    </figure>
-
-    <h2> Stability </h2>
+  
 
     <h2 id="discussion">Discussion</h2>
     
     <p> Bundle Adjustment <d-cite key="ortiz2020gbp"></d-cite></p>
 
 
-    <h2> Incorporating learning</h2>
+    <h3> Incorporating learning</h3>
     <p> 
       We have a known causal generative model, this guides the encoder (GBP) to learn robust models of X. 
       Inference is inverse modelling, where we try to infer some quantities that explain the observations. It is an iterative encoder. 

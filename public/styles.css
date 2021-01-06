@@ -101,7 +101,7 @@ button {
   font-size: 36px;
   color: rgb(39, 36, 36);
   font-family: Arial, Arial, Helvetica, sans-serif;
-  outline: 0;
+  outline: none;
   cursor: pointer;
 }
 

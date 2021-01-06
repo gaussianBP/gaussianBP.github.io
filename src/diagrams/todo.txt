@@ -6,18 +6,11 @@ playground
 Writing
 - panels with images for why gbp
 
-General
-- Look into d3
 
 both
 - move update std in factors to be reactive rather than always running
 - for each canvas, hover somewhere to see graph 
 
-gauss prod 
--
-
-1d
--
 
 2d robot sim
 - non-linear measurement functions has convergence issues: maybe Huber loss can help?
@@ -29,7 +22,8 @@ gauss prod
 - move landmarks to the edge and add planar factors
 
 spring model
-- add GBP
 - colormap to display spring energy
-- slider for k
-- gaussian curves
+- svg size and shape
+- can choose number of masses
+- does it spread internal energy evenly across 3 springs?
+- reset natural lengths of springs in set springs mode
