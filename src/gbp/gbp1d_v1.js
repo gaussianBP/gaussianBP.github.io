@@ -462,35 +462,3 @@ export class LinearFactor {
     this.send_mess(1);
   }
 }
-
-
-export function create1Dgraph(n_var_nodes, smoothness_std) {
-
-  const graph = new FactorGraph()
-
-  // Create variable nodes
-  for(var i=0; i<n_var_nodes; i++) {
-    const new_var_node = new VariableNode(1, i);
-    graph.var_nodes.push(new_var_node);
-  }
-
-  // Create smoothness factors
-  const smoothness_jac = new m.Matrix([[-1, 1]]);
-  for(var i=0; i<(n_var_nodes-1); i++) {
-    const new_factor = new LinearFactor(2, [i, i+1], );
-    new_factor.jacs.push(smoothness_jac);
-    new_factor.meas.push(0.);
-    new_factor.lambdas.push(1 / Math.pow(smoothness_std, 2));
-
-    new_factor.adj_beliefs.push(graph.var_nodes[i].belief);
-    new_factor.adj_beliefs.push(graph.var_nodes[i+1].belief);
-    new_factor.messages.push(new gauss.Gaussian([[0]], [[0]]));
-    new_factor.messages.push(new gauss.Gaussian([[0]], [[0]]));
-    new_factor.compute_factor();
-    graph.factors.push(new_factor);
-    graph.var_nodes[i].adj_factors.push(new_factor);
-    graph.var_nodes[i+1].adj_factors.push(new_factor);
-  }
-
-  return graph;
-}

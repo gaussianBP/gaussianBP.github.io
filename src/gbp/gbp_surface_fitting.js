@@ -21,7 +21,14 @@ export class FactorGraph {
     for(var c=0; c<this.factors.length; c++) {
       this.factors[c].send_both_mess();
     }
+  }
 
+  count_meas() {
+    let n_meas = 0;
+    for(var c=0; c<this.factors.length; c++) {
+      n_meas += this.factors[c].meas.length-1;
+    }
+    return n_meas;
   }
 
   sync_iter() {
@@ -36,6 +43,7 @@ export class FactorGraph {
 
     this.factors[adj_var_ids[0]].jacs.push(meas_jac);
     this.factors[adj_var_ids[0]].meas.push(meas);
+    this.factors[adj_var_ids[0]].x_meas.push(x_meas);
     this.factors[adj_var_ids[0]].lambdas.push(1 / Math.pow(meas_std, 2));
     this.factors[adj_var_ids[0]].compute_factor();
   }
@@ -59,10 +67,15 @@ export class FactorGraph {
       bigLam.set(ix+1, ix+1, bigLam.get(ix+1, ix+1) + this.factors[c].factor.lam.get(1, 1));
     }
 
+    const Cov = m.inverse(bigLam);
+    const Means = Cov.mmul(bigEta);
 
-    const bigCov = m.inverse(bigLam);
-    const means = bigCov.mmul(bigEta);
-    return [means, bigCov];
+    for(var c=0; c<this.var_nodes.length; c++) {
+      this.var_nodes[c].MAP_mean = Means.get(c, 0);
+      this.var_nodes[c].MAP_std = Math.sqrt(Cov.get(c, c));
+    }
+
+    return Means;
   }
 
   compare_to_MAP() {
@@ -72,7 +85,7 @@ export class FactorGraph {
     }
 
     const means = new m.Matrix([gbp_means]);
-    const map = this.computeMAP()[0];
+    const map = this.computeMAP();
     var av_diff = (map.sub(means.transpose())).norm();
     return av_diff;
   }
@@ -111,10 +124,14 @@ export class FactorGraph {
 }
 
 export class VariableNode {
-  constructor(dofs, var_id) {
-    this.dofs = dofs;
-    this.var_id = var_id;
-    this.belief = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
+  constructor(id, x) {
+    this.var_id = id;
+    this.belief = new gauss.Gaussian(m.Matrix.zeros(1, 1), m.Matrix.zeros(1, 1));
+    this.dofs = 1;
+    this.x = x;
+
+    this.MAP_mean = null;
+    this.MAP_std = null;
 
     this.adj_factors = [];
   }
@@ -147,6 +164,7 @@ export class LinearFactor {
     // To compute factor when factor is combination of many factor types (e.g. measurement and smoothness)
     this.jacs = [];
     this.meas = [];
+    this.x_meas = [];
     this.lambdas = [];
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
 
@@ -192,14 +210,14 @@ export class LinearFactor {
 }
 
 
-export function create1Dgraph(n_var_nodes, smoothness_std) {
+export function create1Dgraph(n_var_nodes, x_offset, x_spacing, smoothness_std) {
 
   const graph = new FactorGraph()
 
   // Create variable nodes
   for(var i=0; i<n_var_nodes; i++) {
-    const new_var_node = new VariableNode(1, i);
-    graph.var_nodes.push(new_var_node);
+    const var_node = new VariableNode(i, x_offset + i*x_spacing);
+    graph.var_nodes.push(var_node);
   }
 
   // Create smoothness factors

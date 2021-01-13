@@ -1,7 +1,8 @@
 playground
 - total error vs difference to MAP?
-- how to automatically place nodes so they are inside svg
-
+- click to send messages feature isnt working
+- can send bubbles between nodes that aren't connected, this shouldnt be allowed
+- nodes are highlighted for too long
 
 Writing
 - panels with images for why gbp
@@ -10,6 +11,11 @@ Writing
 both
 - move update std in factors to be reactive rather than always running
 - for each canvas, hover somewhere to see graph 
+
+surface fitting
+- new design for MAP
+- stress test
+- control panel look nicer
 
 
 2d robot sim

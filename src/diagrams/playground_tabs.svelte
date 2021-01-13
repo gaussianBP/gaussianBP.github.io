@@ -2,7 +2,9 @@
     import { Tabs, TabList, TabPanel, Tab } from '../tabs/tabs.js';
     
   	import CustomPlayground from './custom_playground.svelte';
-
+	import RobotLinear from './gbp2d_linear.svelte';
+	import Robot from './robot.svelte';
+	
 </script>
 
 
@@ -15,11 +17,17 @@
 	</TabList>
 
 	<TabPanel>
+        <Robot/>
+	</TabPanel>
+
+	<TabPanel>
         <CustomPlayground/>
 	</TabPanel>
 
 	<TabPanel>
+        <RobotLinear/>
 	</TabPanel>
+	
 
 
 </Tabs>

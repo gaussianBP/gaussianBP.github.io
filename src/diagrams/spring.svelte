@@ -15,9 +15,9 @@
   import anime from 'animejs';
 
   // svg
-  var svg;
-  var svg_width = 1000;
-  var svg_height = 400;
+  let svg;
+  let svg_width = 700;
+  let svg_height = 300;
 
   let node_radius = 10;
 
@@ -155,7 +155,7 @@
 
     energies = graph.compute_energy();
     energy = energies.reduce((a, b) => a + b, 0);
-    console.log("energies", energies[0], energies[1], energies[2]);
+    // console.log("energies", energies[0], energies[1], energies[2]);
 
     if (mode != "set_springs" && show_MAP) {
       graph.computeMAP();
@@ -310,6 +310,10 @@
     gbp_on = !gbp_on;
   }
 
+  function reset() {
+    console.log("to do reset function");
+  }
+
   function update_web_elements() {
 
   }
@@ -435,24 +439,59 @@ function click_handler(e) {
 </script>
 
 
+
+<svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path><path d="M0 0h24v24H0z" fill="none"></path></symbol>
+    <symbol id="pauseIcon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path><path d="M0 0h24v24H0z" fill="none"></path></symbol>
+    <symbol id="resetIcon" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"></path><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></symbol>
+</svg>
+
 <style>
-  .playboxon {
-    border-radius: 10px;
-    border: 2px solid #000000;
-    padding: 10px;
+
+  .icon {
+    width: 30px; height: 30px;
+    background: steelblue;
+    fill: white;
+    color: white;
+    border-radius: 20px;
+    padding: 5px;
+    margin: 2px;
+    cursor: pointer;
+    position:relative;
   }
-  .playboxoff {
-    border-radius: 10px;
-    border: 2px solid #000000;
-    padding: 10px;
-    opacity: 0.5;
-    background-color: rgb(223, 213, 213);
+
+  .button {
+    outline: none;
+		width: fit-content;
+    height: fit-content;
+  }
+
+  .demo-container {
+    display:inline-block;
+  }
+
+  .gbp-container {
+    position: relative;
+    width: 70%;
+    float: left;
+    margin-right:5px;
+  }
+
+  .settings-panel {
+    position: relative;
+    width: 29%;
+    float: left;
+  }
+  svg {
+    width: 100%;
+    height: 100%;
+    float: left;
   }
 </style>
 
 
 <div class="demo-container">
-	<div id="gbp-container">
+	<div class="gbp-container">
     <svg
       bind:this={svg}
       width={svg_width}
@@ -548,7 +587,7 @@ function click_handler(e) {
 	</div>
   
   <!-- Draw settings panel -->
-  <div id="settings-panel">
+  <div class="settings-panel">
 
     <label class="radio-inline">
       <input type="radio" bind:group={mode} on:change={handle_mode_change} value="set_springs"> Set natural length of springs
@@ -563,74 +602,53 @@ function click_handler(e) {
     </label>
     <br>
 
-    {#if mode == "play"}
-      <div class="playboxon">
+
+    <div class:boxon={mode === "play"} class:boxoff={mode != "play"}>
+
+      <div style="float:left;">
         {#if gbp_on}
-          <label>
-              <button class="btn" on:click={toggleGBP} style="width:30px">
-                <i class="fa fa-pause" aria-hidden="true"></i>
-              </button>
-          </label>
+          <button class="button" data-tooltip="Pause GBP" on:click={toggleGBP}>
+            <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
+          </button>
         {:else}
-          <label>
-              <button class="btn" on:click={toggleGBP} style="width:30px">
-                <i class="fa fa-play" aria-hidden="true"></i>
-              </button>
-          </label>
+          <button class="button" data-tooltip="Play GBP" on:click={toggleGBP}>
+            <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
+          </button>
         {/if}
 
-        <b>Iteration {n_iters}</b> 
-        <!-- &nbsp; (iters / s: {iters_per_sec}) -->
-        <!-- <input type="range" min="1" max="50" bind:value={iters_per_sec}><br> -->
-
-        <br>
-        <span style="color: blue"> <b>Schedule: </b> </span>
-        <label class="radio-inline">
-          <input type="radio" bind:group={schedule} value="sweep"> Sweep
-        </label>
-        <label class="radio-inline">
-          <input type="radio" bind:group={schedule} value="sync"> Sync
-        </label>      
+        <button class="button" data-tooltip="Reset function todo" on:click={reset}>
+          <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
+        </button>
       </div>
-    {:else}
-      <div class="playboxoff">
-        {#if gbp_on}
-          <label>
-              <button class="btn" on:click={toggleGBP} style="width:30px">
-                <i class="fa fa-pause" aria-hidden="true"></i>
-              </button>
-          </label>
-        {:else}
-          <label>
-              <button class="btn" on:click={toggleGBP} style="width:30px">
-                <i class="fa fa-play" aria-hidden="true"></i>
-              </button>
-          </label>
-        {/if}
 
-        <b>Iteration {n_iters}</b> 
-        <!-- &nbsp; (iters / s: {iters_per_sec}) -->
-        <!-- <input type="range" min="1" max="50" bind:value={iters_per_sec}><br> -->
+      <label class="slider" style="display: inline-block text-align: center; width:60%; font-size: 15px; float: left; margin-left: 15px">
+        <span><b>Iteration {n_iters}</b> &nbsp; (iters / s: {iters_per_sec})</span><br>
+        <input type="range" min="1" max="20" bind:value={iters_per_sec}><br>
+      </label>
 
-        <br>
-        <span style="color: blue"> <b>Schedule: </b> </span>
-        <label class="radio-inline">
-          <input type="radio" bind:group={schedule} value="sweep"> Sweep
-        </label>
-        <label class="radio-inline">
-          <input type="radio" bind:group={schedule} value="sync"> Sync
-        </label>      
-      </div>
-    {/if}
+      <br>
+      <span style="color: blue"> <b>Schedule: </b> </span>
+      <label class="radio-inline">
+        <input type="radio" bind:group={schedule} value="sweep"> Sweep
+      </label>
+      <label class="radio-inline">
+        <input type="radio" bind:group={schedule} value="sync"> Sync
+      </label>      
+    </div>
+      
+
 
     <br>
-    Spring constant, k = <b>{(spring_meas_lam_int / 100).toFixed(2)}</b>
-    <input type="range" min="1" max="400" bind:value={spring_meas_lam_int} on:change={update_spring_constant} ><br>
+    <label class="slider">
+      <span>Spring constant, k = <b>{(spring_meas_lam_int / 100).toFixed(2)}</b></span><br>
+      <input type="range" min="1" max="400" bind:value={spring_meas_lam_int} on:change={update_spring_constant}><br>
+    </label>
+
 
     {#if mode != "set_springs"}
       Spring internal energy: {energy.toFixed(2)}
 
-      <div style="display: inline-block;">
+      <div>
         <span style="color: blue"> <b>MAP</b> </span>
         <label class="checkbox-inline">
           <input

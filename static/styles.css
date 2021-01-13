@@ -44,7 +44,6 @@ d-figure.fullscreen{
   left: -48px;
 }
 
-
 .demo-container {
   display:inline-block;
 }
@@ -75,6 +74,13 @@ d-figure.fullscreen{
   width: 24%;
   float: left;
   font-size: 16px;
+  user-select: none;
+}
+
+#hints-panel {
+  font-size: 13px;
+  color: grey;
+  line-height: 1.5em;
 }
 
 #plot_container {
@@ -114,6 +120,7 @@ d-figure.fullscreen{
 
 .top-left {
   position: absolute;
+  font-size: 18px;
   left: 0;
   top: 0%;
   width: 100%;
@@ -124,6 +131,22 @@ svg {
   width: 100%;
   height: 100%;
   background-color: #D3D3D3	;
+}
+
+.var_node {
+  stroke: red;
+  fill: white;
+}
+
+.factor_node {
+  fill: white;
+}
+
+.node_text {
+  user-select: none;
+  font-size: 12px;
+  stroke: black;
+  text-anchor: middle;
 }
 
 #click-svg {
@@ -142,39 +165,7 @@ button {
   cursor: pointer;
 }
 
-input[type=range]::-ms-track {
-  width: 100%;
-  cursor: pointer;
 
-  /* Hides the slider so custom styles can be added */
-  background: transparent;
-  border-color: transparent;
-  color: transparent;
-}
-
-input[type=range] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 5px;
-  border-radius: 10%; 
-  background: #d3d3d3;
-  outline: none; 
-  /* opacity: 0.7;  */
-  -webkit-transition: .2s; 
-  transition: opacity .2s;  
-  margin-top: -6px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
-}
-
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none; /* Override default look */
-  appearance: none;
-  width: 18px; 
-  height: 18px; 
-  border-radius: 50%;
-  background: rgb(209, 117, 12);
-  cursor: pointer;
-}
 
 /* input[type=range]:hover {
   opacity: 1; 
@@ -186,7 +177,9 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 #pointer {
+  margin-top: 3px;
   width: 45px;
+  height: 45px;
 }
 
 #wasd {
@@ -216,75 +209,213 @@ input[type=range]::-webkit-slider-thumb {
   color: rgba(0, 0, 0, 0.6);
   line-height: 1.4em;
   user-select: text;
-  font-size: 20px;
+  font-size: 16px;
+}
+
+.boxon {
+  border-radius: 10px;
+  border: 2px solid #000000;
+  padding: 10px;
+}
+.boxoff {
+  border-radius: 10px;
+  border: 2px solid #000000;
+  padding: 10px;
+  opacity: 0.5;
+  background-color: rgb(223, 213, 213);
+}
+
+
+.mi {
+  font-size: 1rem;
+}
+/* Use this to make sure screen readers read something sensible when encountering the mi. If you are using the icons decoratively, you can omit the <span> */
+.u-sr-only {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+}
+
+/* ****************************************
+ * Input slider
+ ******************************************/
+
+ .slider {
+  font-size: 15px;
+  line-height: 1em;
+}
+
+ input[type=range] {
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  width: 95%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
+  margin-bottom: 8px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+
+input[type=range]:focus {
+  outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  cursor: pointer;
+
+  /* Hides the slider so custom styles can be added */
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+/* Thumb */
+
+/* Special styling for WebKit/Blink */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: steelblue;
+  cursor: pointer;
+  margin-top: -6px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+}
+
+/* All the same stuff for Firefox */
+input[type=range]::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: steelblue;
+  cursor: pointer;
+  border: none;
+}
+
+/* All the same stuff for IE */
+input[type=range]::-ms-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: grey;
+  cursor: pointer;
+}
+
+/* Track */
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+input[type=range]::-ms-fill-lower {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]:focus::-ms-fill-lower {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]::-ms-fill-upper {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]:focus::-ms-fill-upper {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 /* ****************************************
  * On hover tooltip
  ******************************************/
-.tooltip {
+
+[data-tooltip] {
   position: relative;
-  display: inline-block;
-  padding: 0px 5px;
-  font-size: 36px;
-  cursor: pointer;
+  z-index: 2;
+  display: block;
 }
 
-.tooltip .tooltiptext {
+[data-tooltip]:before,
+[data-tooltip]:after {
   visibility: hidden;
-  width: 120px;
-  background-color: rgb(39, 36, 36);
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 0;
-  
-  /* Position the tooltip */
+  opacity: 0;
+  pointer-events: none;
+	transition: .2s ease-out;
+	transform: translate(-50%, 5px)
+}
+
+[data-tooltip]:before {
   position: absolute;
-  z-index: 1;
   bottom: 100%;
   left: 50%;
-  margin-left: -60px;
-}
-
-.tooltip:hover .tooltiptext {
-  visibility: visible;
-  font-size: 40%;
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-
-.tooltip-fs {
-  position: relative;
-  display: inline-block;
-  padding: 0px 5px;
-  font-size: 100%;
-  cursor: pointer;
-}
-
-.tooltip-fs .tooltiptext {
-  visibility: hidden;
-  width: 120px;
-  background-color: rgb(39, 36, 36);
+  margin-bottom: 5px;
+  padding: 7px;
+	width: 260%;
+  min-width: 70px;
+	max-width: 250px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background-color: #000;
+  background-color: hsla(0, 0%, 20%, 0.9);
   color: #fff;
+  content: attr(data-tooltip);
   text-align: center;
-  border-radius: 6px;
-  padding: 5px 0;
-  
-  /* Position the tooltip */
+  font-size: 14px;
+  line-height: 1.2;
+	transition: .2s ease-out
+}
+
+[data-tooltip]:after {
   position: absolute;
-  z-index: 1;
   bottom: 100%;
   left: 50%;
-  margin-left: -60px;
+  width: 0;
+  border-top: 5px solid #000;
+  border-top: 5px solid hsla(0, 0%, 20%, 0.9);
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  content: " ";
+  font-size: 0;
+  line-height: 0;
 }
 
-.tooltip-fs:hover .tooltiptext {
+[data-tooltip]:hover:before,
+[data-tooltip]:hover:after {
   visibility: visible;
-  font-size: 40%;
-  font-family: Arial, Helvetica, sans-serif;
+  opacity: 1;
+	transform: translate(-50%, 0)
 }
-
+[data-tooltip=false]:hover:before,
+[data-tooltip=false]:hover:after {
+  visibility: hidden;
+  opacity: 0;
+}
 
 
 /* ****************************************

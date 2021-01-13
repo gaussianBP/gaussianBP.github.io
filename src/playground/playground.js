@@ -2,6 +2,8 @@ import * as m from 'ml-matrix';
 import * as gauss from '../gaussian';
 import { getEllipse } from '../gaussian';
 import * as nlm from "../gbp/nonlinear_meas_fn.js";
+import * as r from "random";
+
 
 var offset_distance_tolerance = 10;
 
@@ -73,8 +75,15 @@ export class FactorGraph {
     if (node.type == 'var_node') {
       // Id corresponds to a var_node
       this.var_nodes = this.var_nodes.filter(var_node => var_node.id != node.id);
+      const adj_factor_ids = node.adj_ids;
       // Also remove this node from adj_ids
       this.factor_nodes = this.factor_nodes.filter(factor_node => !factor_node.adj_ids.includes(node.id));
+      // Remove factors that have been removed from adjacent ids
+      for (var i = 0; i < adj_factor_ids.length; i++) {
+        for (var j = 0; j < this.var_nodes.length; j++) {
+          this.var_nodes[j].adj_ids = this.var_nodes[j].adj_ids.filter(adj_id => adj_id != adj_factor_ids[i]);
+        }
+      }
       return true;
     }
     else if (node.type == "linear_factor" || node.type == "nonlinear_factor") {
@@ -122,7 +131,7 @@ export class FactorGraph {
     }
   }
 
-  update_cov_ellipse() {
+  update_cov_ellipses() {
     for (var i = 0; i < this.var_nodes.length; i++) {
       this.var_nodes[i].update_cov_ellipse();
     }
@@ -194,6 +203,23 @@ export class FactorGraph {
     }
   }
 
+  update_beliefs() {
+    for (let i = 0; i < this.var_nodes.length; i++) {
+      this.var_nodes[i].receive_message(this);
+      this.var_nodes[i].update_cov_ellipse();
+    }
+  }
+
+  priors_to_gt() {
+    for (let i = 0; i < this.var_nodes.length; i++) {
+      let var_node = this.var_nodes[i];
+      var_node.prior.eta = var_node.prior.lam.mmul(new m.Matrix([[var_node.x], [var_node.y]]));
+      var_node.belief.eta = var_node.prior.eta.clone();
+      var_node.belief.lam = var_node.prior.lam.clone();
+      var_node.update_cov_ellipse();
+    }
+  }
+
   compute_MAP() {
     // Adopted from Joseph Ortiz's implementation in gbp2d.js
     var total_dofs = 0;
@@ -262,16 +288,189 @@ export class FactorGraph {
       Math.pow(node1.y - node2.y, 2));
   }
 
-  compute_overconfidence() {
-    var belief_area = 0;
-    var MAP_area = 0;
-    for (var i = 0; i < this.var_nodes.length; i ++) {
-      var var_node = this.var_nodes[i];
-      belief_area += var_node.belief_ellipse.rx * var_node.belief_ellipse.ry;
-      MAP_area += var_node.MAP_ellipse.rx * var_node.MAP_ellipse.ry;
+  update_priors(prior_std, set_belief = false) {
+    const prior_lam = 1 / (prior_std * prior_std);
+    for (let i=0; i < this.var_nodes.length; ++i) {
+      if (this.var_nodes[i].id != 0) {
+        let var_node = this.var_nodes[i];
+        const prior_mean = var_node.prior.getMean();
+        var_node.prior.lam = new m.Matrix([[prior_lam, 0], [0, prior_lam]]);
+        var_node.prior.eta = var_node.prior.lam.mmul(prior_mean);
+
+        if (set_belief) {
+          var_node.belief.eta = var_node.prior.eta.clone();
+          var_node.belief.lam = var_node.prior.lam.clone();
+        }
+
+      }
     }
-    return Math.max(0, 1 - belief_area / MAP_area);
   }
+
+  update_factor_noise_models(params) {
+    // Update lambda and compute new factor 
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      var factor_node = this.factor_nodes[i];    
+
+      if (factor_node.type == "linear_factor") {
+        factor_node.lambda = [1 / (params["linear"]["noise_model_std"] * params["linear"]["noise_model_std"])];
+      } else if (factor_node.type == "nonlinear_factor") {
+        factor_node.lambda = new m.Matrix([
+          [1 / Math.pow(params["nonlinear"]["angle_noise_model_std"], 2), 0],
+          [0, 1 / Math.pow(params["nonlinear"]["dist_noise_model_std"], 2)],
+        ]);
+      }
+      factor_node.compute_factor();
+    }
+  }
+
+  add_var_node(x, y, prior_std, id = null) {
+    if (!id) {
+      id = this.var_nodes.length + this.factor_nodes.length;
+    }
+    const var_node = new VariableNode(2, id, x, y);
+    if (id == 0) {
+      var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);
+    } else {
+      const prior_lam = 1 / (prior_std * prior_std);
+      var_node.prior.lam = new m.Matrix([[prior_lam, 0], [0, prior_lam]]);
+    }
+    var_node.prior.eta = var_node.prior.lam.mmul(new m.Matrix([[var_node.x], [var_node.y]]));
+    var_node.belief.eta = var_node.prior.eta.clone();
+    var_node.belief.lam = var_node.prior.lam.clone();
+    this.var_nodes.push(var_node);
+  }
+
+
+  add_factor_node(node1_id, node2_id, meas_model, meas_params, id = null) {
+    let node1 = this.find_node(parseInt(node1_id));
+    let node2 = this.find_node(parseInt(node2_id));
+    if (!id) {
+      id = this.var_nodes.length + this.factor_nodes.length;
+    }
+    if (!this.find_factor_node(node1.id, node2.id) && node1.type == "var_node" && node2.type == "var_node" && node1.id != node2.id) {
+      // Checks factor doesn't already exist and that nodes are two different var nodes
+
+      let factor_node;
+      if (meas_model == "linear") {
+        factor_node = this.add_linear_factor(node1, node2, meas_params["linear"], id);
+      } else {
+        factor_node = this.add_nonlinear_factor(node1, node2, meas_params["nonlinear"], id);
+      }
+    
+      factor_node.adj_var_dofs = [2, 2];
+      factor_node.adj_beliefs = [node1.belief, node2.belief];
+      factor_node.zero_messages();
+      factor_node.compute_factor();
+      this.factor_nodes.push(factor_node);
+      node1.adj_ids.push(id);
+      node2.adj_ids.push(id);
+      node1.receive_message(this);
+      node2.receive_message(this);
+    }
+  }
+
+  add_linear_factor(node1, node2, params, id = null) {
+
+    const factor_node = new LinearFactor(4, id, [node1.id, node2.id]);
+    factor_node.meas = factor_node.meas_func([node1.x, node1.y], [node2.x, node2.y]);
+    const noise_gen = r.normal(0, params["noise_std"]*params["noise_std"]);
+    factor_node.meas_noise = new m.Matrix([[noise_gen()], [noise_gen()]]);
+    factor_node.meas.add(factor_node.meas_noise);
+    factor_node.lambda = [1 / (params["noise_model_std"] * params["noise_model_std"])];
+
+    return factor_node;
+  }
+
+  add_nonlinear_factor(node1, node2, params, id = null) {
+
+    if (node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >= 0) {
+      var meas_func = nlm.measFnR;
+      var jac_func = nlm.jacFnR;
+    } else {
+      var meas_func = nlm.measFnL;
+      var jac_func = nlm.jacFnL;
+    }
+    const factor_node = new NonLinearFactor(4, id, [node1.id, node2.id], meas_func, jac_func);
+    const angle_noise_gen = r.normal(0, params["angle_noise_std"]*params["angle_noise_std"]);
+    const dist_noise_gen = r.normal(0, params["dist_noise_std"]*params["dist_noise_std"]);
+    factor_node.meas_noise = new m.Matrix([[angle_noise_gen()], [dist_noise_gen()]]);
+    factor_node.meas = factor_node.meas_func(node1.belief.getMean(), node2.belief.getMean());
+    factor_node.meas.add(factor_node.meas_noise);
+    // factor_node.eta_damping = eta_damping;
+    factor_node.lambda = new m.Matrix([
+      [1 / Math.pow(params["angle_noise_model_std"], 2), 0],
+      [0, 1 / Math.pow(params["dist_noise_model_std"], 2)],
+    ]);
+
+    return factor_node;
+  }
+
+  update_meas_model(meas_model, params, id = null) {
+
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      var factor_node = this.factor_nodes[i];
+      var node1 = this.find_node(factor_node.adj_ids[0]);
+      var node2 = this.find_node(factor_node.adj_ids[1]);
+
+      if (factor_node.id == id || id == null) {
+        if (factor_node.type == "linear_factor" && meas_model == "nonlinear") {
+
+          if (node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >= 0) {
+            var meas_func = nlm.measFnR;
+            var jac_func = nlm.jacFnR;
+          } else {
+            var meas_func = nlm.measFnL;
+            var jac_func = nlm.jacFnL;
+          }
+          const new_factor_node = new NonLinearFactor(
+            4, factor_node.id, factor_node.adj_ids, meas_func, jac_func);
+
+          const angle_noise_gen = r.normal(0, params["nonlinear"]["angle_noise_std"]*params["nonlinear"]["angle_noise_std"]);
+          const dist_noise_gen = r.normal(0, params["nonlinear"]["dist_noise_std"]*params["nonlinear"]["dist_noise_std"]);
+          new_factor_node.meas_noise = new m.Matrix([[angle_noise_gen()], [dist_noise_gen()]]);
+          
+          new_factor_node.meas = new_factor_node.meas_func(
+            node1.belief.getMean(),
+            node2.belief.getMean()
+          );
+          new_factor_node.meas.add(new_factor_node.meas_noise);
+          new_factor_node.lambda = new m.Matrix([
+            [1 / Math.pow(params["nonlinear"]["angle_noise_model_std"], 2), 0],
+            [0, 1 / Math.pow(params["nonlinear"]["dist_noise_model_std"], 2)],
+          ]);;
+        
+          new_factor_node.adj_var_dofs = [2, 2];
+          new_factor_node.adj_beliefs = [node1.belief, node2.belief];
+          new_factor_node.zero_messages();
+          new_factor_node.compute_factor();
+          this.factor_nodes[i] = new_factor_node;
+          node1.receive_message(this);
+          node2.receive_message(this);
+        } else if (factor_node.type == "nonlinear_factor"  && meas_model == "linear") {
+          const new_factor_node = new LinearFactor(4, factor_node.id, factor_node.adj_ids);
+          const noise_gen = r.normal(0, params["linear"]["noise_std"]*params["linear"]["noise_std"]);
+          new_factor_node.meas_noise = new m.Matrix([[noise_gen()], [noise_gen()]]);
+          new_factor_node.meas = new_factor_node.meas_func(
+            [node1.x, node1.y],
+            [node2.x, node2.y]
+          );
+          new_factor_node.meas.add(new_factor_node.meas_noise);
+          new_factor_node.lambda = [1 / (params["noise_model_std"] * params["noise_model_std"])];
+          new_factor_node.adj_var_dofs = [2, 2];
+          new_factor_node.adj_beliefs = [node1.belief, node2.belief];
+          new_factor_node.zero_messages();
+          new_factor_node.compute_factor();
+          this.factor_nodes[i] = new_factor_node;
+          node1.receive_message(this);
+          node2.receive_message(this);
+        }
+      }
+    }
+
+  }
+
+
+
 }
 
 export class VariableNode {
@@ -282,7 +481,6 @@ export class VariableNode {
     this.belief = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.prior = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.adj_ids = [];
-    this.overconfidence = 0;
     this.x = x;
     this.y = y;
     this.belief_ellipse = {
@@ -301,6 +499,30 @@ export class VariableNode {
     };
   }
 
+  move_node(x, y, graph, update_meas = true) {
+    this.prior.eta = this.prior.lam.mmul(
+      new m.Matrix([[x], [y]])
+    );
+    this.belief.eta = this.prior.eta.clone();
+    this.belief.lam = this.prior.lam.clone();
+
+    // Update adjacent factors
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      var factor_node = graph.find_node(this.adj_ids[i]);
+      if (update_meas) {
+        factor_node.meas = factor_node.meas_func(
+          graph.find_node(factor_node.adj_ids[0]).belief.getMean(),
+          graph.find_node(factor_node.adj_ids[1]).belief.getMean()
+        );
+        factor_node.meas.add(factor_node.meas_noise);
+      }
+      factor_node.adj_beliefs = factor_node.adj_ids.map(
+        (adj_id) => graph.find_node(adj_id).belief
+      );
+      factor_node.compute_factor();
+    }
+  }
+
   update_cov_ellipse() {
     var values = this.belief.getCovEllipse();
     this.belief_ellipse.cx = this.belief.getMean().get(0, 0);
@@ -308,8 +530,6 @@ export class VariableNode {
     this.belief_ellipse.rx = Math.sqrt(values[0][0]);
     this.belief_ellipse.ry = Math.sqrt(values[0][1]);
     this.belief_ellipse.angle = values[1] / Math.PI * 180;
-    this.overconfidence = Math.max(0, (this.MAP_ellipse.rx * this.MAP_ellipse.ry - this.belief_ellipse.rx * this.belief_ellipse.ry) / 
-      (this.MAP_ellipse.rx * this.MAP_ellipse.ry));
   }
 
   receive_message(graph) {
@@ -348,7 +568,12 @@ export class LinearFactor {
     this.adj_beliefs = [];
 
     // To compute factor when factor is combination of many factor types (e.g. measurement and smoothness)
-    this.jacs = [];
+    const linear_jac = new m.Matrix([
+      [-1, 0, 1, 0],
+      [0, -1, 0, 1],
+    ])
+    this.jacs = [linear_jac];
+    
     this.meas = [];
     this.meas_noise = [];
     this.lambda = [];
@@ -359,6 +584,17 @@ export class LinearFactor {
 
     this.x = 0;
     this.y = 0;
+  }
+
+  zero_messages() {
+    this.messages = [];
+    for (let i=0; i < this.adj_var_dofs.length; i++) {
+      this.messages.push(
+        new gauss.Gaussian(
+          m.Matrix.zeros(this.adj_var_dofs[i], 1), 
+          m.Matrix.zeros(this.adj_var_dofs[i], this.adj_var_dofs[i])
+        ));
+    }
   }
 
   meas_func(node1_coords, node2_coords) {
@@ -458,6 +694,17 @@ export class NonLinearFactor {
 
     this.x = 0;
     this.y = 0;
+  }
+
+  zero_messages() {
+    this.messages = [];
+    for (let i=0; i < this.adj_var_dofs.length; i++) {
+      this.messages.push(
+        new gauss.Gaussian(
+          m.Matrix.zeros(this.adj_var_dofs[i], 1), 
+          m.Matrix.zeros(this.adj_var_dofs[i], this.adj_var_dofs[i])
+        ));
+    }
   }
 
   compute_factor() {

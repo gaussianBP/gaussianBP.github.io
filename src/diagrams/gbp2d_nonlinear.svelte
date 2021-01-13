@@ -11,8 +11,6 @@
 
 	import { onInterval } from '../util.js';
 
-  import Graph from './NetworkGraph.svelte';
-
   // Visual varaibles
   let canvas;
   let var_node_radius = 9;

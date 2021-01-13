@@ -58,7 +58,7 @@ d-figure.fullscreen{
 
 #settings-panel {
   position: relative;
-  width: 24%;
+  width: 40%;
   float: left;
 }
 
@@ -135,7 +135,7 @@ input[type=range]::-webkit-slider-thumb {
   width: 18px; 
   height: 18px; 
   border-radius: 50%;
-  background: rgb(209, 117, 12);
+  background: steelblue;
   cursor: pointer;
 }
 
