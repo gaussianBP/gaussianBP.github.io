@@ -1,22 +1,16 @@
 <script>
   import { onMount } from 'svelte';
-
-  import * as m from 'ml-matrix';
-  import * as gauss from '../gaussian';
-  import * as gbp1d from '../gbp/gbp1d_v1.js';
-  import * as nlm from '../gbp/nonlinear_meas_fn.js';
-
-  import * as d3 from 'd3';
-
-  import * as colormap from 'colormap';
-
-  import { onInterval, pannable } from '../util.js';
-
+  import { onInterval } from '../utils/util.js';
   import anime from 'animejs';
+  import * as colormap from 'colormap';
+  import * as m from 'ml-matrix';
+  import * as d3 from 'd3';
+  import * as gauss from '../utils/gaussian';
+  import * as gbp1d from '../gbp/gbp_spring.js';
 
   // svg
   let svg;
-  let svg_width = 700;
+  let svg_width = 800;
   let svg_height = 300;
 
   let node_radius = 10;
@@ -25,7 +19,6 @@
   let started = false;
   let x_buffer = 150;
   let stroke_width = 4;
-  $: var_nodes_length = 0;
 
   $: var_nodes = [];
   $: factor_nodes = [];
@@ -103,16 +96,7 @@
 
   onMount(() => {
 
-    svg_width = svg.clientWidth;
-    svg_height = svg.clientHeight;
-
-    graph = new gbp1d.FactorGraph();
-    creategraph(graph, n_var_nodes, 1 / Math.sqrt(spring_meas_lam));
-    var_nodes_length = graph.var_nodes.length;
-    var_nodes = graph.var_nodes;
-    factor_nodes = graph.factors;
-
-	// nlm.checkJac(graph.pose_nodes[0].belief.getMean(), graph.lmk_nodes[0].belief.getMean());
+    reset();
 
     then = Date.now();
     anime.timeline({
@@ -130,6 +114,15 @@
   
   onInterval(() => gbp_iter(), 1000 / iters_per_sec);
 
+  function reset() {
+    mode = "set_springs";
+
+    graph = new gbp1d.FactorGraph();
+    creategraph(graph, n_var_nodes, 1 / Math.sqrt(spring_meas_lam));
+
+    var_nodes = graph.var_nodes;
+    factor_nodes = graph.factors;
+  }
 
   function updateVis() {
 
@@ -138,20 +131,15 @@
     var elapsed = now - then;
     if (elapsed > fpsInterval) {
       then = now - (elapsed % fpsInterval);
-      var_nodes_length = graph.var_nodes.length;
     }
 
     var_nodes = graph.var_nodes;
     factor_nodes = graph.factors;
-    update_web_elements();
 
     gt_locs = [];
     for(var i=0; i<n_var_nodes; i++) {
       gt_locs.push(var_nodes[i].gt);
     }
-
-    svg_width = svg.clientWidth;
-    svg_height = svg.clientHeight;
 
     energies = graph.compute_energy();
     energy = energies.reduce((a, b) => a + b, 0);
@@ -307,15 +295,9 @@
   // ************************ Event handlers *************************
 
   function toggleGBP() {
-    gbp_on = !gbp_on;
-  }
-
-  function reset() {
-    console.log("to do reset function");
-  }
-
-  function update_web_elements() {
-
+    if (mode == "play") {
+      gbp_on = !gbp_on;
+    }
   }
 
   function mousemove_handler(e) {
@@ -389,7 +371,6 @@
     node_mousedown = null;
     node_mousedown = e.path.find((element) => element.classList == "node_g");
     mousedown_time = Date.now();
-    console.log(node_mousedown);
     if (node_mousedown && node_mousedown.id != "anchor_end") {
       node_mousedown = graph.find_node(node_mousedown.id);
     }
@@ -429,13 +410,6 @@
     mouse_up = true;
   }
 
-function click_handler(e) {
-  // TODO: Improve click algorithm
-  node_clicked = null;
-  node_clicked = e.path.find((element) => element.classList == "node_g");
-}
-
-
 </script>
 
 
@@ -448,44 +422,19 @@ function click_handler(e) {
 
 <style>
 
-  .icon {
-    width: 30px; height: 30px;
-    background: steelblue;
-    fill: white;
-    color: white;
-    border-radius: 20px;
-    padding: 5px;
-    margin: 2px;
-    cursor: pointer;
-    position:relative;
-  }
-
-  .button {
-    outline: none;
-		width: fit-content;
-    height: fit-content;
-  }
-
-  .demo-container {
-    display:inline-block;
-  }
-
   .gbp-container {
     position: relative;
-    width: 70%;
+    width: 75%;
     float: left;
     margin-right:5px;
   }
 
   .settings-panel {
     position: relative;
-    width: 29%;
+    width: 24%;
     float: left;
-  }
-  svg {
-    width: 100%;
-    height: 100%;
-    float: left;
+    font-size: 15px;
+    outline: none;
   }
 </style>
 
@@ -499,13 +448,9 @@ function click_handler(e) {
       on:mousemove={mousemove_handler}
       on:mousedown={mousedown_handler}
       on:mouseup={mouseup_handler}
-      on:click={click_handler}
       >
 
       <!-- Draw springs connecting masses -->
-      <!-- Line connecting anchor to first mass -->
-
-
       {#each factor_nodes as factor, i}
         {#if mode == "set_springs"}
           <path d="{factor.path}" class="curve" stroke="{colors[0]}" stroke-width="2" fill="none"></path>
@@ -584,57 +529,61 @@ function click_handler(e) {
 
     </svg>
 
+    <div id="left-demo-tip">
+      <img id="pointer" src="images/pointer.svg" alt="pointer">
+      <div id="hint">Blue objects are draggable. </div>
+    </div>
+
 	</div>
   
   <!-- Draw settings panel -->
   <div class="settings-panel">
 
-    <label class="radio-inline">
-      <input type="radio" bind:group={mode} on:change={handle_mode_change} value="set_springs"> Set natural length of springs
-    </label>
-    <br>
-    <label class="radio-inline">
-      <input type="radio" bind:group={mode} on:change={handle_mode_change} value="set_init"> Set initial position of masses
-    </label>
-    <br>
-    <label class="radio-inline">
-      <input type="radio" bind:group={mode} on:change={handle_mode_change} value="play"> Run mode
-    </label>
-    <br>
-
-
-    <div class:boxon={mode === "play"} class:boxoff={mode != "play"}>
-
-      <div style="float:left;">
-        {#if gbp_on}
-          <button class="button" data-tooltip="Pause GBP" on:click={toggleGBP}>
-            <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
-          </button>
-        {:else}
-          <button class="button" data-tooltip="Play GBP" on:click={toggleGBP}>
-            <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
-          </button>
-        {/if}
-
-        <button class="button" data-tooltip="Reset function todo" on:click={reset}>
-          <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
+    <div>
+      {#if gbp_on}
+        <button class="icon-button" style="outline: none;" data-tooltip="Pause GBP" on:click={toggleGBP}>
+          <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
         </button>
-      </div>
+      {:else}
+        <button class="icon-button" style="outline: none;" class:not_pressable={mode != "play"} data-tooltip="Play GBP" on:click={toggleGBP}>
+          <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
+        </button>
+      {/if}
 
-      <label class="slider" style="display: inline-block text-align: center; width:60%; font-size: 15px; float: left; margin-left: 15px">
-        <span><b>Iteration {n_iters}</b> &nbsp; (iters / s: {iters_per_sec})</span><br>
-        <input type="range" min="1" max="20" bind:value={iters_per_sec}><br>
-      </label>
-
-      <br>
-      <span style="color: blue"> <b>Schedule: </b> </span>
-      <label class="radio-inline">
-        <input type="radio" bind:group={schedule} value="sweep"> Sweep
-      </label>
-      <label class="radio-inline">
-        <input type="radio" bind:group={schedule} value="sync"> Sync
-      </label>      
+      <button class="icon-button" style="outline: none;" data-tooltip="Reset" on:click={reset}>
+        <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
+      </button>
     </div>
+
+    <br><br>
+    <div>
+      <label class="radio-inline">
+        <input type="radio" bind:group={mode} on:change={handle_mode_change} value="set_springs"> Edit
+      </label>
+      <i class="mi mi-arrow-right"><span class="u-sr-only">Arrow right</span></i>
+      <label class="radio-inline">
+        <input type="radio" bind:group={mode} on:change={handle_mode_change} value="set_init"> Set init
+      </label>
+      <i class="mi mi-arrow-right"><span class="u-sr-only">Arrow right</span></i>
+      <label class="radio-inline">
+        <input type="radio" bind:group={mode} on:change={handle_mode_change} value="play"> Run
+      </label>
+    </div>
+
+
+    <label class="slider">
+      <span><b>Iteration {n_iters}</b> &nbsp; (iters / s: {iters_per_sec})</span><br>
+      <input type="range" min="1" max="20" bind:value={iters_per_sec}><br>
+    </label>
+
+    <br>
+    <span style="color: blue"> <b>Schedule: </b> </span>
+    <label class="radio-inline">
+      <input type="radio" bind:group={schedule} value="sweep"> Sweep
+    </label>
+    <label class="radio-inline">
+      <input type="radio" bind:group={schedule} value="sync"> Sync
+    </label>      
       
 
 
@@ -646,31 +595,21 @@ function click_handler(e) {
 
 
     {#if mode != "set_springs"}
+      <br>
       Spring internal energy: {energy.toFixed(2)}
 
-      <div>
-        <span style="color: blue"> <b>MAP</b> </span>
-        <label class="checkbox-inline">
-          <input
-            type="checkbox"
-            id="toggle_MAP_checkbox"
-            bind:checked={show_MAP} />
-        </label>
-      </div>
+      <br>
+      <span style="color: blue"> <b>MAP</b> </span>
+      <label class="checkbox-inline">
+        <input type="checkbox" id="toggle_MAP_checkbox" bind:checked={show_MAP}/>
+      </label>
     {/if}
 
     {#if mode == "play"}
+      <br>
       Distance to MAP: {dist_to_MAP.toFixed(2)}
     {/if}
-    <br>
-
-    <div id="left-demo-tip">
-      <img id="pointer" src="images/pointer.svg" alt="pointer" style="width: 40px">
-      <div id="hint">
-          Blue objects are draggable.                
-      </div>
-    </div>
-    
+    <br> 
     
   </div>
   

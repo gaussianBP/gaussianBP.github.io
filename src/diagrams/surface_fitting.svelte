@@ -2,18 +2,15 @@
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import * as m from "ml-matrix";
-  import * as gauss from "../gaussian";
+  import * as gauss from '../utils/gaussian';
   import * as gbp from "../gbp/gbp_surface_fitting.js";
-
-  import "../../public/styles.css";
-
-  import { onInterval } from "../util.js";
+  import { onInterval } from "../utils/util.js";
 
   // Visual varaibles
   let canvas;
   let svg;
-  let width = 500;
-  let height = 600;
+  let svg_width = 800;
+  let svg_height = 380;
   let x_offset;
   let x_spacing;
 
@@ -59,11 +56,9 @@
 		.curve(d3.curveBasis);
 
   onMount(() => {
-    resize();
 
-
-    x_offset = width / (2 * n_var_nodes);
-    x_spacing = (width - x_offset * 2) / (n_var_nodes - 1);
+    x_offset = svg_width / (2 * n_var_nodes);
+    x_spacing = (svg_width - x_offset * 2) / (n_var_nodes - 1);
 
     graph = gbp.create1Dgraph(n_var_nodes, x_offset, x_spacing, smoothness_std);
     meas_count = 0;
@@ -71,9 +66,7 @@
     var_nodes = graph.var_nodes;
     factors = graph.factors;
 
-    console.log(graph);
-
-    radius = height / 38;
+    radius = svg_height / 38;
     genRandomMeasurements(n_measurements, measurements);
 	  then = Date.now();
 	
@@ -81,17 +74,13 @@
 
   onInterval(() => updateVis(), 25);
 
-  function resize() {
-    ({ width, height } = svg.getBoundingClientRect());
-  }
-
   function generateLine(nodes) {
-	let line_data = [];
-	for (let i = 0; i < nodes.length; i++) {
-	  line_data.push({x: nodes[i].x, y: nodes[i].y});
-	}
-	let path = line(line_data);
-	return path
+    let line_data = [];
+    for (let i = 0; i < nodes.length; i++) {
+      line_data.push({x: nodes[i].x, y: nodes[i].y});
+    }
+    let path = line(line_data);
+    return path
   }
 
   function updateVis() {
@@ -160,9 +149,9 @@
     visible_alert = false;
     if (
       x > x_offset &&
-      x < width - x_offset &&
+      x < svg_width - x_offset &&
       y > 0 &&
-      y < height
+      y < svg_height
     ) {
       var ix = (x - x_offset) / x_spacing;
       var x_lhs = x_offset + Math.floor(ix) * x_spacing;
@@ -184,8 +173,8 @@
     visible_alert = false;
 
     for (var i = 0; i < n_measurements; i++) {
-      var x = Math.random() * (width - 2 * x_offset) + x_offset;
-      var y = Math.random() * (height - 5 * x_offset) + 2*x_offset;
+      var x = Math.random() * (svg_width - 2 * x_offset) + x_offset;
+      var y = Math.random() * (svg_height - 5 * x_offset) + 2*x_offset;
       var ix = (x - x_offset) / x_spacing;
       var x_lhs = x_offset + Math.floor(ix) * x_spacing;
       var x_rhs = x_offset + Math.ceil(ix) * x_spacing;
@@ -281,24 +270,6 @@
 
 
 <style>
-  .icon {
-    width: 40px; height: 40px;
-    background: steelblue;
-    fill: white;
-    color: white;
-    border-radius: 20px;
-    padding: 5px;
-    margin: 0px;
-    cursor: pointer;
-    position: relative;
-  }
-
-  .button {
-    outline: none;
-    width: fit-content;
-    height: fit-content;
-    float: left;
-  }
 
   .gbp-container {
     position: relative;
@@ -313,11 +284,6 @@
     float: left;
     font-size: 15px;
   }
-
-  .not_pressable {
-    opacity: 0.5;
-  }
-
 
 </style>
 
@@ -335,15 +301,15 @@
 
     <svg
       bind:this={svg}
-      width={1300}
-      height={640}
+      width={svg_width}
+      height={svg_height}
       on:click={click_handler}
       id="click-svg">
 
       {#each var_nodes as node}
         {#if node.belief.lam.get(0, 0) == 0}
-          <circle cx={node.x} cy={height - 60} r={radius} fill="blue"></circle>
-          <line x1={node.x} y1={height - 100} x2={node.x} y2={height - 20} stroke-width={stroke_width} stroke="blue"></line>
+          <circle cx={node.x} cy={svg_height - 60} r={radius} fill="blue"></circle>
+          <line x1={node.x} y1={svg_height - 100} x2={node.x} y2={svg_height - 20} stroke-width={stroke_width} stroke="blue"></line>
         {:else}
           <circle cx={node.x} cy={node.belief.getMean().get(0, 0)} r={radius} fill="blue"></circle>
           <line 
@@ -394,20 +360,20 @@
 
     <div>
       {#if gbp_on}
-        <button class="button" data-tooltip="Pause GBP" on:click={toggleGBP}>
+        <button class="icon-button" style="outline: none;" data-tooltip="Pause GBP" on:click={toggleGBP}>
           <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
         </button>
       {:else}
-        <button class="button" class:not_pressable={meas_count == 0} data-tooltip="Play GBP" on:click={toggleGBP}>
+        <button class="icon-button" style="outline: none;" class:not_pressable={meas_count == 0} data-tooltip="Play GBP" on:click={toggleGBP}>
           <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
         </button>
       {/if}
 
-      <button data-tooltip="New random measurements" class="button" on:click={newRandMeasurements}>
+      <button class="icon-button" style="outline: none;" data-tooltip="New random measurements" on:click={newRandMeasurements}>
         <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
       </button>
 
-      <button data-tooltip="Clear measurements" class="button" on:click={clearMeasurements}>
+      <button class="icon-button" style="outline: none;" data-tooltip="Clear measurements" on:click={clearMeasurements}>
         <svg class="icon" id="remove"><use xlink:href="#removeIcon"></use></svg>
       </button>
     </div>

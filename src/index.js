@@ -20,9 +20,14 @@ const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-va
   target: document.querySelector('#playground')
 });
 
-import CustomPlayground from "./diagrams/custom_playground.svelte";
+import CustomPlayground from "./diagrams/pose_graph2d.svelte";
 const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#custom_playground')
+});
+
+import Robot from "./diagrams/robot2d.svelte";
+const RobotComponent = new Robot({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#robot')
 });
 
 

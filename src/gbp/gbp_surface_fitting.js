@@ -1,6 +1,7 @@
 import * as m from 'ml-matrix';
 import * as gauss from '../gaussian';
 
+
 export class FactorGraph {
   constructor() {
     this.var_nodes = [];

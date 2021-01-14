@@ -1,17 +1,16 @@
 <script>
   import { onMount } from "svelte";
+  import { onInterval } from "../utils/util.js";
   import { tweened } from "svelte/motion";
   import { fade } from "svelte/transition";
   import * as easing from "svelte/easing";
-  import * as playground from "../playground/playground.js";
-  import { print } from "../playground/playground.js";
-  import * as nlm from "../gbp/nonlinear_meas_fn.js";
-  import { onInterval } from "../util.js";
-  import * as m from "ml-matrix";
-  import * as r from "random";
-  import * as gauss from "../gaussian";
   import anime from "animejs";
+  import * as gbp from "../gbp/gbp_playground.js";
 
+  // svg
+  let svg;
+  let svg_width = 800;
+  let svg_height = 800;
 
   // GBP parameters
   // var eta_damping = 0;
@@ -31,11 +30,6 @@
 
 
   let forward_sweep = true;
-
-  // svg
-  let svg;
-  let svg_width = 800;
-  let svg_height = 800;
 
   // Playground
   let graph;
@@ -170,7 +164,7 @@
   // ************************************************************
 
   function create_empty_playground() {
-    graph = new playground.FactorGraph();
+    graph = new gbp.FactorGraph();
 
     graph.add_var_node(svg_width / 2 - 50, svg_height / 2, prior_std, 0);
     graph.add_var_node(svg_width / 2 + 50, svg_height / 2, prior_std, 1);
@@ -180,7 +174,7 @@
   }
 
   function create_linear_playground(n_var_nodes) {
-    graph = new playground.FactorGraph();
+    graph = new gbp.FactorGraph();
 
     let x0 = 100;
     let inc = (svg_width - 2*x0) / (n_var_nodes-1);
@@ -194,7 +188,7 @@
   }
 
   function create_loop_playground(n_var_nodes = 2) {
-    graph = new playground.FactorGraph();
+    graph = new gbp.FactorGraph();
     for (var i = 0; i < n_var_nodes; i++) {
       if (i < 8) {
         graph.add_var_node(50 + 100 * i, 100, prior_std, i * 2);
@@ -956,37 +950,6 @@
 
 </script>
 
-<style>
-  svg {
-    width: 100%;
-    height: 100%;
-    float: left;
-  }
-
-  .icon {
-    width: 40px; height: 40px;
-    background: steelblue;
-    fill: white;
-    color: white;
-    border-radius: 20px;
-    padding: 5px;
-    margin: 0px;
-    cursor: pointer;
-    position: relative;
-  }
-
-  .button {
-    outline: none;
-    width: fit-content;
-    height: fit-content;
-    float: left;
-  }
-
-  .not_pressable {
-    opacity: 0.5;
-  }
-
-</style>
 
 <svelte:head>
 	<link rel="stylesheet" href="https://unpkg.com/mono-icons@1.0.5/iconfont/icons.css" >
@@ -1328,20 +1291,20 @@
 
     <div style="display: inline-block;">
       {#if passing_message}
-        <button class="button" data-tooltip="Pause GBP" on:click={toggle_passing_message}>
+        <button class="icon-button" style="outline: none;" data-tooltip="Pause GBP" on:click={toggle_passing_message}>
           <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
         </button>
       {:else}
-        <button class="button" class:not_pressable={mode != "play"} data-tooltip="Play GBP" on:click={toggle_passing_message}>
+        <button class="icon-button" style="outline: none;" class:not_pressable={mode != "play"} data-tooltip="Play GBP" on:click={toggle_passing_message}>
           <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
         </button>
       {/if}
 
-      <button class="button" data-tooltip="Reset playground" on:click={reset_playground}>
+      <button class="icon-button" style="outline: none;" data-tooltip="Reset playground" on:click={reset_playground}>
         <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
       </button>
 
-      <button data-tooltip="Clear playground" class="button" on:click={clear_playground}>
+      <button class="icon-button" style="outline: none;" data-tooltip="Clear playground" on:click={clear_playground}>
         <svg class="icon" id="remove"><use xlink:href="#removeIcon"></use></svg>
       </button>
     </div>

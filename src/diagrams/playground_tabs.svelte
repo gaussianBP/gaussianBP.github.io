@@ -1,33 +1,24 @@
 <script>
-    import { Tabs, TabList, TabPanel, Tab } from '../tabs/tabs.js';
+    import { Tabs, TabList, TabPanel, Tab } from '../utils/tabs/tabs.js';
     
-  	import CustomPlayground from './custom_playground.svelte';
-	import RobotLinear from './gbp2d_linear.svelte';
-	import Robot from './robot.svelte';
+  	import CustomPlayground from './pose_graph2d.svelte';
+	import Robot from './robot2d.svelte';
 	
 </script>
 
 
 <Tabs>
 	<TabList>
-		<Tab>Customizable</Tab>
-		<Tab>Moving robot linear</Tab>
-		<Tab>Moving robot non-linear</Tab>
-		<Tab>Loop closure</Tab>
+		<Tab>Customizable 2D Pose Graphs</Tab>
+		<Tab>2D Robot Simulation</Tab>
 	</TabList>
-
-	<TabPanel>
-        <Robot/>
-	</TabPanel>
 
 	<TabPanel>
         <CustomPlayground/>
 	</TabPanel>
 
 	<TabPanel>
-        <RobotLinear/>
+        <Robot/>
 	</TabPanel>
-	
-
 
 </Tabs>

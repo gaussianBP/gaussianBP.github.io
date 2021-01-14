@@ -1,22 +1,24 @@
 playground
-- total error vs difference to MAP?
 - click to send messages feature isnt working
 - can send bubbles between nodes that aren't connected, this shouldnt be allowed
 - nodes are highlighted for too long
 
-Writing
-- panels with images for why gbp
+spring model
+- colormap to display spring energy
+- reset natural lengths of springs in set springs mode, reset function
 
-
-both
-- move update std in factors to be reactive rather than always running
-- for each canvas, hover somewhere to see graph 
+robot
+- 
 
 surface fitting
 - new design for MAP
 - stress test
 - control panel look nicer
 
+
+both
+- move update std in factors to be reactive rather than always running
+- for each canvas, hover somewhere to see graph 
 
 2d robot sim
 - non-linear measurement functions has convergence issues: maybe Huber loss can help?
@@ -27,9 +29,3 @@ surface fitting
 - change pointer to wasd
 - move landmarks to the edge and add planar factors
 
-spring model
-- colormap to display spring energy
-- svg size and shape
-- can choose number of masses
-- does it spread internal energy evenly across 3 springs?
-- reset natural lengths of springs in set springs mode

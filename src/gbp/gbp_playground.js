@@ -1,7 +1,7 @@
 import * as m from 'ml-matrix';
 import * as gauss from '../gaussian';
 import { getEllipse } from '../gaussian';
-import * as nlm from "../gbp/nonlinear_meas_fn.js";
+import * as nlm from "./nonlinear_meas_fn.js";
 import * as r from "random";
 
 
@@ -323,12 +323,36 @@ export class FactorGraph {
     }
   }
 
-  add_var_node(x, y, prior_std, id = null) {
+  update_factor_noise_models_robotsim(meas_params, odometry_params, n_landmarks) {
+    // Update lambda and compute new factor 
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      var factor_node = this.factor_nodes[i];    
+
+      let params;
+      if (factor_node.adj_ids[1] < n_landmarks) { // meas factor
+        params = meas_params;
+      } else { // odometry factor
+        params = odometry_params;
+      }
+
+      if (factor_node.type == "linear_factor") {
+        factor_node.lambda = [1 / (params["linear"]["noise_model_std"] * params["linear"]["noise_model_std"])];
+      } else if (factor_node.type == "nonlinear_factor") {
+        factor_node.lambda = new m.Matrix([
+          [1 / Math.pow(params["nonlinear"]["angle_noise_model_std"], 2), 0],
+          [0, 1 / Math.pow(params["nonlinear"]["dist_noise_model_std"], 2)],
+        ]);
+      }
+      factor_node.compute_factor();
+    }
+  }
+
+  add_var_node(x, y, prior_std, id = null, anchor_id = 0) {
     if (!id) {
       id = this.var_nodes.length + this.factor_nodes.length;
     }
     const var_node = new VariableNode(2, id, x, y);
-    if (id == 0) {
+    if (id == anchor_id) {
       var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);
     } else {
       const prior_lam = 1 / (prior_std * prior_std);
