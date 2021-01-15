@@ -1,6 +1,6 @@
 import * as m from 'ml-matrix';
-import * as gauss from '../gaussian';
-import { getEllipse } from '../gaussian';
+import * as gauss from '../utils/gaussian';
+import { getEllipse } from '../utils/gaussian';
 import * as nlm from "./nonlinear_meas_fn.js";
 import * as r from "random";
 

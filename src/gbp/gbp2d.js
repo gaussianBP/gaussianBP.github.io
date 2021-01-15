@@ -1,5 +1,5 @@
 import * as m from 'ml-matrix';
-import * as gauss from '../gaussian';
+import * as gauss from '../utils/gaussian';
 
 export class FactorGraph {
   constructor() {
