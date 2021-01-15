@@ -11,7 +11,13 @@
   // svg
   let svg;
   let svg_width = 800;
-  let svg_height = 300;
+  let svg_height = 250;
+
+  let y_spring = 2/3 * svg_height;
+  let y_gauss = 0.45 * svg_height;
+
+  let anchor = svg_width / 8;
+  let anchor_end = svg_width - svg_width / 8;
 
   let node_radius = 10;
 
@@ -41,23 +47,19 @@
   let spring_meas_lam = 1 / (40*40);
   let spring_meas_lam_int = spring_meas_lam * 10000;
 
-  let anchor = 100;
-  let anchor_end = 700;
+  const map_color = "green";
 
   // Gaussian visual variables
   const STEP = 1;
   const gauss_max_height = 50;
   const gauss_width_stds = 2.3;
   const gauss_max_width = 300;
-  let y_offset = svg_height / 2 - 50;
-  let map_belief_gauss = d3.scaleLinear().domain([0, 1]).range([y_offset, y_offset - gauss_max_height]);
+  let map_belief_gauss = d3.scaleLinear().domain([0, 1]).range([y_gauss, y_gauss - gauss_max_height]);
     
-  let y_mean = svg_height / 2;
-  let map_y_spring = d3.scaleLinear().domain([-1, 1]).range([y_mean - half_spring_height, y_mean + half_spring_height]);
+  let map_y_spring = d3.scaleLinear().domain([-1, 1]).range([y_spring - half_spring_height, y_spring + half_spring_height]);
   let half_spring_height = 20;
 
-  let y_offset_MAP = svg_height / 2 - 100;
-  let map_MAP_gauss = d3.scaleLinear().domain([0, 1]).range([y_offset, y_offset - gauss_max_height]);
+  let map_MAP_gauss = d3.scaleLinear().domain([0, 1]).range([y_gauss, y_gauss - gauss_max_height]);
 
   const nshades = 100;
   let colors = colormap({
@@ -148,8 +150,6 @@
     if (mode != "set_springs" && show_MAP) {
       graph.computeMAP();
 
-      y_offset_MAP = svg_height / 2 - 100;
-      map_MAP_gauss = d3.scaleLinear().domain([0, 1]).range([y_offset, y_offset - gauss_max_height]);
       for(var c=0; c<n_var_nodes; c++) {
         var_nodes[c].update_MAP_path(gauss_max_width, gauss_width_stds, STEP, map_MAP_gauss);
       }
@@ -159,14 +159,10 @@
       gbp_on = false;
     }
 
-    y_offset = svg_height / 2 - 50;
-    map_belief_gauss = d3.scaleLinear().domain([0, 1]).range([y_offset, y_offset - gauss_max_height]);
     for (var i=0; i < n_var_nodes; i++) {
       var_nodes[i].update_path(gauss_max_width, gauss_width_stds, STEP, map_belief_gauss);
     }
 
-    y_mean = svg_height / 2;
-    map_y_spring = d3.scaleLinear().domain([-1, 1]).range([y_mean - half_spring_height, y_mean + half_spring_height]);
     for (var i=0; i < factor_nodes.length; i++) {
       if (mode != "set_springs") {
         factor_nodes[i].update_path_init(map_y_spring);
@@ -467,7 +463,7 @@
               <circle 
                 id={"var_node_gt_"+i}
                 cx={var_node.belief.getMean().get(0, 0)}
-                cy={svg_height / 2}
+                cy={y_spring}
                 r={node_radius}
                 stroke="#0095DD"
                 fill="#0095DD"/>
@@ -476,7 +472,7 @@
             <circle 
               id={"var_node_gt_"+i}
               cx={var_node.belief.getMean().get(0, 0)}
-              cy={svg_height / 2}
+              cy={y_spring}
               r={node_radius}
               stroke="black"
               fill="black"/>
@@ -497,34 +493,13 @@
 
 
       <!-- Draw anchor varaible node -->
-      <rect
-        id="anchor"
-        x={anchor-10}
-        y={svg_height / 2 - 25}
-        width={20}
-        height={50}
-        stroke="00FF00"
-        fill="00FF00" />
+      <rect id="anchor" x={anchor-10} y={y_spring - 25} width={20} height={50} stroke="00FF00" fill="00FF00"/>
       {#if mode != "play"}
         <g class="node_g" id="anchor_end" cursor="pointer" draggable="true">
-          <rect
-            id="anchor_end"
-            x={anchor_end-10}
-            y={svg_height / 2 - 25}
-            width={20}
-            height={50}
-            stroke="#0095DD"
-            fill="#0095DD" />
+          <rect id="anchor_end" x={anchor_end-10} y={y_spring - 25} width={20} height={50} stroke="#0095DD" fill="#0095DD"/>
         </g>
       {:else}
-        <rect
-          id="anchor_end"
-          x={anchor_end-10}
-          y={svg_height / 2 - 25}
-          width={20}
-          height={50}
-          stroke="black"
-          fill="black" />
+        <rect id="anchor_end" x={anchor_end-10} y={y_spring - 25} width={20} height={50} stroke="black" fill="black" />
       {/if}
 
     </svg>
@@ -599,7 +574,7 @@
       Spring internal energy: {energy.toFixed(2)}
 
       <br>
-      <span style="color: blue"> <b>MAP</b> </span>
+      <span style="color: {map_color}"> <b>True posterior</b> </span>
       <label class="checkbox-inline">
         <input type="checkbox" id="toggle_MAP_checkbox" bind:checked={show_MAP}/>
       </label>

@@ -20,15 +20,15 @@ const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-va
   target: document.querySelector('#playground')
 });
 
-import CustomPlayground from "./diagrams/pose_graph2d.svelte";
-const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#custom_playground')
-});
+// import CustomPlayground from "./diagrams/pose_graph2d.svelte";
+// const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#custom_playground')
+// });
 
-import Robot from "./diagrams/robot2d.svelte";
-const RobotComponent = new Robot({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#robot')
-});
+// import Robot from "./diagrams/robot2d.svelte";
+// const RobotComponent = new Robot({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#robot')
+// });
 
 
 // import RobotNonlinearSim from "./diagrams/gbp2d_nonlinear.svelte";

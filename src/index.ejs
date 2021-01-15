@@ -36,9 +36,6 @@
     <p>A visual introduction to Gaussian Belief Propagation for realtime computer vision. </p>
   </d-title>
 
-  <figure class="l-page-outset">
-    <d-figure id="robot"></d-figure>
-  </figure>
 
 
   <d-article>
@@ -493,12 +490,20 @@
     </p>
 
     
-    <h2 id="theory">Brief introduction to GBP </h2>
-
-    <h3> Intuitive introduction </h3>
+    <h2 id="theory">Introduction to GBP </h2>
 
     <p>
-      Spring model.
+      We first introduce GBP in the context of relaxation of a system of springs.
+      This highlights the connection between probabilistic inference / maximum likelihood estimation using BP with Gaussian variables and least squares minimisation.
+      In this toy problem, the constraints in the factor graph penalise any extention or compression of the springs away from their natural length and the energy to be minimised is the total internal energy of the springs.
+    </p> 
+
+    <p>
+      In the following diagram you first set the natural lengths of the springs, then you choose the initial positions of the masses and then we let GBP run.
+      As GBP is local the message passing schedule can be chosen arbritrarily according to compute resources.
+      Here we have two different schedules which are the two extremes, 
+      <b>synchronous</b> in which all factors pass messages on every iteration and 
+      <b>sweep</b> in which information sweeps through the graph outwards from a chosen starting node.
     </p>
 
     <figure class="l-page">

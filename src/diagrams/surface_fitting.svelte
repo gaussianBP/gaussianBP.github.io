@@ -50,6 +50,8 @@
   let meas_line;
   let map_line;
 
+  const map_color = "green";
+
   var line = d3.line()
 		.x(d => d.x)
 		.y(d => d.y)
@@ -393,7 +395,7 @@
     </label>   
 
     <br>
-    <span style="color: blue"> <b>MAP</b> </span>
+    <span style="color: {map_color}"> <b>True posterior</b> </span>
     <label class="checkbox-inline">
       <input
         type="checkbox"

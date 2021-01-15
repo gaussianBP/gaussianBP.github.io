@@ -537,7 +537,7 @@
       </div>
 
       <div style="display: inline-block;">
-        <span style="color: {map_color}"> <b>MAP:</b> </span>
+        <span style="color: {map_color}"> <b>True posterior:</b> </span>
         <label class="checkbox-inline">
           <input type="checkbox" bind:checked={show_MAP_mean}/> Mean
         </label>

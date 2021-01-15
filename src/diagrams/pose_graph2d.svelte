@@ -121,6 +121,7 @@
   // ************************************************************
 
   function update_playground() {
+
     if (mode == "edit") {
       graph.update_node_id();
       graph.update_factor_node_location();
@@ -1399,7 +1400,7 @@
       </div>
 
       <div style="display: inline-block;">
-        <span style="color: {map_color}"> <b>MAP:</b> </span>
+        <span style="color: {map_color}"> <b>True posterior:</b> </span>
         <label class="checkbox-inline">
           <input type="checkbox" bind:checked={show_MAP_mean}/> Mean
         </label>
