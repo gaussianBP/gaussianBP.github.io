@@ -25,6 +25,12 @@ const GaussianGMComponent = new GaussianGM({ // eslint-disable-line no-unused-va
   target: document.querySelector('#gaussian_gm')
 });
 
+import MargCond from "./diagrams/marg_cond.svelte";
+const MargCondComponent = new MargCond({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#marg_cond')
+});
+
+
 // import CustomPlayground from "./diagrams/pose_graph2d.svelte";
 // const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars
 //   target: document.querySelector('#custom_playground')

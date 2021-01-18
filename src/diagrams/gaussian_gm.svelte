@@ -1,3 +1,16 @@
+<!-- 
+
+TODO
+- superscripts
+- sliders control the measurements and covariances? or lambda
+Want to give impression that we go from factors to full lambda to full eta.
+Might not give this impression if we control mean and cov for each factor
+- label inf and covariance form
+- show means somewhere?
+- labels for state of problem
+
+ -->
+
 <script>
   import { onMount } from 'svelte';
   import { onInterval } from '../utils/util.js';
@@ -238,7 +251,7 @@
     lam_offset = (1 - lambda_mat_width) * Math.min(lam_svg.width, lam_svg.height) / 2;
     lambda_mat_width *= Math.min(lam_svg.width, lam_svg.height);
     mat_side = lambda_mat_width / 3;
-    console.log(mat_side, lam_offset);
+    console.log("mat_sidee", mat_side, lam_offset);
 
     var eta_svg = document.querySelector ('#eta_matrix').getBoundingClientRect();
     eta_offset = (eta_svg.width - mat_side) / 2;

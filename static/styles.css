@@ -170,6 +170,12 @@ svg {
   text-anchor: middle;
 }
 
+.svg_text {
+  user-select: none;
+  font-size: 12px;
+  text-anchor: middle;
+}
+
 .legend_text {
   font-size: 14px;
 }
