@@ -3,6 +3,7 @@
     
   	import CustomPlayground from './pose_graph2d.svelte';
 	import Robot from './robot2d.svelte';
+	import App from './App.svelte';
 	
 </script>
 
@@ -10,6 +11,7 @@
 <Tabs>
 	<TabList>
 		<Tab>Customizable 2D Pose Graphs</Tab>
+		<Tab>2D Robot Simulation</Tab>
 		<Tab>2D Robot Simulation</Tab>
 	</TabList>
 
@@ -21,4 +23,7 @@
         <Robot/>
 	</TabPanel>
 
+	<TabPanel>
+        <App/>
+	</TabPanel>
 </Tabs>

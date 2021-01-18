@@ -20,6 +20,11 @@ const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-va
   target: document.querySelector('#playground')
 });
 
+import GaussianGM from "./diagrams/gaussian_gm.svelte";
+const GaussianGMComponent = new GaussianGM({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#gaussian_gm')
+});
+
 // import CustomPlayground from "./diagrams/pose_graph2d.svelte";
 // const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars
 //   target: document.querySelector('#custom_playground')

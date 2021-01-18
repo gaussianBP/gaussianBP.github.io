@@ -142,15 +142,65 @@ svg {
   fill: white;
 }
 
+.factor_node_off {
+  fill: white;
+  stroke-dasharray: 2;
+}
+
+.factor_box_on {
+  stroke: grey;
+  fill: none;
+  stroke-dasharray: 2;
+}
+
+.matrix_block {
+  fill: white;
+  stroke: black;
+}
+
+.matrix_text {
+  text-anchor: middle;
+  alignment-baseline: central;
+  font-size: 70%;
+}
+
 .node_text {
   user-select: none;
   font-size: 12px;
-  stroke: black;
   text-anchor: middle;
+}
+
+.legend_text {
+  font-size: 14px;
 }
 
 #click-svg {
   cursor: pointer;
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+  float: left;
+}
+
+.icon {
+  width: 40px; height: 40px;
+  background: steelblue;
+  fill: white;
+  color: white;
+  border-radius: 20px;
+  padding: 5px;
+  margin: 0px;
+  cursor: pointer;
+  position: relative;
+}
+
+.icon-button {
+  width: fit-content;
+  height: fit-content;
+  float: left;
+  outline: none;
 }
 
 button {
@@ -161,15 +211,14 @@ button {
   font-size: 36px;
   color: rgb(39, 36, 36);
   font-family: Arial, Arial, Helvetica, sans-serif;
-  outline: 0;
+  outline: none;
   cursor: pointer;
 }
 
+.not_pressable {
+  opacity: 0.5;
+}
 
-
-/* input[type=range]:hover {
-  opacity: 1; 
-} */
 
 #alert {
   text-align: center;
@@ -178,8 +227,8 @@ button {
 
 #pointer {
   margin-top: 3px;
-  width: 45px;
-  height: 45px;
+  width: 35px;
+  height: 35px;
 }
 
 #wasd {
