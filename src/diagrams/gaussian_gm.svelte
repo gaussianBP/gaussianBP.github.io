@@ -8,6 +8,8 @@ Might not give this impression if we control mean and cov for each factor
 - label inf and covariance form
 - show means somewhere?
 - labels for state of problem
+- when clicking how not to include svelte hashed name
+-
 
  -->
 
@@ -428,10 +430,10 @@ Might not give this impression if we control mean and cov for each factor
           {/if}
         </g>
         <g class="node_g" id="{"eta" + i}" cursor="ew-resize" draggable="true">
-          <text class="node_text" fill="{meas_color}" x={xs[i] - 2.5*factor_size} y={y2 + factor_size/2}> {unary_etas[i].toFixed(1)} </text>
+          <text class="underlined_text" fill="{meas_color}" x={xs[i] - 2.5*factor_size} y={y2 + factor_size/2}> {unary_etas[i].toFixed(1)} </text>
         </g>
         <g class="node_g" id="{"lam" + i}" cursor="ew-resize" draggable="true">
-          <text class="node_text" fill="{std_color}" x={xs[i]} y={y2 + 2.5*factor_size}> {unary_lams[i].toFixed(1)} </text>
+          <text class="underlined_text" fill="{std_color}" x={xs[i]} y={y2 + 2.5*factor_size}> {unary_lams[i].toFixed(1)} </text>
         </g>
       {/each}
 
@@ -443,10 +445,10 @@ Might not give this impression if we control mean and cov for each factor
         {/if}
       </g>
       <g class="node_g" id="eta3" cursor="ew-resize" draggable="true">
-        <text class="node_text" fill="{meas_color}" x={(x1+x2)/2} y={y - 1.5*factor_size}> {z12.toFixed(1)} </text>
+        <text class="underlined_text" fill="{meas_color}" x={(x1+x2)/2} y={y - 1.5*factor_size}> {z12.toFixed(1)} </text>
       </g>
       <g class="node_g" id="lam3" cursor="ew-resize" draggable="true">
-          <text class="node_text" fill="{std_color}" x={(x1+x2)/2} y={y + 2.5*factor_size}> {lam_m12.toFixed(1)} </text>
+          <text class="underlined_text" fill="{std_color}" x={(x1+x2)/2} y={y + 2.5*factor_size}> {lam_m12.toFixed(1)} </text>
       </g>
 
       <g class="node_g" id="4" cursor="pointer" draggable="true">
@@ -457,10 +459,10 @@ Might not give this impression if we control mean and cov for each factor
         {/if}
       </g>
       <g class="node_g" id="eta4" cursor="ew-resize" draggable="true">
-        <text class="node_text" fill="{meas_color}" x={(x2+x3)/2} y={y - 1.5*factor_size}> {z23.toFixed(1)} </text>
+        <text class="underlined_text" fill="{meas_color}" x={(x2+x3)/2} y={y - 1.5*factor_size}> {z23.toFixed(1)} </text>
       </g>
       <g class="node_g" id="lam4" cursor="ew-resize" draggable="true">
-        <text class="node_text" fill="{std_color}" x={(x2+x3)/2} y={y + 2.5*factor_size}> {lam_m23.toFixed(1)} </text>
+        <text class="underlined_text" fill="{std_color}" x={(x2+x3)/2} y={y + 2.5*factor_size}> {lam_m23.toFixed(1)} </text>
       </g>
 
     </svg>

@@ -30,6 +30,10 @@ const MargCondComponent = new MargCond({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#marg_cond')
 });
 
+import MessagePassing from "./diagrams/message_passing.svelte";
+const MessagePassingComponent = new MessagePassing({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#message_passing')
+});
 
 // import CustomPlayground from "./diagrams/pose_graph2d.svelte";
 // const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars

@@ -308,25 +308,27 @@
     id="fg_svg"
     >
 
-    <text class="svg_text" x={0.3*svg_width} y={svg_height/3}> 
+    <text class="svg_text" x={0.3*svg_width} y={svg_height/3- 10}> 
       Condition at
     </text>
     <g class="node_g" id="cond_x2" cursor="ew-resize" draggable="true">
-      <text class="svg_text" style="text-decoration: underline #000 dotted;" x={0.3*svg_width} y={svg_height/3 + 20}> 
+      <text class="svg_text" style="text-decoration: underline #000 dotted;" x={0.3*svg_width} y={svg_height/3 + 10}> 
         x1 = {cond_x2.toFixed(1)}
       </text>
     </g>
 
-    <defs>
-      <marker id="arrowhead" markerWidth="5" markerHeight="4" refX="0" refY="2" orient="auto">
-        <polygon points="0 0, 5 2, 0 4" />
-      </marker>
-    </defs>
-    <line x1={0.7*svg_width-30} y1={svg_height/2} x2={0.7*svg_width + 10} y2={svg_height/2} stroke="#000" stroke-width="8" marker-end="url(#arrowhead)" />
-
-    <text class="svg_text" x={0.7*svg_width} y={svg_height/3}> 
+    <text class="svg_text" x={0.7*svg_width} y={svg_height/3 + 10}> 
       Marginalise
     </text>
+
+    <defs>
+      <marker id="arrowhead" markerWidth="3" markerHeight="3" refX="0" refY="1.5" orient="auto">
+        <polygon points="0 0, 3 1.5, 0 3" />
+      </marker>
+    </defs>
+    <line x1={0.7*svg_width-30} y1={2*svg_height/3} x2={0.7*svg_width + 10} y2={2*svg_height/3} stroke="#000" stroke-width="8" marker-end="url(#arrowhead)" />
+    <line x1={0.3*svg_width+30} y1={2*svg_height/3} x2={0.3*svg_width - 10} y2={2*svg_height/3} stroke="#000" stroke-width="8" marker-end="url(#arrowhead)" />
+
 
     <!-- Conditioned factor graph -->
     <!-- Edges -->
@@ -363,27 +365,27 @@
     {#each Array(3) as _, i}
       <rect class="factor_node" x={xs[i] - factor_size/2} y={y2 - factor_size/2} width={factor_size} height={factor_size} stroke="black"/>
       <g class="node_g" id="{"eta" + i}" cursor="ew-resize" draggable="true">
-        <text class="node_text" fill="{meas_color}" x={xs[i] - 2.5*factor_size} y={y2 + factor_size/2}> {unary_etas[i].toFixed(1)} </text>
+        <text class="underlined_text" fill="{meas_color}" x={xs[i] - 2.5*factor_size} y={y2 + factor_size/2}> {unary_etas[i].toFixed(1)} </text>
       </g>
       <g class="node_g" id="{"lam" + i}" cursor="ew-resize" draggable="true">
-        <text class="node_text" fill="{std_color}" x={xs[i]} y={y2 + 2.5*factor_size}> {unary_lams[i].toFixed(1)} </text>
+        <text class="underlined_text" fill="{std_color}" x={xs[i]} y={y2 + 2.5*factor_size}> {unary_lams[i].toFixed(1)} </text>
       </g>
     {/each}
 
     <rect class="factor_node" x={(xs[0]+xs[1])/2 - factor_size/2} y={y - factor_size/2} width={factor_size} height={factor_size} stroke="black"/>
     <g class="node_g" id="eta3" cursor="ew-resize" draggable="true">
-      <text class="node_text" fill="{meas_color}" x={(xs[0]+xs[1])/2} y={y - 1.5*factor_size}> {z12.toFixed(1)} </text>
+      <text class="underlined_text" fill="{meas_color}" x={(xs[0]+xs[1])/2} y={y - 1.5*factor_size}> {z12.toFixed(1)} </text>
     </g>
     <g class="node_g" id="lam3" cursor="ew-resize" draggable="true">
-        <text class="node_text" fill="{std_color}" x={(xs[0]+xs[1])/2} y={y + 2.5*factor_size}> {lam_m12.toFixed(1)} </text>
+        <text class="underlined_text" fill="{std_color}" x={(xs[0]+xs[1])/2} y={y + 2.5*factor_size}> {lam_m12.toFixed(1)} </text>
     </g>
 
     <rect class="factor_node" x={(xs[1]+xs[2])/2 - factor_size/2} y={y - factor_size/2} width={factor_size} height={factor_size} stroke="black"/>
     <g class="node_g" id="eta4" cursor="ew-resize" draggable="true">
-      <text class="node_text" fill="{meas_color}" x={(xs[1]+xs[2])/2} y={y - 1.5*factor_size}> {z23.toFixed(1)} </text>
+      <text class="underlined_text" fill="{meas_color}" x={(xs[1]+xs[2])/2} y={y - 1.5*factor_size}> {z23.toFixed(1)} </text>
     </g>
     <g class="node_g" id="lam4" cursor="ew-resize" draggable="true">
-      <text class="node_text" fill="{std_color}" x={(xs[1]+xs[2])/2} y={y + 2.5*factor_size}> {lam_m23.toFixed(1)} </text>
+      <text class="underlined_text" fill="{std_color}" x={(xs[1]+xs[2])/2} y={y + 2.5*factor_size}> {lam_m23.toFixed(1)} </text>
     </g>
 
 

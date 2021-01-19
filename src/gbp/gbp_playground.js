@@ -347,13 +347,13 @@ export class FactorGraph {
     }
   }
 
-  add_var_node(x, y, prior_std, id = null, anchor_id = 0) {
+  add_var_node(x, y, prior_std, id = null, anchor_id = 0, strong_prior_std = 1) {
     if (!id) {
       id = this.var_nodes.length + this.factor_nodes.length;
     }
     const var_node = new VariableNode(2, id, x, y);
     if (id == anchor_id) {
-      var_node.prior.lam = new m.Matrix([[1, 0], [0, 1]]);
+      var_node.prior.lam = new m.Matrix([[strong_prior_std, 0], [0, strong_prior_std]]);
     } else {
       const prior_lam = 1 / (prior_std * prior_std);
       var_node.prior.lam = new m.Matrix([[prior_lam, 0], [0, prior_lam]]);
@@ -493,6 +493,14 @@ export class FactorGraph {
 
   }
 
+  sync_iter() {
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      this.factor_nodes[i].pass_message(this);
+    }
+    for (var i = 0; i < this.var_nodes.length; i++) {
+      this.var_nodes[i].pass_message(this);
+    }
+  }
 
 
 }
