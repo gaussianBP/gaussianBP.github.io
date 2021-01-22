@@ -3,10 +3,10 @@ import * as _unused from "raw-loader!./index.ejs";
 // TODO: disable before publishing
 
 
-import Spring from "./diagrams/spring.svelte";
-const SpringComponent = new Spring({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#spring')
-});
+// import Spring from "./diagrams/spring.svelte";
+// const SpringComponent = new Spring({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#spring')
+// });
 
 
 import SurfaceFitting from "./diagrams/surface_fitting.svelte";
@@ -34,6 +34,12 @@ import MessagePassing from "./diagrams/message_passing.svelte";
 const MessagePassingComponent = new MessagePassing({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#message_passing')
 });
+
+import GBPEquations from "./diagrams/gbp_eqns.svelte";
+const GBPEquationsComponent = new GBPEquations({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#gbp_equations')
+});
+
 
 // import CustomPlayground from "./diagrams/pose_graph2d.svelte";
 // const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars

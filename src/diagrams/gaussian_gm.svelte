@@ -9,7 +9,8 @@ Might not give this impression if we control mean and cov for each factor
 - show means somewhere?
 - labels for state of problem
 - when clicking how not to include svelte hashed name
--
+- when dragging it stops when you leave svg. how to avoid this?
+- try showing mus to right of stacked matrices
 
  -->
 

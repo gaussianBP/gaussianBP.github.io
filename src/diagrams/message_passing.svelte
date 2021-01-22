@@ -1,3 +1,11 @@
+<!-- 
+TODO
+-show covariance ellipses 
+- dots for gt mean
+
+
+ -->
+
 <script>
   import { onMount } from 'svelte';
   import { onInterval } from '../utils/util.js';
@@ -47,7 +55,7 @@
         }
     }
 
-    const noise_gen = r.normal(0, 0.3);
+    const noise_gen = r.normal(0, 0.2);
 
     for (var i=0; i<grid_size; i++) {
         for (var j=0; j<grid_size; j++) {
@@ -94,7 +102,7 @@
 
 </script>
 
-<input type="range" min="0" max="40" bind:value={t} step="0.01" style="width:200px;"/>
+<input type="range" min="0" max="20" bind:value={t} step="0.01" style="width:200px;"/>
 
 <div class="row">
 
@@ -122,8 +130,10 @@
     
       <text x={0.2*svg_width} y={0.1*svg_height} style="text-anchor: middle;"> t = {Math.floor(t)}</text>
       <text x={0.3*svg_width} y={0.35*svg_height} style="text-anchor: middle; font-size: 10px;"> Update belief</text>
-      <text x={0.5*svg_width} y={0.35*svg_height} style="text-anchor: middle; font-size: 10px;"> Variable to factor</text>
-      <text x={0.7*svg_width} y={0.35*svg_height} style="text-anchor: middle; font-size: 10px;"> Factor to variable MP</text>
+      <text x={0.5*svg_width} y={0.35*svg_height} style="text-anchor: middle; font-size: 10px;">Variable to</text>
+      <text x={0.5*svg_width} y={0.43*svg_height} style="text-anchor: middle; font-size: 10px;">factor MP</text>
+      <text x={0.7*svg_width} y={0.35*svg_height} style="text-anchor: middle; font-size: 10px;">Factor to</text>
+      <text x={0.7*svg_width} y={0.43*svg_height} style="text-anchor: middle; font-size: 10px;">variable MP</text>
     
       <polygon 
         points="{((t%1)*0.6 + 0.2)*svg_width},{0.2*svg_height} {((t%1)*0.6 + 0.2 + 0.02)*svg_width},{0.1*svg_height} {((t%1)*0.6 + 0.2 - 0.02)*svg_width},{0.1*svg_height}" 

@@ -1,3 +1,10 @@
+<!-- 
+TODO
+-opacity of line is given by lambda of matrix
+
+
+ -->
+
 <script>
   import { onMount } from 'svelte';
   import { onInterval } from '../utils/util.js';
