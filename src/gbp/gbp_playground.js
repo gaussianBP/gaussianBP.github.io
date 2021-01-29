@@ -353,7 +353,8 @@ export class FactorGraph {
     }
     const var_node = new VariableNode(2, id, x, y);
     if (id == anchor_id) {
-      var_node.prior.lam = new m.Matrix([[strong_prior_std, 0], [0, strong_prior_std]]);
+      const strong_prior_lam = 1 / (strong_prior_std * strong_prior_std);
+      var_node.prior.lam = new m.Matrix([[strong_prior_lam, 0], [0, strong_prior_lam]]);
     } else {
       const prior_lam = 1 / (prior_std * prior_std);
       var_node.prior.lam = new m.Matrix([[prior_lam, 0], [0, prior_lam]]);

@@ -1,3 +1,14 @@
+:root {
+  --gray-bg: hsl(0, 0%, 97%);
+  --gray-border: hsla(0, 0%, 0%, 0.1);
+  --gray: rgba(0, 0, 0, 0.6);
+  --border-radius: 5px;
+  --orange: hsl(24, 100%, 50%);
+  --distill-blue: hsl(200, 50%, 25%);
+  --blue: #337699;
+  --green: #3db867;
+}
+
 .subgrid {
   grid-column: screen; 
   display: grid; 
@@ -5,6 +16,33 @@
   grid-template-rows: inherit;
   grid-column-gap: inherit;
   grid-row-gap: inherit;
+}
+
+.right-d-figure {
+  float: right;
+  position: relative;
+  left: 11em;
+  margin-left: -11em;
+  width: 450px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 1em;
+}
+
+.interactive-container {
+  background-color: var(--gray-bg);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--border-radius);
+  /* border-bottom: 1px solid hsla(0, 0%, 0%, 0.1); */
+  padding: 1em 1.5em;
+  margin-bottom: 1em;
+}
+
+@media (max-width: 768px) {
+  .interactive-container {
+    border-radius: 0;
+    padding: 1em;
+  }
 }
 
 d-figure.base-grid {
@@ -130,11 +168,11 @@ d-figure.fullscreen{
 svg {
   width: 100%;
   height: 100%;
-  background-color: #D3D3D3	;
+  /* background-color: #D3D3D3	; */
 }
 
 .var_node {
-  stroke: red;
+  stroke: #FF0000;
   fill: white;
 }
 
@@ -153,30 +191,12 @@ svg {
   stroke-dasharray: 2;
 }
 
-.matrix_block {
-  fill: white;
-  stroke: black;
-}
-
-.matrix_text {
-  text-anchor: middle;
-  alignment-baseline: central;
-  font-size: 70%;
-}
 
 .node_text {
   user-select: none;
   font-size: 12px;
   text-anchor: middle;
 }
-
-.underlined_text {
-  user-select: none;
-  font-size: 12px;
-  text-anchor: middle;
-  text-decoration: underline #000 dotted;
-}
-
 
 .svg_text {
   user-select: none;
@@ -218,7 +238,7 @@ svg {
 }
 
 button {
-  width: 100px;
+  width: fit-content;
   border: none;
   background-color: white;
   padding: 5px 5px;

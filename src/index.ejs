@@ -103,234 +103,100 @@
     <h3 id="factor_graphs">Factor Graphs </h3>
 
     <p>
-      Factor graphs are bipartite graphical models that consist of variable and factor nodes and are commonly used to represent probability distributions. They capture the factorisation of the distribution by creating nodes for random variables and nodes for the probabilistic constraints between subsets the variables which are the factors that make up the joint distribution. A simple example of a factor graph is shown in the Figure below.
+      <d-figure class="right-d-figure" id="factor_graph"></d-figure>
+
+      Graphical models are useful diagrams that visually represent the conditional independence structure in probability distributions. 
+      The Hammersley-Clifford theorem tells us that any positive distribution that can be represented by an undirected graph can also be written as a product of factors, one per clique. 
+      This motivates factor graphs which are graphical models with two types of node: circles for variables and squares for factors with edges connecting each factor to the variables it depends on. 
+      In this way, factor graphs show both the conditional independence structure (the lack of an edge means conditional independence) and the factorisation of the distribution. 
+      An example of simple factor graph is shown on the right.
     </p>
 
-
     <p>
-      In probabilistic inference, factor graphs are a useful tool for visualising the structure of the posterior density. 
-      By Bayes rule <d-math>P(x|z) = \frac{P(z|x) P(x)}{P(z)}</d-math>, the posterior density is proportional to the product of the prior on the variables and the likelihood of the observations given the variables.
+      In probabilistic inference, we often represent the posterior density $P(x|z) = \frac{P(z|x) P(x)}{P(z)}$ as a factor graph. 
+      The factors are either likelihoods of an observation given the variables or priors over the variables.
       Due to the central limit theorem and principle of maximum entropy 
-      <d-footnote>If we know the first two moments of the measurement distribution, by the principle of maximum entropy, a Gaussian is the best choice to model the distribution as it does not assume any other information. If we only observe magnitudes, the central limit theorem tells us that the distribution does often follow the Gaussian functional form. \cite{Jaynes} (Give examples in science when we measure first two moments i.e. MSE and when we measure only magnitude e.g. robotics.) </d-footnote>, 
-      measurement likelihood distributions and prior distributions are ubiquitously modelled as Gaussians with great practical success. Under this assumption, likelihood factors have the form: 
+      <d-footnote>
+        If we know the first two moments of the measurement distribution, by the principle of maximum entropy, a Gaussian is the best choice to model the distribution as it does not assume any other information. 
+        If we only observe magnitudes, the central limit theorem tells us that the distribution does often follow the Gaussian functional form. (cite Jaynes )
+        (Give examples in science when we measure first two moments i.e. MSE and when we measure only magnitude e.g. robotics.) 
+      </d-footnote>,
+      Gaussians are ubiquitously used to model prior and likelihood distributions with great practical success. 
+      If all factors are Gaussians, as the distribution family is closed under multiplication, the joint probability distribution is also a Gaussian.
     </p>
 
-    <d-math block="">
-      P(z|x) \propto \exp( - \frac{1}{2} (h(x) - z)^\top \Sigma_m (h(x)-z))
-      ~,
-    </d-math>
+    <h3 id="gaussian_operations">Multivariate Gaussians</h2>
 
     <p>
-      where <d-math>h(x)</d-math> is the generative model or measurement function and \Sigma_m captures the measurement noise model.
-      For the remainder of the article we will focus on Gaussian factor graphs in which all factors and therefore the joint density are Gaussian distributions.
+      There are two common parameterisation of multivariate Gaussian distributions: the 
+      <i>moments form</i>
+      <d-footnote>It is called the moments form as it is parameterised by the first moment and second central moments of the distribution.</d-footnote> 
+      and the <i>canonical form</i>. 
     </p>
 
-    <h3 id="gaussian_operations">Operations on Multivariate Gaussians </h2>
+    <d-figure id="gaussian_equations" ></d-figure>
 
     <p>
-      Multivariate Gaussian distributions are commonly represented in the moments form: 
+
+      When representing posterior distributions which are multivariate Gaussians we usually use the canonical form because the precision matrix describes direct associations between variables.
+      If <d-math>x_i</d-math> and <d-math>x_j</d-math> are conditionally independent
+      <d-footnote>
+        Conditional independence mathematically means: <d-math>\Lambda_{i,j} = 0 \;\; \Longleftrightarrow \;\; P(x_i, x_j | X_{-ij}) = P(x_i | X_{-ij}) P(x_j | X_{-ij}) \;\; \Longleftrightarrow \;\; x_i \bot x_j | X_{-ij}</d-math>
+      </d-footnote>
+      then entry $i,j$ in the precision matrix is zero and there is no factor that directly connects <d-math>x_i</d-math> and <d-math>x_j</d-math> in the graph. 
+      The sparsity in the precision matrix captures the conditional independence structure of the system, while the covariance matrix describes induced correlations between variables and is dense as long as the graph is only single connected component. 
+      The canonical form also has the advantage that it can represent unconstrained distributions. 
+      These properties can be explored in the interactive figure below. 
     </p>
 
-    <d-math block="">
-      P(x) = \frac{1}{\sqrt{(2 \pi)^k |\Sigma_n|}} \exp{(-\frac{1}{2} (x - \mu)^\top \Sigma^{-1} (x - \mu))}
-    </d-math>
+    <d-figure id="gaussian_gm" class="subgrid"></d-figure>
 
     <p>
-      which is parameterised by the mean vector $\mu$ and covariance matrix $\Sigma$. Expanding the quadratic term in the exponent, yields the canonical form:
+      Different transformations are more easily carried out in different forms. 
+      Taking the product of two Gaussians and conditioning are cheap in the canonical form and expensive in the moments form whereas the opposite is true for marginalisation
+      <d-footnote>
+        Note that the Gaussian distribution family is closed under marginalisation and conditioning while the product of two Gaussians in general yields an un-normalised Gaussian.
+      </d-footnote>.
     </p>
 
-    <d-math block="">
-      P(x) \propto \exp{(-\frac{1}{2} x^\top \Lambda x + \eta^\top x)}
-    </d-math>
+
+    <h3 id="from PI to LA">From Probabilistic Inference to Linear Algebra </h2>
 
     <p>
-      which is parameterised by the information vector <d-math>\eta = \Sigma^{-1} \mu</d-math> and precision matrix <d-math>\Lambda = \Sigma^{-1}</d-math>. 
+      In probabilistic inference we would like to find the variable configuration that maximises the posterior &#8212; this occurs at the mode of the posterior distribution and the process is often called <i>maximum a posteriori</i> (MAP) estimation. 
+      For Gaussian posteriors, we see from the following equations that MAP estimation is equivalent to least squares optimisation and solving a linear system <d-math>Ax = b</d-math>.
+    </p>
+
+    <d-figure id="probinf_eqns"></d-figure>
+
+    <p>
+      Noticing that the Gaussian mean can be written as <d-math>\mu = \Lambda^{-1} \eta</d-math>, we see that <d-math>x_{\text{\tiny MAP}}</d-math> is equal to the mean of the joint posterior or marginal means and that there is another equivalence between MAP estimation and converting from the canonical form to the moments form.
     </p>
 
     <p>
-      The canonical form is useful when considering graphical models as the precision matrix describes direct associations between variables. If entry $i,j$ is zero then $x_i$ and $x_j$ are conditionally independent 
-      <d-footnote>Conditional independence means $\Lambda_{i,j} = 0 \;\; \Longleftrightarrow \;\; P(x_i, x_j | X_{-ij}) = P(x_i | X_{-ij}) P(x_j | X_{-ij}) \;\; \Longleftrightarrow \;\; x_i \bot x_j | X_{-ij}$</d-footnote> 
-      and there is no factor $\phi(x_i, x_j)$ that directly connects $x_i$ and $x_j$ in the graph. The precision matrix is therefore often sparse and describes the conditional independence structure. 
-      In contrast, the covariance matrix describes induced correlations between variables and is dense as long as the graph is only single connected component.
-      The interactive figure below helps build intuition for the how the Gaussian parameterisations relate to the the factor graph. When the graph is not anchored, we see that the moments form cannot represent the system as infinite uncertainty can be represented by zero precision but cannot be represented as a covariance. 
-    </p>
-
-    <figure class="l-body">
-      <d-figure id="gaussian_gm"></d-figure>
-      <figcaption>
-        Factor graphs and the Gaussian moments form and canonical forms.
-      </figcaption>
-    </figure>
-
-    <p>
-      Different transformations to Gaussians are more easily carried out in different forms 
-      <d-footnote>Note that the Gaussian distribution family is closed under marginalisation and conditioning while the product of two Gaussians in general yields an un-normalised Gaussian.</d-footnote>. Taking the product of two Gaussians in the canonical form can be easily computed by summing the information vectors and precision matrices while in the moments form it is complicated and involves matrix inversion. This difference makes sense if we consider that taking a product of Gaussians corresponds to adding new factors and hence new direct associations to the graph. Conditioning is also simple in the canonical form while complicated in the moments form, whereas the opposite is true for marginalisation. The following interactive figure illustrates conditioning and marginalisation of a Gaussian and relates it to the factor graph. 
-    </p>
-
-
-    <figure class="l-body">
-      <d-figure id="marg_cond"></d-figure>
-      <figcaption>
-        Marginalising and conditioning Gaussians.
-      </figcaption>
-    </figure>
-
-    <h3 id="pi_to_la">From Probabilistic Inference to Linear Algebra </h2>
-
-    <p>Probabilistic inference is the task of computing properties of the posterior distribution. Typically, we would like to find the variable configuration that maximises the joint posterior over all variables. This is known as the mode or MAP and for Gaussian posteriors is equal to the joint mean and marginal means. We would also like to know about the confidence around the MAP for each variable which is described by the marginal variances or the diagonal of the joint covariance matrix. </p>
-    <p>To restate the problem of probabilistic inference, we would like to go from a set of low-dimensional Gaussian factors to the marginal mean and covariance for each variable. The factors are low-dimensional Gaussians as they represents local interactions and so can cheaply be converted between the moment and canonical form. One expensive way to reach our goal would be to take the product of all factors one by one in the covariance form and then read off the marginal distributions. Instead it is computationally cheaper to form the full posterior distribution in the canonical form by adding the information vectors and precision matrices from all factors and then compute the MAP and marginal covariances from this joint canonical form Gaussian. </p>
-
-    <p>Finding the MAP from the canonical form is equivalent to both converting to the moments form and solving a linear system of equations:</p>
-    
-
-
-    <d-math block="">
-      \max_x P(x) = \max_x \: \exp(-\frac{1}{2} x^\top \Lambda x + \eta^\top x)
-    </d-math>
-
-    <d-math block="">
-      = \min_x \: \frac{1}{2} x^\top \Lambda x - \eta^\top x = \min_x \: \frac{1}{2}(x - \mu)^\top \Sigma^{-1} (x - \mu)
-    </d-math>
-
-    <d-math block="">
-      \frac{\partial}{\partial x} (\frac{1}{2} x^\top \Lambda x - \eta^\top x) = 0 \longrightarrow \Lambda x = \eta \longrightarrow x = \Lambda^{-1} \eta
-    </d-math>
-
-    <p>This demonstrates the equivalence of the problems: 1) MAP inference with a canonical form Gaussian posterior, 2) converting from canonical to covariance form, 3) linear least squares (where <d-math>Ax=b</d-math> is know as the normal equations) and 4) solving linear system of equations.
+      Ideally, we would also like to know about the confidence around the MAP estimate for each variable.
+      This is described by the marginal variances or the diagonal elements of the joint covariance matrix <d-math>\Sigma = \Lambda^{-1}</d-math>. 
+      When directly computing the MAP estimate as <d-math>x_{\text{\tiny MAP}} = \Lambda^{-1} \eta</d-math>, we also compute the marginal variances by inverting <d-math>\Lambda</d-math>.
+      An alternative to directly solving the linear system by matrix inversion is to use an iterative algorithm that converges to the solution of <d-math>Ax = b</d-math> over many steps with potentially lower memory and computational costs. Gaussian Belief Propagation is such an iterative algorithm that estimates the marginal distributions, therefore computing both the MAP estimate (the marginal means) and the confidence in the estimate (the marginal variance).
     </p>
 
     <h3 id="gbp_algorithm">The Gaussian Belief Propagation Algorithm </h2>
 
     <p>
-      Belief Propagation is a probabilistic inference algorithm that computes the per-node marginal distributions from the joint distribution by iterative message passing on the factor graph. BP alternates between factor-to-variable message passing and variable-to-factor message passing described by the following equations.
+      As just described, Belief Propagation is a probabilistic inference algorithm that computes the per-node marginal distributions from the joint distribution.
+      It does so by iterative message passing on the factor graph, alternating between factor-to-variable and variable-to-factor message passing.
+      The algorithm is fully described 2 types of message passing functions and one function to aggregate incoming messages at a variable node into the belief which estimates the marginal distribution. 
     </p>
 
-    <!-- <figure class="l-body">
-      <d-figure id="gbp_equations"></d-figure>
-    </figure> -->
-
-    <figure class="eq-grid">
-
-      <div style="grid-row: 1; grid-column: 1;">
-        <d-math> ~~~~~\mu_{f_j \rightarrow x_i} </d-math>
-      </div>
-      <div style="grid-row: 1; grid-column: 2;">
-        <d-math>  ~=~~~ </d-math>
-      </div>
-      <div style="grid-row: 1; grid-column: 3;">
-        <d-math>  ~~~~~~~~\sum_{X_j \setminus x_i} </d-math>
-      </div>
-      <div style="grid-row: 1; grid-column: 4;">
-        <d-math>  ~~~~f(X_j)~~~~~~ </d-math>
-      </div>
-      <div style="grid-row: 1; grid-column: 5;">
-        <d-math> ~~~~\prod_{k, x_k \in n(f_j) \setminus x_i}~~~ </d-math>
-      </div>
-
-      <div style="grid-row: 1; grid-column: 6;">
-        <d-math> ~~~\mu_{x_k \rightarrow f_j} </d-math>
-      </div>
-
-      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 1 / span 1; "></div>
-      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 3 / span 1; "></div>
-      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 4 / span 1; "></div>
-      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 5 / span 1; "></div>
-      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 6 / span 1; "></div>
-  
-      <figcaption style="grid-row: 3; grid-column: 1; max-width:110px;">
-        Factor to variable message
-      </figcaption>
-      <figcaption style="grid-row: 3; grid-column: 3; max-width:145px;">
-        Marginalise over all other adjacent variables
-      </figcaption>
-      <figcaption style="grid-row: 3; grid-column: 4; max-width:100px;">
-        Factor potential
-      </figcaption>
-      <figcaption style="grid-row: 3; grid-column: 5; max-width:130px;">
-        Product over all other adjacent variables
-      </figcaption>
-      <figcaption style="grid-row: 3; grid-column: 6; max-width:85px;">
-        Message from variable <d-math>x_k</d-math><br>
-      </figcaption>
-
-
-      <div style="grid-row: 4; grid-column: 1;">
-        <d-math> ~~~~~\mu_{x_i \rightarrow f_j} </d-math>
-      </div>
-      <div style="grid-row: 4; grid-column: 2;">
-        <d-math>  ~=~~~ </d-math>
-      </div>
-      <div style="grid-row: 4; grid-column: 3;">
-        <d-math> ~~~~\prod_{s, f_s \in n(x_i) \setminus f_j}~~~ </d-math>
-      </div>
-
-      <div style="grid-row: 4; grid-column: 4;">
-        <d-math> ~~~\mu_{f_s \rightarrow x_i} </d-math>
-      </div>
-
-      <div class="expansion-marker-below" style="grid-row: 5; grid-column: 1 / span 1; "></div>
-      <div class="expansion-marker-below" style="grid-row: 5; grid-column: 3 / span 1; "></div>
-      <div class="expansion-marker-below" style="grid-row: 5; grid-column: 4 / span 1; "></div>
-  
-      <figcaption style="grid-row: 6; grid-column: 1; max-width:110px;">
-        Variable to factor message
-      </figcaption>
-      <figcaption style="grid-row: 6; grid-column: 3; max-width:140px;">
-        Product over all other adjacent factors
-      </figcaption>
-      <figcaption style="grid-row: 6; grid-column: 4; max-width:85px;">
-        Message from factor <d-math>f_s</d-math><br>
-      </figcaption>
-
-    </figure>
+    <d-figure id="gbp_equations" class="subgrid"></d-figure>
 
     <p>
-      Note that for continuous variables the summation becomes an integral. The per-node beliefs which estimate the marginals can be calculated at any point using the factor-to-variable messages.
-    </p>
-    
-    <figure class="eq-grid">
-
-      <div style="grid-row: 1; grid-column: 1;">
-        <d-math> ~~~~p(x_i)~~ </d-math>
-      </div>
-      <div style="grid-row: 1; grid-column: 2;">
-        <d-math> ~~~=~ </d-math>
-      </div>
-      <div style="grid-row: 1; grid-column: 3;">
-        <d-math> ~~~\prod_{s \in n(x_i)}~~~~~ </d-math>
-      </div>
-      <div style="grid-row: 1; grid-column: 4;">
-        <d-math> ~~\mu_{f_s \rightarrow x_i} </d-math>
-      </div>
-
-      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 1 / span 1; "></div>
-      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 3 / span 1; "></div>
-      <div class="expansion-marker-below" style="grid-row: 2; grid-column: 4 / span 1; "></div>
-  
-
-      <figcaption style="grid-row: 3; grid-column: 1; max-width:85px;">
-        Marginal distribution
-      </figcaption>
-      <figcaption style="grid-row: 3; grid-column: 3; max-width:100px;">
-        Product over adjacent factors
-      </figcaption>
-      <figcaption style="grid-row: 3; grid-column: 4; max-width:85px;">
-        Message from factor <d-math>f_s</d-math><br>
-      </figcaption>
-
-    </figure>
-
-    <p>
-      When all factors are Gaussians, the messages, beliefs and factors are represented in the canonical form as the most common operation is taking products. The belief estimates the marginals in the canonical form which can then cheaply be converted into the moments form to give the desired marginal means and variances. As GBP proceeds, messages are passed through the graph and the beliefs converge towards the marginal distributions. The following interactive figure presents an overview of GBP for a simple grid alignment problem. 
+      When all factors are Gaussian, the joint posterior, all factors and all beliefs are also Gaussians. 
+      The belief estimates the marginals in the canonical form which can then cheaply be converted into the moments form to give the desired marginal means and variances. As GBP proceeds, messages are passed through the graph and the beliefs converge towards the marginal distributions. 
+      The following interactive figure presents an overview of GBP for a simple grid alignment problem. 
     </p>
 
-    <figure class="l-body">
-      <d-figure id="message_passing"></d-figure>
-      <figcaption>
-        GBP message passing.
-      </figcaption>
-    </figure>
-
+    <d-figure id="message_passing"></d-figure>
 
     <h2 id="beyond">Beyond the standard algorithm </h2>
 

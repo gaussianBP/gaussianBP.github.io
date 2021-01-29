@@ -25,9 +25,9 @@ const GaussianGMComponent = new GaussianGM({ // eslint-disable-line no-unused-va
   target: document.querySelector('#gaussian_gm')
 });
 
-import MargCond from "./diagrams/marg_cond.svelte";
-const MargCondComponent = new MargCond({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#marg_cond')
+import FactorGraph from "./diagrams/factor_graph.svelte";
+const FactorGraphComponent = new FactorGraph({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#factor_graph')
 });
 
 import MessagePassing from "./diagrams/message_passing.svelte";
@@ -40,6 +40,20 @@ const GBPEquationsComponent = new GBPEquations({ // eslint-disable-line no-unuse
   target: document.querySelector('#gbp_equations')
 });
 
+import GaussianEquations from "./diagrams/gaussian_eqns.svelte";
+const GaussianEquationsComponent = new GaussianEquations({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#gaussian_equations')
+});
+
+import PIEquations from "./diagrams/probinf_eqns.svelte";
+const PIEquationsComponent = new PIEquations({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#probinf_eqns')
+});
+
+// import MargCond from "./diagrams/marg_cond.svelte";
+// const MargCondComponent = new MargCond({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#marg_cond')
+// });
 
 // import CustomPlayground from "./diagrams/pose_graph2d.svelte";
 // const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars
