@@ -161,11 +161,11 @@
 
             <defs>
                 <radialGradient id="belief_cov_gradient">
-                    <stop offset="0.35" stop-color="blue" stop-opacity="0.5" />
+                    <stop offset="0.35" stop-color="rgb(0,0,250)" stop-opacity="0.5" />
                     <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
                 </radialGradient>
                 <radialGradient id="marg_cov_gradient">
-                    <stop offset="0.35" stop-color="green" stop-opacity="0.5" />
+                    <stop offset="0.35" stop-color="rgb(0,140,0)" stop-opacity="0.5" />
                     <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
                 </radialGradient>
             </defs>

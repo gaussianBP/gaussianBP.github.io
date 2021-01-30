@@ -10,7 +10,7 @@
     }
 
 	function handleMouseOver(e) {
-        let group = e.path.find((element) => element.classList[0] == "node_g");
+        let group = e.composedPath().find((element) => element.classList[0] == "node_g");
 
         if (group.id == "psi1") {
             psi1 = true;
@@ -24,7 +24,7 @@
 
 	}
 	function handleMouseOut(e) {
-        let group = e.path.find((element) => element.classList[0] == "node_g");
+        let group = e.composedPath().find((element) => element.classList[0] == "node_g");
 
         if (group.id == "psi1") {
             psi1 = false;
@@ -65,7 +65,7 @@
     }
 
     .highlighted > path {
-        fill: var(--blue);
+        fill: var(--full_blue);
         stroke-width: 4;
     }
 

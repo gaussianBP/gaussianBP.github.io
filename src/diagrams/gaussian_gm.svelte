@@ -20,7 +20,7 @@ TODO
   let std_color = "green";
   let meas_color = "blue";
   let state = "Well-defined";
-  let show_help = false;
+  let show_help = true;
 
   // Factor graph
   let active_factors = [true, false, true, true, true];
@@ -304,7 +304,7 @@ TODO
 
   function mousedown_handler(e) {
     node_mousedown = null;
-    node_mousedown = e.path.find((element) => element.classList[0] == "node_g");
+    node_mousedown = e.composedPath().find((element) => element.classList[0] == "node_g");
 
     if (node_mousedown) {
       x0 = e.clientX;
@@ -410,7 +410,8 @@ TODO
     user-select: none;
     font-size: 0.85em;
     text-anchor: middle;
-    text-decoration: underline #000 dotted;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
   }
 
   .matrix_text {
