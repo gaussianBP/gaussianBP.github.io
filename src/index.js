@@ -50,6 +50,11 @@ const PIEquationsComponent = new PIEquations({ // eslint-disable-line no-unused-
   target: document.querySelector('#probinf_eqns')
 });
 
+import AttentionGL from "./diagrams/attentiongl.svelte";
+const AttentionGLComponent = new AttentionGL({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#attentiongl')
+});
+
 // import MargCond from "./diagrams/marg_cond.svelte";
 // const MargCondComponent = new MargCond({ // eslint-disable-line no-unused-vars
 //   target: document.querySelector('#marg_cond')

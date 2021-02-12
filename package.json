@@ -11,7 +11,9 @@
 		"colormap": "^2.3.1",
 		"d3": "^5.15.1",
 		"ml-matrix": "^6.4.1",
-		"random": "^2.2.0"
+		"random": "^2.2.0",
+		"twgl-base.js": "^4.18.0",
+		"twgl.js": "^4.18.0"
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.8.3",
