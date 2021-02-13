@@ -297,9 +297,8 @@ TODO
 
     const src = "./images/glasses2.png";
 
-    let w, h;  // Image dimensions
-    const scaling = 2;
-    const width=600, height=600;  // Canvas size
+    const canvas_width=600, canvas_height=600;  // Canvas size
+    let img;
 
     let canvas, gl;
     let mouse = { x:0., y:0. };  // Mouse position in canvas coordinates
@@ -311,7 +310,7 @@ TODO
     const prior_robust_thresh = 1./255.;
     const smooth_robust_thresh = 2./255.;
 
-    let radius_pix = 20;  // Radius of GBP around mouse in pixels
+    let radius_pix = 50;  // Radius of GBP around mouse in pixels
 
     let progs;
 
@@ -325,13 +324,17 @@ TODO
     let gbp_on = false;
     let clicked = false;
 
-    let attention_on = false;
+    let attention_on = true;
 
     let iter = 0;
     let iters_per_sec = 10;
     let lastIterTime = 0;
 
-
+	let imgs = [
+		{ id: 1, text: "glasses 150x150", src: "./images/glasses1.png"},
+		{ id: 2, text: "glasses 300x300", src: "./images/glasses2.png"},
+	];
+    let selected_img = imgs[1];
 
     onMount(() => {
 
@@ -350,39 +353,35 @@ TODO
         // Has 6 elements for drawing two traingles over unit quad from [-1,1] in 2D
         quadBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);  
 
-        // we're only using 1 texture so just make and bind it now
-        original_img_tex = twgl.createTexture(
-            gl, 
-            {
-                src: src, 
-                minMag: gl.NEAREST,  // No interpolation, show pixels
-            }, 
-            function(err, original_img_tex, img) {
-                startRendering(img);  // wait for the image to load because we need to know its size
-            }
-        );
+
+        for (let i=0; i < imgs.length; ++i) {
+
+            const img = new Image();
+            img.onload = function() {
+                imgs[i].img = img;
+                imgs[i].width = img.width;
+                imgs[i].height = img.height;
+
+                imgs[i].tex = twgl.createTexture(
+                    gl, {src: imgs[i].src, minMag: gl.NEAREST}, 
+                    function(err) {
+                        if (imgs[i].id == selected_img.id) {
+                            startRendering(); 
+                        }
+                    }
+                );
+            };
+            img.src=imgs[i].src;
+        }
+
 
     });
 
-    function startRendering(img) {
+    function startRendering() {
 
-        w = img.width, h = img.height;
-
-        originalImgBuf = createTensor(w, h, 1);
-        originalImgBuf.tex = original_img_tex;
-        beliefBuf = createTensor(w, h, 1);
-        let messageBuf1 = createTensor(w, h, 5);
-        let messageBuf2 = createTensor(w, h, 5);
-        messageBufs.push(messageBuf1);
-        messageBufs.push(messageBuf2);
+        init();
 
         requestAnimationFrame(render);
- 
-        // Read priors from image and update belief using priors
-        runLayer('init_priors_from_img', messageBufs[0], {u_input: originalImgBuf, u_priorCov: 1/priorLam});  
-        update_belief(0);
-        draw();
-
 
         function render(time) {
             time *= 0.001;  // millisecondss to seconds
@@ -407,6 +406,19 @@ TODO
         }
     }
     
+    function init() {
+        iter = 0;
+        const w = selected_img.width, h = selected_img.height;
+        originalImgBuf = createTensor(w, h, 1);
+        originalImgBuf.tex = selected_img.tex;
+        beliefBuf = createTensor(w, h, 1);
+        messageBufs = [createTensor(w, h, 5), createTensor(w, h, 5)]
+
+        // Read priors from image and update belief using priors
+        runLayer('init_priors_from_img', messageBufs[0], {u_input: originalImgBuf, u_priorCov: 1/priorLam});  
+        update_belief(0);
+        draw();
+    }
 
     function createTensor(w, h, channels) {
         // Texture may need to be larger than wxh, then make grid larger and access grid carefully
@@ -500,7 +512,7 @@ TODO
         var inputs = {
             u_mouse: canvasToPixelCoords(mouse.x, gl.canvas.height - mouse.y),  // in pixel coordinates
             u_radius: radius_pix,  // radius in pixels,
-            u_scaling: scaling,
+            u_scaling: canvas_width / selected_img.width,
             u_color: [1.0, 0., 0.2, 0.9],
         };
         runLayer('paint', {}, inputs);
@@ -509,14 +521,14 @@ TODO
     // Utility functions -----------------------------------------------------
 
     function canvasToPixelCoords(x_canvas, y_canvas) {
+        const scaling = canvas_width / selected_img.width;
         const x = Math.floor(x_canvas / scaling);
         const y = Math.floor(y_canvas / scaling);
         return [x, y];
     }
 
     function benchmark() {
-        console.log(Date.now());
-        const stepN = 10000;
+        const stepN = 400;
         const start = Date.now();
         for (let i = 0; i < stepN; ++i) 
             sync_iter(true);
@@ -551,10 +563,20 @@ TODO
 
     // Event handler functions ------------------------------------------------------
 
+    function reset(e) {
+        init();
+    }
+
     function mousemove_handler(e) {
         const rect = e.currentTarget.getBoundingClientRect();
-        mouse.x = Math.min(Math.max(e.clientX - rect.x, 0), width);
-        mouse.y = Math.min(Math.max(e.clientY - rect.y, 0), height);
+        mouse.x = Math.min(Math.max(e.clientX - rect.x, 0), canvas_width);
+        mouse.y = Math.min(Math.max(e.clientY - rect.y, 0), canvas_height);
+    }
+
+    function mouseover_toggleGBP(e) {
+        if (attention_on) {
+            toggleGBP(e);
+        }
     }
 
     function toggleGBP(e) {
@@ -562,7 +584,12 @@ TODO
     }
 
 	function handleChangeMP(e){
-		attention_on = e.detail.value;
+        attention_on = e.detail.value;
+        if (!attention_on) {
+            gbp_on = true;
+        } else {
+            gbp_on = false;
+        }
 	}
 
 	function handleChangeRobust(e){
@@ -578,6 +605,20 @@ TODO
 
 
 <style>
+
+    button {
+        border: none;
+        padding: 0.4em 0.7em;
+        text-align: center;
+        text-decoration: none;
+        font-size: 1em;
+        border: 1px solid;
+        margin-top: 2px;
+        margin-left: 3px;
+        margin-right: 4px;
+        border-radius: var(--border-radius);
+        background-color: var(--gray-bg);
+    }
 
     #glCanvas {
         /* border: 1px solid lightgrey; */
@@ -595,7 +636,7 @@ TODO
         } */
     }
 
-    #controls {
+    /* #controls {
         line-height: 1em;
         display: grid;
         grid-template-columns: 120px auto;
@@ -609,7 +650,7 @@ TODO
         #controls {
             grid-template-rows: auto 60px 80px 100px 1fr;
         }
-    }
+    } */
 
     #slider {
         width: 50%;
@@ -620,20 +661,50 @@ TODO
         float: left;
     }
 
+    .gbp-button {
+        width: fit-content;
+        height: fit-content;
+        float: left;
+        outline: none;
+        border: none;
+    }
+
 </style>
 
 
 <figure class="subgrid" id="figure">
     <div id="wrapper" class="interactive-container">
 
-        <canvas id="glCanvas" width="{width}" height="{height}" on:mouseenter={toggleGBP} 
-            on:mouseleave={toggleGBP} on:mousemove={mousemove_handler} on:click={handle_click}></canvas>
+        <canvas id="glCanvas" width="{canvas_width}" height="{canvas_height}" on:mouseenter={mouseover_toggleGBP} 
+            on:mouseleave={mouseover_toggleGBP} on:mousemove={mousemove_handler} on:click={handle_click}></canvas>
         
         <div id="controls1">
 
+            <div>
+            	<select bind:value={selected_img} on:change={reset}>
+                    {#each imgs as im}
+                        <option value={im}>
+                            {im.text}
+                        </option>
+                    {/each}
+                </select>
+            </div>
+
             <div id="switches">
+                {#if gbp_on || attention_on}
+                    <button class="gbp-button" class:not_pressable={attention_on} on:click={toggleGBP}>
+                    <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
+                    </button>
+                {:else}
+                    <button class="gbp-button" class:not_pressable={attention_on} on:click={toggleGBP}>
+                    <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
+                    </button>
+                {/if}
+
+
                 <ButtonGroup options={[{ id: 0, name: 'All-to-all' }, { id: 1, name: 'Attention' }]} labelTitle="" selected={attention_on} on:change={handleChangeMP}/>
                 <ButtonGroup options={[{ id: 0, name: 'Squared' }, { id: 1, name: 'Huber' }]} labelTitle="" selected={robust} on:change={handleChangeRobust}/>
+                <button type="button" id="reset-button" on:click={reset}>Reset</button>
             </div>
 
             <div id="sliders">
@@ -650,7 +721,7 @@ TODO
 
                 <br>
                 <span>Attention radius (pixels) {radius_pix}</span>
-                <input id="slider" type="range" min="{1}" max="{w/3}" bind:value={radius_pix} step="1"/>
+                <input id="slider" type="range" min="{1}" max="{200}" bind:value={radius_pix} step="1"/>
             </div>
 
         </div>
