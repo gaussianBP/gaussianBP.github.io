@@ -326,13 +326,23 @@ TODO
 
     let attention_on = true;
 
-    let iter = 0;
-    let iters_per_sec = 10;
-    let lastIterTime = 0;
+    let totalIters = 0;
+    let speed_labels = ['1/60 x', '1/10 x', '1/2 x', '1x', '2x', '4x', 'max'];
+    let speed = 0;
+    let lastDrawTime = 0;
+    let stepsPerFrame = 1;
+    let frameCount = 0;
+    let ipsStartTime;
+    let ipsCount = 0;
+    let lastIpsCount = '';
+
+
 
 	let imgs = [
-		{ id: 1, text: "glasses 150x150", src: "./images/glasses1.png"},
-		{ id: 2, text: "glasses 300x300", src: "./images/glasses2.png"},
+		{ id: 1, text: "Glasses 150x150", src: "./images/glasses1.png"},
+		{ id: 2, text: "Glasses 300x300", src: "./images/glasses2.png"},
+		{ id: 3, text: "Parrots 600x600", src: "./images/parrots_600.jpg"},
+		// { id: 3, text: "Parrots 1200x1200", src: "./images/parrots_1200.jpg"},
 	];
     let selected_img = imgs[1];
 
@@ -384,30 +394,35 @@ TODO
         requestAnimationFrame(render);
 
         function render(time) {
-            time *= 0.001;  // millisecondss to seconds
-            lastTime = time;
+            if (gbp_on) {
+                if (speed <= 0) {  // slow down by skipping iterations
+                    const skip = [1, 2, 10, 60][-speed];
+                    stepsPerFrame = (frameCount % skip) ? 0 : 1;
+                    frameCount += 1;
+                } else if (speed > 0) { // speed up by making more steps per frame
+                    const interval = time - lastDrawTime;
+                    console.log(interval)
+                    stepsPerFrame += interval<20.0 ? 5 : -5;
+                    stepsPerFrame = Math.max(1, stepsPerFrame);
+                    stepsPerFrame = Math.min(stepsPerFrame, [1, 2, 4, Infinity][speed])
+                }
+                for (let i=0; i<stepsPerFrame; ++i) {
+                    sync_iter(!attention_on);
+                }
+
+
+            }
+            lastDrawTime = time;
 
             twgl.bindFramebufferInfo(gl);
-
             draw();
-
-            if (gbp_on) {
-                const interval = time - lastIterTime;
-                if (interval > 1 / iters_per_sec) {
-                    sync_iter(!attention_on);
-                    lastIterTime = time;
-                }
-                if (attention_on) {
-                    paintCircle();
-                }
-            }
-
+            if (attention_on && gbp_on) { paintCircle(); }
             requestAnimationFrame(render);
         }
     }
     
     function init() {
-        iter = 0;
+        totalIters = 0;
         const w = selected_img.width, h = selected_img.height;
         originalImgBuf = createTensor(w, h, 1);
         originalImgBuf.tex = selected_img.tex;
@@ -502,10 +517,22 @@ TODO
     }
 
     function sync_iter(all = false) {
-        const old_mess_buff_ix = iter % 2, new_mess_buff_ix = (iter + 1) % 2;
+        const old_mess_buff_ix = totalIters % 2, new_mess_buff_ix = (totalIters + 1) % 2;
         compute_messages(all, old_mess_buff_ix, new_mess_buff_ix);
         update_belief(new_mess_buff_ix);
-        iter += 1;
+        totalIters += 1;
+
+        ipsCount += 1;
+        let time = Date.now();
+        if (!ipsStartTime)
+            ipsStartTime = time;
+        const ipsInterval = 1000;
+        if (time-ipsStartTime > ipsInterval) {
+            time = Date.now();
+            lastIpsCount = (ipsCount * 1000/(time-ipsStartTime)).toFixed(1);
+            ipsStartTime = time;
+            ipsCount = 0;
+        }
     }
 
     function paintCircle() {
@@ -583,6 +610,12 @@ TODO
         gbp_on = !gbp_on;
     }
 
+    function switchGBP(e) {
+        if (!attention_on) {
+            toggleGBP();
+        }
+    }
+
 	function handleChangeMP(e){
         attention_on = e.detail.value;
         if (!attention_on) {
@@ -653,7 +686,7 @@ TODO
     } */
 
     #slider {
-        width: 50%;
+        width: 30%;
     }
 
     #switches {
@@ -666,7 +699,15 @@ TODO
         height: fit-content;
         float: left;
         outline: none;
-        border: none;
+        border: black;
+    }
+
+    .disabled {
+        opacity: 0.5;
+    }
+
+    #txt {
+        font-size: 12px;
     }
 
 </style>
@@ -692,24 +733,28 @@ TODO
 
             <div id="switches">
                 {#if gbp_on || attention_on}
-                    <button class="gbp-button" class:not_pressable={attention_on} on:click={toggleGBP}>
-                    <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
+                    <button class="gbp-button" class:disabled={attention_on} on:click={switchGBP}>
+                        <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
                     </button>
                 {:else}
-                    <button class="gbp-button" class:not_pressable={attention_on} on:click={toggleGBP}>
-                    <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
+                    <button class="gbp-button" class:disabled={attention_on} on:click={switchGBP}>
+                        <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
                     </button>
                 {/if}
+
+                <button class="gbp-button" style="outline: none;" on:click={reset}>
+                    <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
+                </button>
 
 
                 <ButtonGroup options={[{ id: 0, name: 'All-to-all' }, { id: 1, name: 'Attention' }]} labelTitle="" selected={attention_on} on:change={handleChangeMP}/>
                 <ButtonGroup options={[{ id: 0, name: 'Squared' }, { id: 1, name: 'Huber' }]} labelTitle="" selected={robust} on:change={handleChangeRobust}/>
-                <button type="button" id="reset-button" on:click={reset}>Reset</button>
             </div>
 
             <div id="sliders">
-                <span>Iteration {iter}  Iters / s {iters_per_sec}</span>
-                <input id="slider" type="range" min="0" max="20" bind:value={iters_per_sec} step="1"/>
+                <span>Speed {speed_labels[speed+3]}</span>
+                <span>Iteration {totalIters}  ({lastIpsCount} iters / s) </span>
+                <input id="slider" type="range" min="-3" max="3" bind:value={speed} step="1"/>
 
                 <br>
                 <span>Prior lam {priorLam.toFixed(1)}</span>
