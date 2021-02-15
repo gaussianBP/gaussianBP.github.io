@@ -1,6 +1,9 @@
 <!-- 
 
 TODO
+- diagram showing setup in figma
+- more images for different denoising setups
+- ability to upload your own image?
 
  -->
 
@@ -334,7 +337,7 @@ TODO
     let frameCount = 0;
     let ipsStartTime;
     let ipsCount = 0;
-    let lastIpsCount = '';
+    let lastIpsCount = 0;
 
 
 
@@ -401,7 +404,6 @@ TODO
                     frameCount += 1;
                 } else if (speed > 0) { // speed up by making more steps per frame
                     const interval = time - lastDrawTime;
-                    console.log(interval)
                     stepsPerFrame += interval<20.0 ? 5 : -5;
                     stepsPerFrame = Math.max(1, stepsPerFrame);
                     stepsPerFrame = Math.min(stepsPerFrame, [1, 2, 4, Infinity][speed])
@@ -706,9 +708,15 @@ TODO
         opacity: 0.5;
     }
 
-    #txt {
-        font-size: 12px;
+    .txt {
+        font-size: 14px;
     }
+    #speed {
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+
 
 </style>
 
@@ -752,20 +760,20 @@ TODO
             </div>
 
             <div id="sliders">
-                <span>Speed {speed_labels[speed+3]}</span>
-                <span>Iteration {totalIters}  ({lastIpsCount} iters / s) </span>
+                <span class="txt">Speed: <span id="speed">{speed_labels[speed+3]}</span></span>
+                <span class="txt">Iteration {totalIters}  ({lastIpsCount} iters / s) </span>
                 <input id="slider" type="range" min="-3" max="3" bind:value={speed} step="1"/>
 
                 <br>
-                <span>Prior lam {priorLam.toFixed(1)}</span>
+                <span class="txt">Prior lam {priorLam.toFixed(1)}</span>
                 <input id="slider" type="range" min="{1/0.02**2}" max="{1/0.001**2}" bind:value={priorLam} step="1"/>
 
                 <br>
-                <span>Smoothness lam {smoothLam.toFixed(1)}</span>
+                <span class="txt">Smoothness lam {smoothLam.toFixed(1)}</span>
                 <input id="slider" type="range" min="{1/0.02**2}" max="{1/0.001**2}" bind:value={smoothLam} step="1"/>
 
                 <br>
-                <span>Attention radius (pixels) {radius_pix}</span>
+                <span class="txt">Attention radius (pixels) {radius_pix}</span>
                 <input id="slider" type="range" min="{1}" max="{200}" bind:value={radius_pix} step="1"/>
             </div>
 
