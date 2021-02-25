@@ -385,6 +385,8 @@ TODO
 
     onMount(() => {
         video = document.querySelector("#vid");
+        console.log(video);
+
         canvas = document.querySelector("#glCanvas");
         gl = canvas.getContext("webgl");
 
@@ -479,7 +481,9 @@ TODO
 
         totalIters = 0;
 
-        if (selected_img.id == 0 || selected_img.id == 1) {
+        console.log(video, video.srcObject);
+
+        if (selected_img.id <= 1) {
 
             if (!video.srcObject) {
                 setupVideo();  // messages will be initialised only when video stream has started
@@ -680,8 +684,7 @@ TODO
             init_messages_from_imgbuf();
             video_started = true;
         } catch (ex) {
-            video = null;
-            console.error(ex.message);
+            console.warn(ex.message);
         }
     }
 
