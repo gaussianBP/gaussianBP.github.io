@@ -147,10 +147,10 @@ TODO
 
             void main() {
                 vec2 diff = abs(u_mouse - gl_FragCoord.xy / u_scaling);
-                if (length(diff) >= u_radius + 0.6) {
+                if (length(diff) >= u_radius + 1.5 / u_scaling) {
                     discard;
                 }
-                if (length(diff) <= u_radius - 0.6) {
+                if (length(diff) <= u_radius - 1.5 / u_scaling) {
                     discard;
                 }
                 gl_FragColor = u_color;
@@ -300,6 +300,27 @@ TODO
                 }
             }
         `,
+        update_priors_from_img: `
+            uniform float u_priorCov;
+
+            // Tensor for previous messages also passed, so we can copy across messages and only update priors
+            uniform Tensor u_pmess;
+            uniform sampler2D u_pmess_tex;
+            
+            void main() {
+                vec2 xy = gl_FragCoord.xy;  
+                if (isPriorMess(xy)) {  // If prior pixel
+                    vec2 uv = XYtoUV(u_output, xy);
+                    float mean = grey(texture2D(u_input_tex, uv));  // Comes from image
+                    vec2 prior_mess = vec2(mean, u_priorCov);
+                    gl_FragColor = vec4(prior_mess, mean, 1.);
+                } else {
+                    vec2 uv = gl_FragCoord.xy / (u_output.size * u_output.gridSize);  // Copy across existing message
+                    gl_FragColor = texture2D(u_pmess_tex, uv);
+                }
+            }
+        
+        `,
     }
       
 
@@ -310,6 +331,8 @@ TODO
     let img;
 
     let canvas, gl;
+    let video;
+    const video_width=150, video_height=150;
     let mouse = { x:0., y:0. };  // Mouse position in canvas coordinates
     let original_img_tex;
 
@@ -345,18 +368,23 @@ TODO
     let ipsCount = 0;
     let lastIpsCount = 0;
 
+    const video_fps = 10;
+    let lastFrameTime = 0.;
+    let video_started = false;
 
 
 	let imgs = [
-		{ id: 1, text: "Glasses 150x150", src: "./images/glasses1.png"},
-		{ id: 2, text: "Glasses 300x300", src: "./images/glasses2.png"},
-		{ id: 3, text: "Parrots 600x600", src: "./images/parrots_600.jpg"},
+		{ id: 2, text: "Glasses 150x150", src: "./images/glasses1.png"},
+		{ id: 3, text: "Glasses 300x300", src: "./images/glasses2.png"},
+		{ id: 4, text: "Parrots 600x600", src: "./images/parrots_600.jpg"},
 		// { id: 3, text: "Parrots 1200x1200", src: "./images/parrots_1200.jpg"},
+		{ id: 0, text: "Live from webcam (if available)", width: video_width, height: video_height},
+		{ id: 1, text: "Stil from webcam (if available)", width: video_width, height: video_height},
 	];
     let selected_img = imgs[1];
 
     onMount(() => {
-
+        video = document.querySelector("#vid");
         canvas = document.querySelector("#glCanvas");
         gl = canvas.getContext("webgl");
 
@@ -372,8 +400,7 @@ TODO
         // Has 6 elements for drawing two traingles over unit quad from [-1,1] in 2D
         quadBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);  
 
-
-        for (let i=0; i < imgs.length; ++i) {
+        for (let i=0; i < imgs.length - 2; ++i) {
 
             const img = new Image();
             img.onload = function() {
@@ -393,7 +420,6 @@ TODO
             img.src=imgs[i].src;
         }
 
-
     });
 
     function startRendering() {
@@ -403,7 +429,23 @@ TODO
         requestAnimationFrame(render);
 
         function render(time) {
-            if (gbp_on) {
+
+            if (selected_img.id == 0 && time - lastFrameTime > 1000 / video_fps && video.srcObject && video_started) {  // Update priors with latest frame from video
+                lastFrameTime = time;
+                twgl.setTextureFromElement(gl, originalImgBuf.tex, video, {minMag: gl.NEAREST, level: 0});
+                const old_mess_buff_ix = totalIters % 2, new_mess_buff_ix = (totalIters + 1) % 2;
+                const inputs = {u_input: originalImgBuf, u_pmess: messageBufs[old_mess_buff_ix], u_priorCov: 1/priorLam}
+                runLayer('update_priors_from_img', messageBufs[new_mess_buff_ix], inputs);  
+                update_belief(new_mess_buff_ix);
+                totalIters += 1;
+            }
+
+            let play = true
+            if (selected_img.id <= 1 && !video_started) {
+                play = false;
+            }
+
+            if (gbp_on && play) {
                 if (speed <= 0) {  // slow down by skipping iterations
                     const skip = [1, 2, 10, 60][-speed];
                     stepsPerFrame = (frameCount % skip) ? 0 : 1;
@@ -417,8 +459,6 @@ TODO
                 for (let i=0; i<stepsPerFrame; ++i) {
                     sync_iter(!attention_on);
                 }
-
-
             }
             lastDrawTime = time;
 
@@ -430,17 +470,29 @@ TODO
     }
     
     function init() {
-        totalIters = 0;
         const w = selected_img.width, h = selected_img.height;
+        radius_pix = selected_img.width / 5;
+
         originalImgBuf = createTensor(w, h, 1);
-        originalImgBuf.tex = selected_img.tex;
         beliefBuf = createTensor(w, h, 1);
         messageBufs = [createTensor(w, h, 5), createTensor(w, h, 5)]
 
-        // Read priors from image and update belief using priors
-        runLayer('init_priors_from_img', messageBufs[0], {u_input: originalImgBuf, u_priorCov: 1/priorLam});  
-        update_belief(0);
-        draw();
+        totalIters = 0;
+
+        if (selected_img.id == 0 || selected_img.id == 1) {
+
+            if (!video.srcObject) {
+                setupVideo();  // messages will be initialised only when video stream has started
+            } else {
+                twgl.setTextureFromElement(gl, originalImgBuf.tex, video, {minMag: gl.NEAREST, level: 0});
+                init_messages_from_imgbuf();
+            }
+
+        } else {
+            if (video.srcObject) {  stopVideo();  }  // Turn of video stream if using image 
+            originalImgBuf.tex = selected_img.tex;
+            init_messages_from_imgbuf();
+        }
     }
 
     function createTensor(w, h, channels) {
@@ -542,6 +594,12 @@ TODO
             ipsCount = 0;
         }
     }
+    
+    function init_messages_from_imgbuf() {
+        runLayer('init_priors_from_img', messageBufs[0], {u_input: originalImgBuf, u_priorCov: 1/priorLam});  
+        update_belief(0);
+        draw();
+    }
 
     function paintCircle() {
         var inputs = {
@@ -596,6 +654,44 @@ TODO
         link.delete;
     }
 
+    function accessWebcam(video) {
+        const promise = new Promise((resolve, reject) => {
+            const mediaConstraints = { audio: false, video: { width: video_width, height: video_height, brightness: {ideal: 2} } };
+            navigator.mediaDevices.getUserMedia(mediaConstraints).then(
+                mediaStream => {
+                    video.srcObject = mediaStream;
+                    video.setAttribute('playsinline', true);
+                    video.onloadedmetadata = (e) => {
+                        video.play();
+                    }
+                    video.onplaying = (e) => {
+                        resolve(video);
+                    }
+                }).catch(err => {
+                    reject(err);
+                });
+        });
+        return promise;
+    }
+
+    async function setupVideo() {
+        try {
+            await accessWebcam(video);
+            init_messages_from_imgbuf();
+            video_started = true;
+        } catch (ex) {
+            video = null;
+            console.error(ex.message);
+        }
+    }
+
+    function stopVideo() {
+        const mediaStream = video.srcObject;  // Through the MediaStream, you can get the MediaStreamTracks with getTracks():
+        mediaStream.getTracks().forEach(track => track.stop());
+        video_started = false;
+        video.srcObject = null;
+    }
+
     // Event handler functions ------------------------------------------------------
 
     function reset(e) {
@@ -639,7 +735,7 @@ TODO
 
     function handle_click(e) {
         // console.log(benchmark());
-        download_canvas('res');
+        // download_canvas('res');
         clicked = true;
     }
 
@@ -723,13 +819,17 @@ TODO
         font-weight: bold;
     }
 
-
+    #vid {
+        display: none;
+    }
 
 </style>
 
 
 <figure class="subgrid" id="figure">
     <div id="wrapper" class="interactive-container">
+
+        <video id="vid"></video>
 
         <canvas id="glCanvas" width="{canvas_width}" height="{canvas_height}" on:mouseenter={mouseover_toggleGBP} 
             on:mouseleave={mouseover_toggleGBP} on:mousemove={mousemove_handler} on:click={handle_click}></canvas>
