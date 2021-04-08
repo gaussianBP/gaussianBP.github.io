@@ -23,120 +23,159 @@
   </d-front-matter>
 
   <d-title>
-    <h1>Gaussian Belief Propagation for Spatial AI</h1>
-    <p>A visual introduction to Gaussian Belief Propagation for realtime computer vision. </p>
+    <h1>A visual introduction to Gaussian Belief Propagation</h1>
+    <p>A Framework for Distributed Inference with Emerging Hardware. </p>
   </d-title>
 
 
 
   <d-article>
 
-    <!-- <d-contents>
+    <d-contents>
       <nav class="l-text toc figcaption">
         <h3>Contents</h3>
-        <div><a href="#spatialAI">Spatial AI</a></div>
-        <div><a href="#hardware">Hardware</a></div>
-        <div><a href="#related">Related Work</a></div>
-        <div><a href="#theory">A brief Theoretical Background</a></div>
-        <div><a href="#simulations">Simulated Geometric Estimation Problems</a></div>
+        <div><a href="#introduction">Introduction</a></div>
         <ul>
-          <li><a href="#1dsurface">1D Surface Fitting</a></li>
-          <li><a href="#2drobot">2D Robot Simulation</a></li>
+          <li><a href="#the-need-for-probabilistic-inference">The need for probabilistic inference </a></li>
+          <li><a href="#gaussian-belief-propagation">Gaussian Belief Propagation</a></li>
         </ul>
+        <div><a href="#technical-introduction">Technical Introduction</a></div>
+        <ul>
+          <li><a href="#factor-graphs">Factor Graphs</a></li>
+          <li><a href="#multivariate-gaussians">Multivariate Gaussians</a></li>
+          <li><a href="#from-probabilistic-inference-to-linear-algebra">From Probabilistic Inference to Linear Algebra</a></li>
+          <li><a href="#the-gaussian-belief-propagation-algorithm">The Gaussian Belief Propagation Algorithm</a></li>
+        </ul>
+        <div><a href="#beyond-the-standard-algorithm">Beyond the standard algorithm</a></div>
+        <ul>
+          <li><a href="#non-linear-factors">Non-linear factors</a></li>
+          <li><a href="#local-updates-and-scheduling">Local updates and Scheduling</a></li>
+          <li><a href="#multiscale-learning">Multiscale Learning</a></li>
+        </ul>
+        <div><a href="#related-work">Related Work</a></div>
         <div><a href="#discussion">Discussion</a></div>
       </nav>
-    </d-contents> -->
+    </d-contents>
 
+    <g>
 
     <h2 id="introduction">Introduction </h2>
 
     <p>
-      The "Bitter Lesson" of machine learning (ML) research has been that "general methods that leverage computation are ultimately the most effective, and by a large margin" (ref. Sutton). At the time of writing, the state-of-the-art across most ML benchmarks is dominated by GPU driven deep learning (ref).
+      The "Bitter Lesson" of machine learning (ML) research has been that "general methods that leverage computation are ultimately the most effective, and by a large margin" <d-cite key="Sutton:BitterLesson2019"></d-cite>. At the time of writing, the state-of-the-art across most ML benchmarks is dominated by GPU driven deep learning.
     </p>
+    <p>
+      The effectiveness of the DL/GPU approach stems largely from the close structural coupling of hardware, algorithm and the underlying task. 
+      Convolutional Neural Networks (CNN; <d-cite key="LeCun:etal:IEEE1998"></d-cite>) operate by learning translation invariant spatial filters, which are multiplied over small patches of adjacent pixels, exploiting the fact that correlations in natural images are strongly local. 
+      This local structure (also present in general matrix-multiply driven DL) aligns strongly with the structure of GPUs and has meant that the scale and performance of DL has grown with developments in multicore compute.    
+    </p>
+    <p>
+      As ML is increasingly embedded into the physical world, power consumption and communication costs both within and across systems will become limiting factors. 
+      Both can be minimized by co-developing algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
+      Towards this goal, Sutter identifies the emergence of a "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, and distributed compute.
+    </p>
+    <p>
+      To operate in the real world, ML systems of the future will also need to be highly inhomogeneous in their representation. 
+      General purpose perception systems will represent the world not just at the level of sequences of regular image arrays, but as graphs of semantic objects with continuously changing relationships, growing or contracting in size as new data is added or task demands fluctuate.
+    </p>
+    <p>
+      Stated simply, so far, the inductive biases present in DL, which themselves reflect the task structure, have been well mirrored in GPU hardware. 
+      However we see a gradual shift in both hardware and the structure of tasks in AI and believe it is time to think carefully about which algorithms can occupy a similar sweet spot against the backdrop of increasingly heterogeneous compute and representations. 
+    </p>
+    
+    </g>
+    
+    <h3 id="the-need-for-probabilistic-inference">The need for probabilistic inference </h3>
 
     <p>
-      The effectiveness of the DL/GPU approach stems largely from the close structural coupling of hardware, algorithm and the underlying task. AlexNet (ref.) is an illustrative example of this principle; natural images have strong local correlations (ref.), so pixel connectivity can be approximated as sparse. This sparsity structure is translation invariant in regular arrays,
+      We believe that the a core component of future systems will be the ability to represent the world probabilistically. 
+      Systems that can take into account the relative uncertainty of new data are able to more appropriately update their existing beliefs, learn from less data (meaning less computation and lower energy costs; Ref.) and mitigate catastrophic forgetting in continually learning settings (ref.). 
     </p>
+    <p>
+      Probabilistic representations will also be important where interpretability is desired <d-cite key="Ghahramani:Nature2015"></d-cite> and essential in "Spatial AI" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> applications such as autonomous transport and robotics, which need to act safely in the physical world.
+    </p>
+
+    <h3 id="gaussian-belief-propagation">Gaussian Belief Propagation </h3>
 
     <p>
-      An exception to this logic is the success of transformer architectures in domains such as NLP (ref.), where this sparsity structure is not present. But this success comes at a cost - modern deep learning models are increasing in size and trained on similarly scaled hardware, a process which is slow and energy intensive (ref.).
+      To support this "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of highly specialized but interconnected systems, we argue for probabilistic graphical models (PGM) as the root structure. 
+      PGMs have a rich research literature in ML, but have not been successfully scaled in their general undirected (loopy) form (FIG: directed vs. undirected graphs). 
+      However, we believe this will change as hardware <d-cite key="Graphcore"></d-cite> and tasks evolve and deserves more attention by researchers to further accelerate this shift <d-cite key="Hooker:hardware2020"></d-cite> (Fig: Co-ev.).
     </p>
+    <p>
+      In this article, we discuss Gaussian Belief Propagation (GBP) as a strong general purpose algorithmic and representational framework for large scale distributed inference. 
+      GBP is a special case of loopy belief propagation (BP), which operates on a per node basis by purely local message passing. 
+      Inference by GBP, unlike backpropagation, does not require access to a global objective function, making it easily distributable (ref. biological backprop; Fig. ??). 
+      GBP is flexible to changes in graph structure, in that nodes need only to take into account the messages they receive. GBP can also operate asynchronously, without the need for a global clock. 
+      This is especially desirable in large or distributed systems where communication delays become non-negligible relative to clock-speed. 
+    </p>
+    <p>
+      This iterative, asynchronous operation will enable large graphs that are 'always approximately correct', in the sense that local clusters of nodes may be well converged relative to one another, despite misalignment with more distant clusters. This could, for example enable an embodied agent or robot to perform local obstacle avoidance without needing the global graph to have converged. This property is also attractive from an energy consumption perspective; computation can be focused on regions relevant to the current task demand to enable 'just in time' convergence <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>.
+    </p>
+    <p>
+      Unlike general loopy BP, GBP is convergent under well defined conditions <d-cite key="Bickson:PhDThesis:2008"></d-cite>.
+      In this article, we will show that GBP is intimately linked to the essential problem of solving linear systems of equations $Ax = b$ (Section X). 
+      We will also explore how introducing non-linear factors can extend the framework for more flexible representation (Section X), how message scheduling affects convergence (Section X) and how communication overheads can be minimized by adding hierarchical structure (Section X). 
+    </p>
+
+
+    <h2 id="technical-introduction">Technical Introduction </h2>
 
     <p>
-      As ML is increasingly embedded into the physical world, power consumption and communication costs, within and across systems will become limiting factors. Both can be minimized by co-developing algorithm and hardware that minimize "bits x mm" (ref.), by storing data nearer to the location at which it's operated on (ref. Sze).
+      Belief propagation was developed to perform exact inference in probabilistic models with tree-like graphical structure (Pearl, 1988). 
+      Although it will work for models with arbitrary conditional independence structure, including cycles or "loops" <d-cite key="Murphy:etal:1999"></d-cite>, it is most effective when applied to those with non-uniform but sparse dependencies. 
     </p>
+
+    <h3 id="factor-graphs">Factor Graphs </h3>
 
     <p>
-      Like the natural world in which they operate, ML systems of the future will also need to be highly inhomogeneous in their representation. General purpose perception systems will represent the world not just at the level of sequences of regular image arrays, but as semantic objects with continuously changing relationships, growing or contracting in size as new data is added or task demands fluctuate.
+      The Hammersley-Clifford theorem tells us that any positive joint distribution can be represented as a product of factors, one per clique, where a clique is a subset of variables in which each variable is connected to all others. 
+      A node, edge and triangle are examples of 1-,2- and 3-cliques, respectively. 
     </p>
-
-    <h3>The need for probabilistic inference </h3>
-
-    <p>
-      We believe that the second core component of future systems, beyond flexibility, will be the ability to represent the world probabilistically. Systems that can take into account the uncertainty in new data relative to the current world model are able to respond more efficiently and robustly to new data meaning less computation and lower energy costs (ref.), or mitigate catastrophic forgetting in continually learning systems (ref.). 
-    </p>
-
-    <p>
-      Probabilistic representations will also be important where interpretability is desired (ref. Ghahramani) and essential in "Spatial AI" (ref. FM2) applications such as autonomous transport and robotics, which need to act safely in the physical world.
-    </p>
-
-    <h3>Gaussian Belief Propagation </h3>
-
-    <p>To support this "hardware jungle" (ref. Sutter) of highly specialized but interconnected systems, we argue for graph-like representations as the root structure. \hl{By building each system on the same core algorithmic framework, communication and....} Probabilistic graphical models (PGM) have a rich research literature in ML, but have not been succesfully scaled in their general undirected (loopy) form (FIG: directed vs. undirected graphs). However, we believe this will change as hardware evolves (ref. Graphcore) and deserves more attention by researchers to further accelerate this shift (ref. Hardware Lottery; Fig: Co-ev.).</p>
-    <p>In this article, we discuss Gaussian Belief Propagation (GaBP) as a strong general purpose algorithmic and representational framework for large scale distributed inference. GaBP is a special case of loopy belief propagation (BP), which operates on a per node basis by purely local message passing. This local computation is key to the vision of next-generation AI systems. GaBP, unlike backpropagation, does not require access to a global objective function, making it easily distributable (ref. biological backprop; Fig. ??). GaBP is flexible to changes in graph structure, in that nodes need only to take into account the messages they receive. GaBP can also operate asynchronously, without the need for a global clock. This is especially desirable in larger systems where communication delays become relevant.</p>
-    <p>This iterative, asynchronous operation will enable large graphs that are 'always approximately correct', in the sense that local clusters of nodes may be well converged relative to one another, despite misalignment with more distant clusters. This could, for example enable a robot to perform local obstacle avoidance without needing the global graph to have converged. This property is also attractive from an energy consumption perspective; computation can be focused on regions relevant to the current task demand to enable 'just in time' convergence (ref. FM2).</p>
-    <p>Unlike general loopy BP, GaBP is convergent under well defined conditions (ref. Bickson). In this article, we will show that GaBP is intimately linked to the essential and ubiquitous problem of solving linear systems of equations <d-math>Ax = b</d-math> (Section 2). We will also explore how introducing non-linear factors can extend the framework for more flexible representation (Section 3.2), how message scheduling affects convergence (Section 3.1) and how communication overheads can be minimized by adding hierarchical structure (Section 3.3). </p>
-
-
-    <h2 id="technical">Technical Introduction </h2>
-
-    <h3 id="factor_graphs">Factor Graphs </h3>
-
     <p>
       <d-figure class="right-d-figure" id="factor_graph"></d-figure>
 
-      Graphical models are useful diagrams that visually represent the conditional independence structure in probability distributions. 
-      The Hammersley-Clifford theorem tells us that any positive distribution that can be represented by an undirected graph can also be written as a product of factors, one per clique. 
-      This motivates factor graphs which are graphical models with two types of node: circles for variables and squares for factors with edges connecting each factor to the variables it depends on. 
-      In this way, factor graphs show both the conditional independence structure (the lack of an edge means conditional independence) and the factorisation of the distribution. 
-      An example of simple factor graph is shown on the right.
+      This theorem allows us to visualize any distribution as a factor graph. 
+      Factor graphs are a useful representation for inspecting problems and simplify belief propagation to message passing on a the graph.
+      An example of simple factor graph is shown in the figure on the right. 
+      We use circles and squares to represent variable and factor nodes, respectively. 
+      Factor graphs show both the conditional independence structure 
+      (the lack of an edge means conditional independence 
+      <d-footnote>Mathematically, conditional independence means $\Lambda_{i,j} = 0 \;\; \Longleftrightarrow \;\; P(x_i, x_j | X_{-ij}) = P(x_i | X_{-ij}) P(x_j | X_{-ij}) \;\; \Longleftrightarrow \;\; x_i \bot x_j | X_{-ij}$</d-footnote>
+      ) and the factorisation of the distribution. 
+    </p>
+    <p>
+      In probabilistic inference, we often represent the posterior density $P(x|z) = \frac{P(z|x) P(x)}{P(z)}$ as a factor graph. Here $x$ is the state we want to estimate and $z$ are observations that depend in some way on the state. 
+      The factors in the graph are either likelihoods of an observation given the variables (terms from $P(z|x)$) or priors over the variables (terms from $P(x)$). 
     </p>
 
+    <h3 id="multivariate-gaussians">Multivariate Gaussians</h2>
+
     <p>
-      In probabilistic inference, we often represent the posterior density $P(x|z) = \frac{P(z|x) P(x)}{P(z)}$ as a factor graph. 
-      The factors are either likelihoods of an observation given the variables or priors over the variables.
-      Due to the central limit theorem and principle of maximum entropy 
-      <d-footnote>
-        If we know the first two moments of the measurement distribution, by the principle of maximum entropy, a Gaussian is the best choice to model the distribution as it does not assume any other information. 
-        If we only observe magnitudes, the central limit theorem tells us that the distribution does often follow the Gaussian functional form. (cite Jaynes )
-        (Give examples in science when we measure first two moments i.e. MSE and when we measure only magnitude e.g. robotics.) 
-      </d-footnote>,
-      Gaussians are ubiquitously used to model prior and likelihood distributions with great practical success. 
-      If all factors are Gaussians, as the distribution family is closed under multiplication, the joint probability distribution is also a Gaussian.
+      The Gaussian distribution is ubiquitously used to model events in the world with great practical success because of its statistical properties <d-cite key="Jaynes:probability2003"></d-cite>:
+      (1) Gaussians have maximal entropy for a given mean and variance and (2) the sum of many independent random variables tends towards being Gaussian distributed by the Central Limit Theorem.
+      <d-footnote>If we only know the first two moments of a distribution, the principle of maximum entropy or applying Occam's Razor tells us to use a Gaussian model while if we only observe magnitudes, the central limit theorem tells us that the Gaussian functional form is still often accurate.</d-footnote>
+      .
+      In this article, we discuss Gaussian Belief Propagation in which all factors and therefore the joint distribution are modelled as Gaussians.
     </p>
-
-    <h3 id="gaussian_operations">Multivariate Gaussians</h2>
-
     <p>
-      There are two common parameterisation of multivariate Gaussian distributions: the 
-      <i>moments form</i>
-      <d-footnote>It is called the moments form as it is parameterised by the first moment and second central moments of the distribution.</d-footnote> 
-      and the <i>canonical form</i>. 
+      We should briefly mention here that it is well known that Gaussians underestimate the true distribution in the tails for many real events and we will discuss ways to handle this later within GBP in section (nonlinear factors). Also there are formulations of BP that directly handle non-Gaussian distributions <d-cite key="Sudderth:2010nonparametric"></d-cite>, however we focus on GBP for simplicity.
+    </p>
+    <p>
+      There are two common parameterisation of multivariate Gaussian distributions: the <i>moments form</i> <d-footnote>It is called the moments form as it is parameterised by the first moment and second central moments of the distribution.</d-footnote> and the <i>canonical form</i>. 
     </p>
 
     <d-figure id="gaussian_equations" ></d-figure>
 
     <p>
-
-      When representing posterior distributions which are multivariate Gaussians we usually use the canonical form because the precision matrix describes direct associations between variables.
-      If <d-math>x_i</d-math> and <d-math>x_j</d-math> are conditionally independent
-      <d-footnote>
-        Conditional independence mathematically means: <d-math>\Lambda_{i,j} = 0 \;\; \Longleftrightarrow \;\; P(x_i, x_j | X_{-ij}) = P(x_i | X_{-ij}) P(x_j | X_{-ij}) \;\; \Longleftrightarrow \;\; x_i \bot x_j | X_{-ij}</d-math>
-      </d-footnote>
-      then entry $i,j$ in the precision matrix is zero and there is no factor that directly connects <d-math>x_i</d-math> and <d-math>x_j</d-math> in the graph. 
-      The sparsity in the precision matrix captures the conditional independence structure of the system, while the covariance matrix describes induced correlations between variables and is dense as long as the graph is only single connected component. 
-      The canonical form also has the advantage that it can represent unconstrained distributions. 
-      These properties can be explored in the interactive figure below. 
+      When representing posterior distributions which are multivariate Gaussians we usually use the canonical form due to the relation between the precision matrix and graph that we will explore with the help of the interactive figure below. 
+      You can click on the question mark in the top right of the figure for some hints and explanations.
+    </p>
+    <p>
+      The precision matrix of the canonical form describes direct associations or conditional dependence between variables, meaning if entry $i,j$ is zero then there is no factor that directly connects $x_i$ and $x_j$ in the graph. 
+      You can see this in the figure where $\Lambda_{13}=\Lambda_{13}=0$ and $x_1$ and $x_3$ have no factor directly connecting them.
+      On the other hand, the covariance matrix describes induced correlations between variables and is dense as long as the graph is only single connected component. 
+      The covariance form is also unable to represent unconstrained distributions, as you can see by selecting the unanchored configuration in the figure. 
     </p>
 
     <d-figure id="gaussian_gm" class="subgrid"></d-figure>
@@ -145,72 +184,66 @@
       Different transformations are more easily carried out in different forms. 
       Taking the product of two Gaussians and conditioning are cheap in the canonical form and expensive in the moments form whereas the opposite is true for marginalisation
       <d-footnote>
-        Note that the Gaussian distribution family is closed under marginalisation and conditioning while the product of two Gaussians in general yields an un-normalised Gaussian.
+        The Gaussian distribution family is closed under marginalisation and conditioning while the product of two Gaussians in general yields an un-normalised Gaussian.
       </d-footnote>.
     </p>
 
-
-    <h3 id="from PI to LA">From Probabilistic Inference to Linear Algebra </h2>
+    <h3 id="from-probabilistic-inference-to-linear-algebra">From Probabilistic Inference to Linear Algebra</h2>
 
     <p>
-      In probabilistic inference we would like to find the variable configuration that maximises the posterior &#8212; this occurs at the mode of the posterior distribution and the process is often called <i>maximum a posteriori</i> (MAP) estimation. 
-      For Gaussian posteriors, we see from the following equations that MAP estimation is equivalent to least squares optimisation and solving a linear system <d-math>Ax = b</d-math>.
+      In probabilistic inference we would often like to find the variable configuration that maximises the posterior along with the confidence around each variable estimate. The process of finding just the point estimate is called <i>maximum a posteriori</i> (MAP) estimation and for Gaussian posteriors, it can be shown to be equivalent to least squares optimisation, solving the linear system $Ax = b$ and converting from the canonical form to the moments form:
     </p>
 
     <d-figure id="probinf_eqns"></d-figure>
 
     <p>
-      Noticing that the Gaussian mean can be written as <d-math>\mu = \Lambda^{-1} \eta</d-math>, we see that <d-math>x_{\text{\tiny MAP}}</d-math> is equal to the mean of the joint posterior or marginal means and that there is another equivalence between MAP estimation and converting from the canonical form to the moments form.
+      Directly solving the linear system for $x_{\text{\tiny MAP}}$ by inverting $\Lambda$ gives the confidence which is the marginal variances or the diagonal elements of the joint covariance matrix $\Sigma = \Lambda^{-1}$. 
+      For large systems, this inversion can be very expensive and Gaussian Belief Propagation is an iterative methods that estimates the full marginal distributions, giving both the MAP estimate (the marginal means) and the confidence (the marginal variances) with potentially lower computational cost. We discuss related linear solvers and non-linear least squares optimisation methods in Section (rel work).      
     </p>
 
-    <p>
-      Ideally, we would also like to know about the confidence around the MAP estimate for each variable.
-      This is described by the marginal variances or the diagonal elements of the joint covariance matrix <d-math>\Sigma = \Lambda^{-1}</d-math>. 
-      When directly computing the MAP estimate as <d-math>x_{\text{\tiny MAP}} = \Lambda^{-1} \eta</d-math>, we also compute the marginal variances by inverting <d-math>\Lambda</d-math>.
-      An alternative to directly solving the linear system by matrix inversion is to use an iterative algorithm that converges to the solution of <d-math>Ax = b</d-math> over many steps with potentially lower memory and computational costs. Gaussian Belief Propagation is such an iterative algorithm that estimates the marginal distributions, therefore computing both the MAP estimate (the marginal means) and the confidence in the estimate (the marginal variance).
-    </p>
-
-    <h3 id="gbp_algorithm">The Gaussian Belief Propagation Algorithm </h2>
+    <h3 id="the-gaussian-belief-propagation-algorithm">The Gaussian Belief Propagation Algorithm</h2>
 
     <p>
-      As just described, Belief Propagation is a probabilistic inference algorithm that computes the per-node marginal distributions from the joint distribution.
+      To recap, Belief Propagation is a probabilistic inference algorithm that computes the per-node marginal distributions from the joint distribution.
       It does so by iterative message passing on the factor graph, alternating between factor-to-variable and variable-to-factor message passing.
-      The algorithm is fully described 2 types of message passing functions and one function to aggregate incoming messages at a variable node into the belief which estimates the marginal distribution. 
+      The algorithm is fully described by 2 types of message passing functions and one update function which aggregates incoming messages at a variable node to estimate the marginal distribution or belief. 
     </p>
 
     <d-figure id="gbp_equations" class="subgrid"></d-figure>
 
     <p>
-      When all factors are Gaussian, the joint posterior, all factors and all beliefs are also Gaussians. 
-      The belief estimates the marginals in the canonical form which can then cheaply be converted into the moments form to give the desired marginal means and variances. As GBP proceeds, messages are passed through the graph and the beliefs converge towards the marginal distributions. 
-      The following interactive figure presents an overview of GBP for a simple grid alignment problem. 
+      When all factors are Gaussian, the joint distribution and all beliefs are also Gaussian.
+      The belief estimates the marginals in the canonical form which can then cheaply be converted into the moments form to give the desired marginal means and variances. 
+      As GBP proceeds, messages are passed through the graph and the beliefs converge towards the marginal distributions. The following interactive figure presents an overview of GBP for a simple grid alignment problem. 
     </p>
 
     <d-figure id="message_passing"></d-figure>
 
-    <h2 id="beyond">Beyond the standard algorithm </h2>
+    <h2 id="beyond-the-standard-algorithm">Beyond the standard algorithm </h2>
 
-    <h3>Local updates and Scheduling</h3>
+    <h3 id="non-linear-factors">Non-linear factors</h3>
+
+    <d-figure id="factor_linearisation"></d-figure>
+
+
+    <h3 id="local-updates-and-scheduling">Local updates and Scheduling</h3>
     
     <d-figure id="attentiongl"></d-figure>
 
-    <h3 id="1dsurface">1D Surface estimation</h3>
+    <h3 id="multiscale-learning">Multiscale Learning</h3>
 
     <figure class="l-page-outset">
       <d-figure id="surface_fitting"></d-figure>
     </figure>
 
-    <h3 id="1dsurface">GBP Playground</h3>
-
     <figure class="l-page-outset">
       <d-figure id="playground"></d-figure>
     </figure>
   
-
+    <h2 id="related-work">Related work</h2>
 
     <h2 id="discussion">Discussion</h2>
-    
-
+  
 
   </d-article>
 

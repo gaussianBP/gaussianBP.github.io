@@ -55,6 +55,11 @@ const AttentionGLComponent = new AttentionGL({ // eslint-disable-line no-unused-
   target: document.querySelector('#attentiongl')
 });
 
+import FactorLinearisation from "./diagrams/factor_linearisation.svelte";
+const FactorLinearisationComponent = new FactorLinearisation({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#factor_linearisation')
+});
+
 // import MargCond from "./diagrams/marg_cond.svelte";
 // const MargCondComponent = new MargCond({ // eslint-disable-line no-unused-vars
 //   target: document.querySelector('#marg_cond')

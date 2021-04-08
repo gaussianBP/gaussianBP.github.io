@@ -46,7 +46,7 @@
     #wrapper {
         position: relative;
         margin-bottom: 0.5rem;
-        min-height: 240px;
+        min-height: 210px;
         /* border: none; */
         /* background-color: white; */
     }
