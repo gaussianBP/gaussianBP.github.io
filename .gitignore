@@ -1,4 +1,6 @@
 src/diagrams_unused
+*.py
+
 
 # Logs
 logs

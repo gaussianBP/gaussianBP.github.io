@@ -1,7 +1,6 @@
 <!-- 
 
 TODO
-- diagram showing setup in figma
 - more images for different denoising setups
 - ability to upload your own image?
 
@@ -17,6 +16,7 @@ TODO
     import { onMount } from 'svelte';
     import * as twgl from 'twgl.js';
 	import ButtonGroup from '../utils/ButtonGroup.svelte'
+	// import MultiButtonGroup from '../utils/MultiButtonGroup.svelte'
 
 
     // Notes
@@ -51,6 +51,18 @@ TODO
         vec4 meanToRGBA(float mean) { return vec4(vec3(mean), 1.0); }
         float grey(vec4 colour) { return (colour.x + colour.y + colour.z) / 3.0; }
         vec4 greyscale(vec4 colour) { return vec4(vec3(grey(colour)), 1.); }
+
+        vec4 viridis_color_map(float t) {
+            const vec3 c0 = vec3(0.2777273272234177, 0.005407344544966578, 0.3340998053353061);
+            const vec3 c1 = vec3(0.1050930431085774, 1.404613529898575, 1.384590162594685);
+            const vec3 c2 = vec3(-0.3308618287255563, 0.214847559468213, 0.09509516302823659);
+            const vec3 c3 = vec3(-4.634230498983486, -5.799100973351585, -19.33244095627987);
+            const vec3 c4 = vec3(6.228269936347081, 14.17993336680509, 56.69055260068105);
+            const vec3 c5 = vec3(4.776384997670288, -13.74514537774601, -65.35303263337234);
+            const vec3 c6 = vec3(-5.435455855934631, 4.645852612178535, 26.3124352495832);
+
+            return vec4(c0+t*(c1+t*(c2+t*(c3+t*(c4+t*(c5+t*c6))))), 1.);
+        }
 
         vec2 zeroMessCovForm() { return vec2(0., 1.); }  // If covaraince == 1. then zero message flag
         vec2 infToCov(vec2 v) {  // To encode
@@ -134,6 +146,77 @@ TODO
 
             void main() {
                 gl_FragColor = meanToRGBA(texture2D(u_input_tex, v_texcoord).x);  // Stored in cov form, so just access mean in first element
+            }
+        `,
+        vis_energy: `
+            varying vec2 v_texcoord;  // the texcoords passed in from the vertex shader
+
+            uniform Tensor u_mess;
+            uniform sampler2D u_mess_tex;
+            uniform float u_width;
+
+            uniform bool u_prior_energy;
+            uniform bool u_smooth_energy;
+
+            uniform float u_prior_robust_thresh;
+            uniform float u_smooth_robust_thresh;
+            uniform float u_priorCov;
+            uniform float u_smoothCov;
+            
+            vec4 u_mess_read(vec2 xy) { 
+                return _read(u_mess, u_mess_tex, xy); 
+            }
+            vec2 readMessCovForm(vec2 img_xy, int ix) {  // u_mess is message buffer
+                vec2 mess_xy = vec2(floor(img_xy.x)*u_mess.gridSize.x + 0.5 + float(ix), img_xy.y);
+                vec4 v = u_mess_read(mess_xy);
+                return v.xy;
+            }
+
+            float max_energy = 1.;
+
+            float huber_energy(float res, float robust_threshold, float cov) {
+                if (res < robust_threshold) {
+                    return 0.5 * res * res / cov;
+                } else {  // in robust regime
+                    return robust_threshold * res / cov - robust_threshold * robust_threshold / (2. * cov * cov);
+                }
+            }
+
+            void main() {
+                vec2 pc = mod(v_texcoord * u_width, 1.);
+                float belief_mean = texture2D(u_input_tex, v_texcoord).x;
+
+                if (pc.x > 0.5 && pc.y > 0.5) {
+
+                    vec2 img_xy = v_texcoord * u_width;                    
+
+                    float energy = 0.;
+
+                    if (u_prior_energy) {
+                        float prior_mean = readMessCovForm(img_xy, 0).x;
+                        float prior_res = abs(belief_mean - prior_mean);
+                        energy += huber_energy(prior_res, u_prior_robust_thresh, u_priorCov);
+                    }
+                    if (u_smooth_energy) {
+                        mat4 shifts = mat4(1., 0., 0., 0.,
+                                        -1., 0., 0., 0.,
+                                        0., 1., 0., 0., 
+                                        0., -1., 0., 0.);
+                        for (int i=0; i<=4; ++i)  {
+                            vec2 neighbour_xy = img_xy + vec2(shifts[i][0], shifts[i][1]);
+                            bool in_grid = (neighbour_xy.x > 0.) && (neighbour_xy.x < u_width) && (neighbour_xy.y > 0.) && (neighbour_xy.y < u_width);
+                            if (in_grid) {
+                                float neighbour_mean = texture2D(u_input_tex, neighbour_xy / u_width).x;
+                                float smooth_res = abs(belief_mean - neighbour_mean);
+                                energy += huber_energy(smooth_res, u_smooth_robust_thresh, u_smoothCov);
+                            }
+                        }
+                    }
+
+                    gl_FragColor = viridis_color_map(energy / max_energy);
+                } else {
+                    gl_FragColor = meanToRGBA(belief_mean);  // Stored in cov form, so just access mean in first element
+                }
             }
         `,
         paint: `
@@ -372,21 +455,25 @@ TODO
     let lastFrameTime = 0.;
     let video_started = false;
 
+    let show_energy = [false, false];
+    let show_energy_ix = 0;
 
 	let imgs = [
 		{ id: 2, text: "Glasses 150x150", src: "./images/glasses1.png"},
 		{ id: 3, text: "Glasses 300x300", src: "./images/glasses2.png"},
 		{ id: 4, text: "Parrots 600x600", src: "./images/parrots_600.jpg"},
+		{ id: 5, text: "Boundary", src: "./images/twoteams.png"},
+		{ id: 6, text: "Chess board", src: "./images/chequers.png"},
+		{ id: 7, text: "Growing squares", src: "./images/blobs.png"},
+		{ id: 8, text: "White", src: "./images/white.png"},
 		// { id: 3, text: "Parrots 1200x1200", src: "./images/parrots_1200.jpg"},
 		{ id: 0, text: "Live from webcam (if available)", width: video_width, height: video_height},
 		{ id: 1, text: "Stil from webcam (if available)", width: video_width, height: video_height},
 	];
-    let selected_img = imgs[1];
+    let selected_img = imgs[3];
 
     onMount(() => {
         video = document.querySelector("#vid");
-        console.log(video);
-
         canvas = document.querySelector("#glCanvas");
         gl = canvas.getContext("webgl");
 
@@ -465,6 +552,11 @@ TODO
             lastDrawTime = time;
 
             twgl.bindFramebufferInfo(gl);
+            // if (clicked) {
+            //     vis_energy();
+            // } else {
+            //     draw();
+            // }
             draw();
             if (attention_on && gbp_on) { paintCircle(); }
             requestAnimationFrame(render);
@@ -480,8 +572,6 @@ TODO
         messageBufs = [createTensor(w, h, 5), createTensor(w, h, 5)]
 
         totalIters = 0;
-
-        console.log(video, video.srcObject);
 
         if (selected_img.id <= 1) {
 
@@ -615,12 +705,28 @@ TODO
         runLayer('paint', {}, inputs);
     }
 
+    function vis_energy() {
+        const current_mess_buff_ix = totalIters % 2
+        const inputs = {
+            u_input: beliefBuf,
+            u_mess:messageBufs[current_mess_buff_ix],
+            u_width: selected_img.width,
+            u_prior_robust_thresh: prior_robust_thresh,
+            u_smooth_robust_thresh: smooth_robust_thresh,
+            u_priorCov: 1. / priorLam,
+            u_smoothCov: 1. / smoothLam,
+            u_prior_energy: show_energy[0],
+            u_smooth_energy: show_energy[1],
+        }
+        runLayer('vis_energy', {}, inputs);
+    }
+
     // Utility functions -----------------------------------------------------
 
     function canvasToPixelCoords(x_canvas, y_canvas) {
         const scaling = canvas_width / selected_img.width;
-        const x = Math.floor(x_canvas / scaling);
-        const y = Math.floor(y_canvas / scaling);
+        const x = x_canvas / scaling;
+        const y = y_canvas / scaling;
         return [x, y];
     }
 
@@ -736,6 +842,11 @@ TODO
 		robust = e.detail.value;
 	}
 
+    function handleChangeShowEnergy(e) {
+        show_energy_ix = e.detail.value;
+        show_energy = [[false, false], [true, true], [true, false], [false, true]][show_energy_ix];
+    }
+
     function handle_click(e) {
         // console.log(benchmark());
         // download_canvas('res');
@@ -762,49 +873,20 @@ TODO
     }
 
     #glCanvas {
-        /* border: 1px solid lightgrey; */
+        border: 1px solid darkgrey;
         image-rendering: pixelated;
         touch-action: none;
+        width: 600px;
+        height: 600px;
     }
 
-    @media (min-width: 1000px) {
-        #figure {
-            grid-template-columns: 1fr 300px;
-            grid-template-rows: auto auto;
-        }
-        /* #controls {
-            grid-row: 1/2;
-        } */
-    }
-
-    /* #controls {
-        line-height: 1em;
-        display: grid;
-        grid-template-columns: 120px auto;
-        grid-template-rows: auto 60px 80px 75px 1fr;
-        row-gap: 20px;
-        overflow: hidden;
-    }
-
-
-    @media (min-width: 1000px){
-        #controls {
-            grid-template-rows: auto 60px 80px 100px 1fr;
-        }
-    } */
-
-    #slider {
-        width: 30%;
-    }
-
-    #switches {
+    .full-width-slider {
         width: 100%;
-        float: left;
     }
 
     .gbp-button {
-        width: fit-content;
-        height: fit-content;
+        /* width: fit-content;
+        height: fit-content; */
         float: left;
         outline: none;
         border: black;
@@ -814,32 +896,131 @@ TODO
         opacity: 0.5;
     }
 
-    .txt {
+    #wrapper {
+        /* border: none; */
+        /* background-color: white; */
+        display: grid;
+        grid-column: page;  /* start and end the grid on the page */
+        max-width: calc(100vw - 2em);
+        font-size: 14px;
+        user-select: none;
+        grid-template-columns: auto;
+        grid-template-rows: auto auto;  /* two rows */
+        grid-auto-flow: row;
+        row-gap: 10px;
+        width: 600px;
+    }
+
+   #control-panel {
+        width: 600px;
+        line-height: 1em;
+        display: grid;
+        grid-template-columns: auto;
+        grid-template-rows: 25px 80px 105px 23px 60px 20px 140px;
+        grid-row-end: auto;
+        row-gap: 10px;
+    }
+
+
+    @media (min-width: 1300px) {
+        #wrapper {
+            grid-template-columns: auto 400px;
+            grid-template-rows: auto;  
+            grid-auto-flow: column;
+            grid-column-gap: 25px;
+            width: 1025px;
+            /* background-color: lightyellow; */
+        }
+        #control-panel {
+            width: 400px;
+        }
+    }
+ 
+    .status {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.6);
+        font-family: monospace;
+    }
+
+    .slider-container {
         font-size: 14px;
     }
-    #speed {
-        font-size: 14px;
+
+    #play-pause-reset {
+        width: fit-content;
+        height: fit-content;
+    }
+
+    #precision-sliders {
+        display: grid; 
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 20px;
+    }
+
+    #play-pause-reset-speed {
+        display: grid; 
+        grid-template-columns: 1fr 1.3fr;
+        grid-gap: 2px;
+    }
+
+    #speed-slider-container {
+        /* text-align: center; */
+        vertical-align: middle;
+        margin-top: 8px;
+    }
+
+    .hint {
+        color: rgba(0, 0, 0, 0.6);
+        user-select: text;
+        font-size: 16px;
+        line-height: 1.4em;
+    }
+    
+    .bold-text {
         font-weight: bold;
     }
 
+    #button-groups-panel {
+        display: grid; 
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 20px;
+    }
+
+    #radius-slider {
+        width: 80%;
+    }
+
+    #radius-text {
+        font-size: 11px; 
+        margin-left: 5px;
+    }
+    
     #vid {
         display: none;
     }
 
 </style>
 
+<svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path><path d="M0 0h24v24H0z" fill="none"></path></symbol>
+    <symbol id="pauseIcon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path><path d="M0 0h24v24H0z" fill="none"></path></symbol>
+    <symbol id="resetIcon" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"></path><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></symbol>
+    <symbol id="removeIcon" viewBox="0 0 1792 1792"><path d="M0 0h1792v1792H0z" fill="none"></path><path d="M1490 1322q0 40-28 68l-136 136q-28 28-68 28t-68-28l-294-294-294 294q-28 28-68 28t-68-28l-136-136q-28-28-28-68t28-68l294-294-294-294q-28-28-28-68t28-68l136-136q28-28 68-28t68 28l294 294 294-294q28-28 68-28t68 28l136 136q28 28 28 68t-28 68l-294 294 294 294q28 28 28 68z"></path></symbol>
+</svg>
 
-<figure class="subgrid" id="figure">
+<video id="vid" ></video>
+
+<figure class="subgrid">
     <div id="wrapper" class="interactive-container">
-
-        <video id="vid"></video>
 
         <canvas id="glCanvas" width="{canvas_width}" height="{canvas_height}" on:mouseenter={mouseover_toggleGBP} 
             on:mouseleave={mouseover_toggleGBP} on:mousemove={mousemove_handler} on:click={handle_click}></canvas>
-        
-        <div id="controls1">
+
+
+        <div id="control-panel">
 
             <div>
+                <span class="hint bold-text" style="margin-right: 8px">Choose the image: </span>
             	<select bind:value={selected_img} on:change={reset}>
                     {#each imgs as im}
                         <option value={im}>
@@ -849,44 +1030,79 @@ TODO
                 </select>
             </div>
 
-            <div id="switches">
-                {#if gbp_on || attention_on}
-                    <button class="gbp-button" class:disabled={attention_on} on:click={switchGBP}>
-                        <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
-                    </button>
-                {:else}
-                    <button class="gbp-button" class:disabled={attention_on} on:click={switchGBP}>
-                        <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
-                    </button>
-                {/if}
+            <!-- <MultiButtonGroup options={[{ id: 0, name: 'Hide Energy' }, 
+                                        { id: 1, name: 'Total energy' }, 
+                                        { id: 2, name: 'Prior energy' },
+                                        { id: 3, name: 'Smoothness energy' }]} 
+                labelTitle="" selected={show_energy_ix} on:change={handleChangeShowEnergy}/> -->
 
-                <button class="gbp-button" style="outline: none;" on:click={reset}>
-                    <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
-                </button>
+            <div id="play-pause-reset-speed">
+                <div id="play-pause-reset">
+                    {#if gbp_on || attention_on}
+                        <button class="gbp-button" class:disabled={attention_on} on:click={switchGBP}>
+                            <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
+                        </button>
+                    {:else}
+                        <button class="gbp-button" class:disabled={attention_on} on:click={switchGBP}>
+                            <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
+                        </button>
+                    {/if}
 
+                    <button class="gbp-button" style="outline: none;" on:click={reset}>
+                        <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
+                    </button>                
+                </div>            
 
-                <ButtonGroup options={[{ id: 0, name: 'All-to-all' }, { id: 1, name: 'Attention' }]} labelTitle="" selected={attention_on} on:change={handleChangeMP}/>
-                <ButtonGroup options={[{ id: 0, name: 'Squared' }, { id: 1, name: 'Huber' }]} labelTitle="" selected={robust} on:change={handleChangeRobust}/>
+                <div id="speed-slider-container" class="slider-container">
+                    Speed: <span class="bold-text">{speed_labels[speed+3]}</span><br>
+                    <input class="full-width-slider" type="range" min="-3" max="3" bind:value={speed} step="1"/>
+                    <div class="status">
+                        Iteration {totalIters}  ({lastIpsCount} iters / s) 
+                    </div>
+                </div>  
             </div>
 
-            <div id="sliders">
-                <span class="txt">Speed: <span id="speed">{speed_labels[speed+3]}</span></span>
-                <span class="txt">Iteration {totalIters}  ({lastIpsCount} iters / s) </span>
-                <input id="slider" type="range" min="-3" max="3" bind:value={speed} step="1"/>
-
-                <br>
-                <span class="txt">Prior lam {priorLam.toFixed(1)}</span>
-                <input id="slider" type="range" min="{1/0.02**2}" max="{1/0.001**2}" bind:value={priorLam} step="1"/>
-
-                <br>
-                <span class="txt">Smoothness lam {smoothLam.toFixed(1)}</span>
-                <input id="slider" type="range" min="{1/0.02**2}" max="{1/0.001**2}" bind:value={smoothLam} step="1"/>
-
-                <br>
-                <span class="txt">Attention radius (pixels) {radius_pix}</span>
-                <input id="slider" type="range" min="{1}" max="{200}" bind:value={radius_pix} step="1"/>
+            <div id="button-groups-panel">
+                <div>
+                    <span class="hint bold-text">Schedule: </span><br>
+                    <ButtonGroup options={[{ id: 0, name: 'All-to-all' }, { id: 1, name: 'Attention' }]} labelTitle="" selected={attention_on} on:change={handleChangeMP}/>
+                    <div class="slider-container">
+                        <input id="radius-slider" type="range" min="{1}" max="{200}" bind:value={radius_pix} step="1"/>
+                        <span class="status" id="radius-text">Attention radius: {radius_pix} px</span>
+                    </div>  
+                </div>
+                <div>
+                    <span class="hint bold-text">Loss function: </span><br>
+                    <ButtonGroup options={[{ id: 0, name: 'Squared' }, { id: 1, name: 'Huber' }]} labelTitle="" selected={robust} on:change={handleChangeRobust}/>
+                </div>
             </div>
 
+            <span class="hint bold-text">
+                Balance the data factors against smoothing factors:
+            </span>
+
+            <div id="precision-sliders">
+                <div class="slider-container">
+                    Measurement precision: <br>
+                    <input class="full-width-slider" type="range" min="{10000}" max="{1/0.001**2}" bind:value={priorLam} step="100"/>
+                    <div class="status">
+                        ({(priorLam/10000).toFixed(0)} units)
+                    </div>
+                </div>  
+
+                <div class="slider-container">
+                    Smoothness precision: <br>
+                    <!-- slider min was 1/0.02**2 before -->
+                    <input class="full-width-slider" type="range" min="{10000}" max="{1/0.001**2}" bind:value={smoothLam} step="100"/>
+                    <div class="status">
+                        ({(smoothLam/10000).toFixed(0)} units)
+                    </div>
+                </div>                  
+            </div>
+
+            <span class="hint bold-text">
+                Factor graph:
+            </span>
             <div id="diagram">
             
                 <svg width="828" height="338" viewBox="0 0 828 338" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">

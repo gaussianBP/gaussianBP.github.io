@@ -9,11 +9,15 @@ import * as _unused from "raw-loader!./index.ejs";
 // });
 
 
-import SurfaceFitting from "./diagrams/surface_fitting.svelte";
-const SurfaceFittingComponent = new SurfaceFitting({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#surface_fitting')
-});
+// import SurfaceFitting from "./diagrams/surface_fitting.svelte";
+// const SurfaceFittingComponent = new SurfaceFitting({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#surface_fitting')
+// });
 
+import Huber from "./diagrams/huber.svelte";
+const HuberComponent = new Huber({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#huber')
+});
 
 import Playground from "./diagrams/playground_tabs.svelte";
 const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars

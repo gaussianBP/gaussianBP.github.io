@@ -32,6 +32,18 @@
   padding-bottom: 1em;
 }
 
+.small-right-d-figure {
+  float: right;
+  position: relative;
+  left: 5em;
+  margin-left: -5em;
+  width: 300px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 0.5em;
+}
+
+
 .interactive-container {
   background-color: var(--gray-bg);
   border: 1px solid var(--gray-border);

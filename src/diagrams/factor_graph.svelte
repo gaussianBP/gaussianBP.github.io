@@ -75,7 +75,7 @@
 
 </style>
 
-<figure>
+<figure class="subgrid" id="figure">
 
     <div id="wrapper" class="interactive-container">
 
