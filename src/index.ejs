@@ -162,19 +162,20 @@
 
     <p>
       The <a href="https://en.wikipedia.org/wiki/Hammersley%E2%80%93Clifford_theorem" target="_blank">Hammersley-Clifford theorem</a> tells us that any positive joint distribution can be represented as a product of factors, one per clique, where a clique is a subset of variables in which each variable is connected to all others. 
-      A node, edge and triangle are examples of 1-,2- and 3-cliques, respectively.       
+      <!-- A node, edge and triangle are examples of 1-, 2- and 3-cliques, respectively.  -->
+      A factorized represenation can be very convenient to highlight the structure in a model and motivates a very useful visual representation: factor graphs.
     </p>
     <g>
     <d-figure class="right-d-figure" id="factor_graph"></d-figure>
     <p>
 
-      This theorem means we can draw any distribution as a factor graph - a type of graphical model with circles for variable nodes, squares for factor nodes and edges connecting each factor to the variables it depends on.
-      An example of a simple factor graph is shown in the figure on the right.
+      A factor graph is a type of graphical model with circles for variable nodes, squares for factor nodes and edges connecting each factor to the variables it depends on.
+      An example of a simple factor graph is shown in the diagram on the right.
       Factor graphs show both the conditional independence structure 
-      - the lack of an edge means conditional independence <d-footnote>Mathematically, conditional independence means $\Lambda_{i,j} = 0 \;\; \Longleftrightarrow \;\; P(x_i, x_j | X_{-ij}) = P(x_i | X_{-ij}) P(x_j | X_{-ij}) \;\; \Longleftrightarrow \;\; x_i \bot x_j | X_{-ij}$</d-footnote> - and the factorisation of the distribution. 
+      - the lack of a factor directly connecting two variables means conditional independence <d-footnote>Mathematically, conditional independence means $\Lambda_{i,j} = 0 \;\; \Longleftrightarrow \;\; P(x_i, x_j | X_{-ij}) = P(x_i | X_{-ij}) P(x_j | X_{-ij}) \;\; \Longleftrightarrow \;\; x_i \bot x_j | X_{-ij}$</d-footnote> - and the factorisation of the distribution. 
     </p>
     <p>
-      Factor graphs can be viewed as constraint graphs or energy based models where each factor $f_i$ describes a constraint or energy $E_i$ associated with a subset of the variables $X_i$:
+      Factor graphs can be viewed as constraint graphs or energy based models where each factor $f_i$ captures an energy $E_i$ associated with a subset of the variables $X_i$:
 
       <d-math block="">
         f_i(X_i)
@@ -183,7 +184,7 @@
         ~.
       </d-math>
 
-      For example, the first factor might reflect our prior belief on $x_1$:
+      For example, in our diagram, the first factor might represent our prior belief on $x_1$:
       
       <d-math block="">
         E_1(x_1)
@@ -192,7 +193,7 @@
         ~.
       </d-math>
 
-      Alternatively, a factor connecting $x_1$ and $x_2$ might encourage them to have some difference $d$, where $d$ is an observed variable and not shown in the graph:
+      Alternatively, the factor connecting $x_1$ and $x_2$ might encourage them to have some difference $d$, where $d$ is an observed variable and not shown in the graph:
       
       <d-math block="">
         E_3(x_1, x_2)
@@ -210,24 +211,52 @@
 
       <p>
         To recap, in probabilistic inference we would like to find the marginal posterior distribution for each variable.
-        Belief Propagation (BP) is an algorithm for finding these marginal that is intimately linked to factor graphs by the following property: 
+        Belief propagation (BP) is an algorithm for finding these marginals that is intimately linked to factor graphs by the following property: 
         <b>BP can be implemented as iterative message passing on the posterior factor graph</b>. 
-        To draw the posterior factor graph, we need to identify the factors that make up the posterior distribution. Bayes rule tells us exactly this and the factors are the terms on the right hand side of Bayes Rule:  $p(X \rvert D) = \frac{p(D \rvert X) p(X)}{p(D)}$. 
+      </p>
+      <p>
+        To draw the posterior factor graph, we need to identify the factors that make up the posterior distribution. 
+        Bayes rule tells us exactly this and the factors are the terms on the right hand side of Bayes Rule:  $p(X \rvert D) = \frac{p(D \rvert X) p(X)}{p(D)}$. 
       </p>
 
       <p>
-        Belief Propagation was originally developed to perform exact inference in probabilistic models with tree-like graphical structure <d-cite key="Pearl:book1988"></d-cite> by passing messages from a root node to the leaf nodes and then back up. 
-        For models with arbitrary conditional independence structure, including cycles or "loops" <d-cite key="Murphy:etal:1999"></d-cite>, loopy belief propagation iteratively applies the same message passing rules  to all nodes at the same time.
-        Loopy BP generally converges to the true marginals although it can fail to converge for very loopy graphs. 
+        Belief propagation was originally developed to perform exact inference in probabilistic models with tree-like graphical structure <d-cite key="Pearl:book1988"></d-cite>.
+        The algorithm operates by storing a belief at each variable node which through iterative message passing converges to the desired marginal distribution.
+        In each iteration consists of 3 phases: factor-to-variable message passing, variable-to-factor message passing and belief updates.
+      </p>
+
+      <g>
+      <d-figure class="right-d-figure">
+        <video style="width: 49.5%;" loop controls muted>
+          <source src="diagrams/tree_bp.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <video style="width: 49.5%;" loop controls muted>
+          <source src="diagrams/loopy_bp.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <figcaption style="text-align: center">
+          Green curves represent variable beliefs. <b>Left</b>: BP on a tree. <b>Right</b>:  Loopy BP. 
+        </figcaption>
+      </d-figure>
+      <p>
+        For trees, after one sweep of messages from a root node to the leaf nodes and then back up, all beliefs converge to the exact marginals. 
+        For models with arbitrary conditional independence structure, including cycles or "loops", loopy BP <d-cite key="Murphy:etal:1999"></d-cite> iteratively applies the same message passing rules to all nodes at the same time.
+        The videos on the right illustrate how BP is applied to trees and graphs with loops.
+        Loopy BP generally converges to the true marginals although it can fail to converge for very loopy graphs <span class="note">(ref)</span>. 
+      </p>
+
+    </g>
+
+      <p>
+        Loopy BP is a form of approximate variational inference in which inference is turned into an optimisation problem. 
+        Loopy BP can be derived by doing constrained minimisation of the Bethe free energy subject to normalization and marginalization constraints.
+        The Bethe free energy is a lower bound on the KL variational objective. 
+        <span class="note">(ref). Some note about tighter variational bounds? Kikuchi Generalised BP?</span>
       </p>
 
       <p>
-        Loopy BP is a form of approximate variational inference which turns inference into an optimisation problem. 
-        BP can be derived by doing constrained minimisation of the Bethe free which is a lower bound on the KL variational objective. 
-      </p>
-
-      <p>
-        The belief propagation algorithm can be fully defined by 3 equations: 2 types of message passing functions and one update function which aggregates incoming messages at a variable node to estimate the marginal distribution or belief. 
+        The belief propagation algorithm can be fully defined by 3 equations: 2 message passing functions and one update function which aggregates incoming messages at a variable node to estimate the marginal distribution or belief. 
       </p>
 
       <d-figure id="bp_equations" class="subgrid"></d-figure>
@@ -237,7 +266,7 @@
     <p>
       Having outlined the BP algorithm, we focus on the case where all factors are Gaussian distributions. 
       Gaussians are a convenient choice for a number of reasons: (1) they accurately represents the distribution for many real world events <d-cite key="Jaynes:probability2003"></d-cite>, (2) they have a simple analytic form, (3) complex operations can be expressed with simple formulae, and (4) they are closed under marginalisation and conditioning. 
-      Due to the closure, by choosing all factors to be Gaussians, all beliefs and messages are also Gaussians and the algorithm is known as Gaussian Belief Propagation (GBP). 
+      Due to the closure, by choosing all factors to be Gaussians, all beliefs and messages are also Gaussians and the algorithm is known as <b>Gaussian Belief Propagation (GBP)</b>. 
     </p>
     <p>
       As in loopy belief propagation, the GBP beliefs converge towards the marginal distributions, however unlike other forms of loopy BP, GBP has theoretical guarantees that on convergence we have reached the exact marginal means <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
@@ -256,14 +285,15 @@
     <d-figure id="gaussian_equations" ></d-figure>
 
     <p>
-      When representing Gaussians posterior distributions we usually use the canonical form due to the relation between the precision matrix and factor graphs which we explore with the help of the interactive figure below. 
-      You can click on the question mark in the top right of the figure for some hints and explanations.
+      When representing Gaussians posterior distributions we usually use the canonical form due to the relation between the precision matrix and factor graphs. 
+      We explore this relationship with the paragraph and interactive figure below.
     </p>
     <p>
-      The precision matrix of the canonical form describes direct associations or conditional dependence between variables, meaning if entry $i,j$ is zero then there is no factor that directly connects $x_i$ and $x_j$ in the graph. 
-      You can see this in the figure where $\Lambda_{13}=\Lambda_{13}=0$ and $x_1$ and $x_3$ have no factor directly connecting them.
+      The precision matrix of the canonical form describes direct associations or conditional dependence between variables. In other words, if entry $i,j$ of the precision matrix is zero then there is no factor that directly connects $x_i$ and $x_j$ in the graph. 
+      You can see this in the default preset graph in the figure below where $\Lambda_{13}=\Lambda_{13}=0$ and $x_1$ and $x_3$ have no factor directly connecting them.
       On the other hand, the covariance matrix describes induced correlations between variables and is dense as long as the graph is only single connected component. 
-      The covariance form is also unable to represent unconstrained distributions, as you can see by selecting the unanchored configuration in the figure. 
+      The covariance form is also unable to represent unconstrained distributions, as you can see by selecting the unanchored preset graph. 
+      We encourage you to check out the other preset graphs and create your own graphs below to explore Gaussian models and the relationship with the canonical form.
     </p>
 
     <d-figure id="gaussian_gm" class="subgrid"></d-figure>
@@ -272,8 +302,8 @@
 
     <p>
       For Gaussian models, the modes of the individual marginal posteriors are equal to the mode of the full posterior or in other words the marginal means are equivalent to the maximum a posteriori parameters (MAP).
-      By computing the marginals, GBP is finding both the MAP solution and the uncertainty in each estimate.
-      For Gaussian models, finding the MAP can be shown to be equivalent to least squares optimisation, solving the linear system $Ax = b$ and converting from the canonical form to the moments form:
+      Therefore by computing the marginals, GBP is finding the MAP solution and also the uncertainty in each estimate.
+      Computing the MAP is equivalent to maximizing the negative log posterior which for Gaussian models is equivalent to least squares, solving the linear system $Ax = b$ and converting from the canonical form to the moments form:
     </p>
 
     <d-figure id="probinf_eqns"></d-figure>
