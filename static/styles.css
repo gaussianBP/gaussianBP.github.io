@@ -60,6 +60,11 @@
   }
 }
 
+.note {
+  color: red; 
+  font-weight: bold;
+}
+
 d-figure.base-grid {
   grid-column: screen;
   background: hsl(0, 0%, 97%);
