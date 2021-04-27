@@ -470,7 +470,7 @@ TODO
 		{ id: 0, text: "Live from webcam (if available)", width: video_width, height: video_height},
 		{ id: 1, text: "Stil from webcam (if available)", width: video_width, height: video_height},
 	];
-    let selected_img = imgs[3];
+    let selected_img = imgs[1];
 
     onMount(() => {
         video = document.querySelector("#vid");
@@ -999,6 +999,11 @@ TODO
         display: none;
     }
 
+    #caption {
+        text-align: left;
+        grid-column: page;
+    }
+
 </style>
 
 <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
@@ -1132,4 +1137,12 @@ TODO
 
 
     </div>
+
+    <figcaption id="caption">
+        GBP for image denoising. 
+        You can choose either all-to-all message passing or an attention-driven schedule around the mouse. 
+        Choosing a squared loss function results in a blurred denoising while the robust Huber loss gives a sharper denoising.
+        You can select the image or use a live feed from your webcam. 
+    </figcaption>
+
 </figure>

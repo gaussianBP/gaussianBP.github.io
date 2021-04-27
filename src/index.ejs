@@ -253,6 +253,7 @@
         Loopy BP can be derived by doing constrained minimisation of the Bethe free energy subject to normalization and marginalization constraints.
         The Bethe free energy is a lower bound on the KL variational objective. 
         <span class="note">(ref). Some note about tighter variational bounds? Kikuchi Generalised BP?</span>
+        Most interesting problems have loopy structures and so for the remainder of the article we will use BP to refer to loopy BP.
       </p>
 
       <p>
@@ -301,9 +302,11 @@
     <h3 id="from-probabilistic-inference-to-linear-algebra">From Probabilistic Inference to Linear Algebra</h2>
 
     <p>
-      For Gaussian models, the modes of the individual marginal posteriors are equal to the mode of the full posterior or in other words the marginal means are equivalent to the maximum a posteriori parameters (MAP).
+      <!-- (i.e. models for which the posterior is assumed to be Gaussian) -->
+      For Gaussian models, the marginal means are equivalent to the maximum a posteriori parameters (MAP).
+      More simply stated, the full posterior is maximized by the same parameter values that maximize the individual marginal posteriors. 
       Therefore by computing the marginals, GBP is finding the MAP solution and also the uncertainty in each estimate.
-      Computing the MAP is equivalent to maximizing the negative log posterior which for Gaussian models is equivalent to least squares, solving the linear system $Ax = b$ and converting from the canonical form to the moments form:
+      Computing the MAP is equivalent to maximizing the negative log posterior which for Gaussian models is then equivalent to least squares optimization, solving the linear system $Ax = b$ and converting from the canonical form to the moments form:
     </p>
 
     <d-figure id="probinf_eqns"></d-figure>
@@ -366,12 +369,12 @@
       $\mathtt{J}$ is the Jacobian matrix and the factor can be written in the same form as above but now with $c = h_i(X_{i,0}) - \mathtt{J} X_{i,0}$ <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>.
     </p>
     <p>
-      After linearization, the posterior represents a Gaussian approximation of the true posterior and inference is performed by successively solving linearised versions of the underlying non-linear problem, as in non-linear least squares optimisation. 
+      After linearization, the posterior is a Gaussian approximation of the true posterior and inference is performed by successively solving linearized versions of the underlying non-linear problem, as in non-linear least squares optimisation. 
     </p>
     <p>
       To see how this linearization works in practise, consider a robot moving in a plane that measures the 2D distance and angle to a landmark also in the plane.
       The current estimates for the position of the robot and landmark are $r_0$ and $l_0$ respectively and the observed measurement is $h(r_0, l_0)$. 
-      In the interactive figure below, we show both the true nonlinear factor and the Gaussian approximated factor with $r$ held constant at $r_0$. 
+      In the interactive figure below, we show both the true non-linear factor and the Gaussian approximated factor with $r$ held constant at $r_0$. 
     </p>
 
     <d-figure id="factor_linearisation"></d-figure>
@@ -393,14 +396,16 @@
     <p>
       Often due to sensor frailties or unknown hidden variables real datasets contain a large number of outlying observations. 
       The Gaussian distribution has low probability tails and so a model based on Gaussian-distributed observations is strongly influenced by the large error outliers.
-      To reduce sensitivity to outliers, there exists a large class of robust loss functions or <a href="https://en.wikipedia.org/wiki/M-estimator" target="_blank">M-estimators</a> which model the observed data with a distribution that has greater probability mass in the tails. 
-      One example is the Huber loss function <d-cite key="Huber:AMS:1964, Huber:1981"></d-cite> which models the distribution with a Gaussian close to the mean and with a Laplace distribution 
-      <d-footnote>The probability density function for the Laplace distribution is $p(x ; \mu, \beta) = \frac{1}{2b} \exp\big(\frac{-|x - \mu|}{b}\big)$. </d-footnote>.
+      To reduce sensitivity to outliers, there are a large class of robust loss functions or <a href="https://en.wikipedia.org/wiki/M-estimator" target="_blank">M-estimators</a> which model the observed data with a distribution that has greater probability mass in the tails. 
+      One example is the Huber loss function <d-cite key="Huber:AMS:1964, Huber:1981"></d-cite> which models the distribution with a Gaussian close to the mean and with a Laplace distribution
+      <d-footnote>The probability density function for the Laplace distribution is $p(x ; \mu, \beta) = \frac{1}{2b} \exp\big(\frac{-|x - \mu|}{b}\big)$. </d-footnote>
       in the tails; this is equivalent to penalising squared residuals for inliers and absolute residuals for outliers.
     </p>
 
     <p>
-      Robust estimators can be used within the Gaussian framework by rescaling the covariance of a Gaussian to match the loss of the robust estimator at that residual <d-cite key="Agarwal:etal:ICRA2013, Davison:Ortiz:ARXIV2019"></d-cite>. A number of recent works have shown covariance rescaling can effectively identify outliers via GBP <d-cite key="Ortiz:etal:CVPR2020"></d-cite>. 
+      Robust estimators can be used within the Gaussian framework by rescaling the covariance of a Gaussian to match the loss of the robust estimator at that residual <d-cite key="Agarwal:etal:ICRA2013, Davison:Ortiz:ARXIV2019"></d-cite>. 
+      The figure on the right shows how the rescaled Gaussian factor is compute.
+      A number of recent works have shown covariance rescaling can effectively identify outliers via GBP <d-cite key="Ortiz:etal:CVPR2020"></d-cite>. 
       Robustness to outliers is crucial for many applications, and we will explore its importance for image denoising in a later <a href="#attentiongl">interactive figure</a>.
     </p>
 
@@ -429,18 +434,19 @@
     </p>
 
     <p>
+      <span class="note">Talfan - can you rewrite this paragraph.</span>
       There is some evidence that the brain may apply a similar economical principle to RBP <d-cite key="Evans:Burgess:NIPS2019"></d-cite>. Also much like neural activity, GBP can operate without a global clock meaning in practical terms that GBP can be implemented on neuromorphic hardware or can be the language for communication between distributed agents or devices.
     </p>
 
     <p>
       More generally, GBP is an example of <i>factorized computation</i> <d-cite key="diehl2018factorized"></d-cite> in which a problem is solved by jointly solving many interdependent subproblems.
-      In this light, GBP can operate in a <i>just-in-time</i> or <i>attention-driven</i> fashion, focusing processing on parts of the graph to solve the local subproblems when the task demands. 
-      An attention-driven schedule can be as economical as possible with compute and energy, only sending the most task-critical messages. 
-      Sometimes, if we are only interested in a particular local set of marginals, solving the graph locally without global convergence may be enough to give accurate relative marginals up to non-local corrections.
+      In this light, as we rarely require full global solutions, GBP can operate in a <b>just-in-time</b> or <b>attention-driven</b> fashion, focusing processing on parts of the graph to solve local subproblems when the task demands. 
+      An attention-driven schedule can be very economical with compute and energy, only sending the most task-critical messages. 
+      Sometimes, if we are only interested in a particular local set of marginals, solving the graph locally without global convergence may be enough to give accurate relative marginal estimates.
     </p>
 
     <p>
-      In the figure below we explore attention-driven message passing for the task of image denoising. The figure also revisits the use of robust estimators with GBP via covariance rescaling which is crucial for sharp denoising. 
+      In the figure below we explore attention-driven message passing for the task of image denoising. The figure also revisits the use of robust loss functions with GBP via covariance rescaling which is crucial for sharp denoising. 
     </p>
 
     <d-figure id="attentiongl" class="subgrid"></d-figure>
@@ -449,14 +455,14 @@
     <h3 id="multiscale-learning">Multiscale Learning</h3>
 
     <p>
-      Being a local algorithm gives GBP many nice properties that we have discussed, however its locality also has some drawbacks.
-      As communication is purely by local message passing, propagating information from one node to another takes the same number of iterations as the number of hops between the nodes. 
+      As we have discussed being a local algorithm gives GBP many nice properties, however its locality also has some drawbacks.
+      Propagating information from one node to another takes the same number of iterations as the number of hops between the nodes. 
       For nearby nodes in a local region, information is communicated in a small number of iterations and consensus can be reached quickly, while for distant nodes, a global consensus can take many more iterations to be established. 
       Stated simply, for local algorithms the low frequency errors decay more slowly than the high frequency errors.
     </p>
 
     <p>
-      Regular grid structured graphs appear a lot in computer vision (e.g. image denoising) and in boundary value problems (e.g. solving for the temperature profile along a rod).
+      Regular grid structured graphs appear a lot in computer vision (e.g. image denoising) and in discretized boundary value problems (e.g. solving for the temperature profile along a rod).
       Accelerating convergence in such grid graphs has been well-studied in the field of Multigrid methods <d-cite key="briggs2000multigrid"></d-cite>.
       One simple approach is to coarsen the grid which transforms low frequency errors into higher frequency errors that decay faster. 
       After convergence, the coarsened grid is used to initialise inference in the original grid which now has smaller low frequency errors. 
@@ -476,7 +482,7 @@
       Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build coarsened graphs that represent the same problem. 
       In general, most problems are more unstructured and it is not possible to build a coarsened or abstracted representation of the original problem.
       An alternative approach, is to introduce long range connections into the original graph which represent more global features and act as shortcuts for propagating global information.
-      This is tackled in (ref) which adds nodes for planes on top of a point-based SLAM factor graph, leading to faster convergence.
+      This is tackled in <span class="note">(ref)</span> which adds nodes for planes on top of a point-based SLAM factor graph, leading to faster convergence.
     </p>
 
     <!-- <figure class="l-page-outset">
@@ -486,32 +492,65 @@
     <h2 id="related-methods">Related Methods</h2>
 
     <p>
-      As we explored <a href="#from-probabilistic-inference-to-linear-algebra">above</a>, probabilistic inference for linear Gaussian problems is equivalent to solving the linear system $\Lambda \mu = \eta$ where $\mu$ is the MAP estimate and the diagonal elements of $\Lambda^{-1}$ are the covariances.
-      When only the MAP estimate is required, solving by directly inverting $\Lambda$ can be very costly for large systems and there are numerous methods for efficiently solving the system without inverting the Fisher information matrix $\Lambda$. 
-      These methods leverage the sparsity structure in the symmetric and positive definite information matrix.
-      In the context of spatial estimation problems, where there is often strong sparsity structure in the information matrix, a host of methods have been developed <span class="note">(ref)</span>. 
+      To recap, inference in Gaussian models, is equivalent to solving the linear system $Ax=b$ for (1) $x$ and (2) the block diagonal elements of $A^{-1}$, where $A$ is a real, square, symmetric, positive definite matrix with known sparsity structure.
+      Solving for (1) is <b>MAP inference</b> while solving for (1) and (2) is <b>marginal inference</b>.
+      When the posterior is not Gaussian, for example due to non-linear relations or robust loss functions, we can repeatedly solve Gaussian approximations of the problem at each iteration. 
+    </p>
+    <p>
+      GBP is a marginal inference algorithm for Gaussian models. 
+      We summarise some related algorithms for MAP and marginal inference in the figure below. 
+      It is not a comprehensive list of inference algorithms and we have excluded sampling based inference methods. 
+    </p>
+
+    <d-figure id="related"></d-figure>
+
+    <p>
+      We have shown in green methods that are naturally node-wise parallel.
+      The other methods are not naturally parallel however there have been efforts to make somewhat parallel versions of these methods (e.g. parallel conjugate gradient ref, parallel decomposition ref). 
     </p>
 
     <p>
-    For linear problems, direct methods solve the system exactly in a fixed number of steps. Examples of direct methods are Gaussian elimination and a number of methods that factorize the information matrix (LU, QR and Cholesky factorization). 
-    For non-linear problems, these linear solvers are wrapped in an algorithm like Gauss-Newton or Levenberg-Marquardt.
+      Parallelism is important, not relying on fixed structure is important.
+      Evidence that GBP is faster for loopy graphs without fixed structure (ref my work). 
     </p>
-    
-    <p>
-      On the other hand there are indirect or iterative methods that converge to the solution from an initial estimate over many steps. Iterative methods can be preferable for very large systems as they can require less compute or for non-linear systems as they can be relinearized more frequently. 
-    Examples of iterative methods are gradient descent, the Jacobi and Gauss-Seidel methods, and conjugate gradient methods. 
+
+
+    <!-- <p>
+      In computer vision / robotics, methods to efficiently recover specific blocks of the covariance matrix that you want <d-cite key="Triggs:etal:VISALG1999, kaess2009covariance"></d-cite>. 
+      There have been many attempts to parallelize many of these methods, e.g.  
     </p>
-    
+
     <p>
-      Gaussian Belief Propagation is closely related to these iterative methods, and is in fact equivalent to the Jacobi and Gauss-Seidel methods with the right message scheduling if the variances are ignored (first pointed out by Weiss Freeman 2000). 
+      As we have discussed, BP is a method for computing marginal distributions which for Gaussian models is equivalent to solving a linear system $\Lambda \mu=\eta$, where $\mu$ is the marginal means and the diagonal elements of $\Lambda^{-1}$ are the marginal covariances. 
+      For non-linear problems, the solution can be reached by successively taking steps to solve Gaussian approximations of the true model.
+    </p>
+    <p>
+      Disregarding the uncertainty calculation, GBP is solving a non-linear least squares problem to minimize the sum of the factor energies. 
+      There are a host of non-linear least squares solvers that can be divided into line search methods and trust region methods.
+      Line search methods choose a descent direction and then step size at each iteration.
+      Trust region methods approximate the energy using a model within a trust region - in the Gauss-Newton algorithm the model is a quadratic function meaning the factors are approximated as Gaussians as in GBP.
+      In trust region methods, the fundamental step involves solving efficient linear solvers that leverage sparsity structure in the symmetric and positive definite information matrix.
+      The best linear solver for a specific problem depends very much on the problem structure.
+      We can broadly divide linear solvers into direct and indirect methods.
+      Direct methods (e.g. Gaussian elimination, QR and Cholesky factorization) solve the linear system exactly in a fixed number of steps 
+      but can be computationally expensive and difficult to distribute for large problems. 
+      Indirect methods (e.g. gradient descent, conjugate gradient, the Jacobi and Gauss-Seidel methods) converge to the solution from an initial estimate over many steps.
+      For large systems indirect methods can be less memory intesive and faster.
+      These methods have culminated efficient and robust non-linear least squares solvers <d-cite key="CeresManual, Dellaert:TechReport2012"></d-cite>.
+    </p>
+
+    <p>
+       are all indirect algorithms that compute the marginal means.
+      In contrast, GBP is an indirect method that also updates the covariance matrix, which allows us to track uncertainty, as well as the means. 
+      In fact, with a synchronous message passing schedule GBP is equivalent to the Jacobi method <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>.
     </p>
     
     <p>
       The linear solvers can also be used for full probabilistic inference, as the factorized information matrix can be inverted. 
     For probabilistic inference there are also a host of algorithms, inference is essentially integration: 
     Approximate inference algorithms: rejection sampling, monte carlo (Gibbs sampling, metropolis hastings), particle filters, variational methods (mean field inference, interpretation of GBP as variational method - Bethe free energy).
-    Other distributed probabilistic inference algorithms exist (ref Tim Barfoot), has not been shown to work, uses extra memory and computation and not as distributed. 
-    </p>
+    Other distributed probabilistic inference algorithms exist <d-cite key="barfoot2020fundamental"></d-cite>, has not been shown to work, uses extra memory and computation and not as distributed. 
+    </p> -->
 
     <h2 id="discussion">Discussion</h2>
   

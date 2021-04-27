@@ -24,6 +24,11 @@ const HuberComponent = new Huber({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#huber')
 });
 
+import Related from "./diagrams/related.svelte";
+const RelatedComponent = new Related({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#related')
+});
+
 // import Playground from "./diagrams/playground_tabs.svelte";
 // const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars
 //   target: document.querySelector('#playground')
