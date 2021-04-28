@@ -1139,7 +1139,7 @@ TODO
     </div>
 
     <figcaption id="caption">
-        GBP for image denoising. 
+        GBP for image denoising <d-cite key="Scona:github2020"></d-cite>. 
         You can choose either all-to-all message passing or an attention-driven schedule around the mouse. 
         Choosing a squared loss function results in a blurred denoising while the robust Huber loss gives a sharper denoising.
         You can select the image or use a live feed from your webcam. 

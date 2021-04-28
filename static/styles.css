@@ -65,6 +65,20 @@
   font-weight: bold;
 }
 
+.box {
+  border: 5px solid var(--blue);
+  border-radius: 15px;
+  background-color: var(--gray-bg);
+  margin-bottom: 12px;
+  padding-top: 8px;
+}
+
+.statement {
+  text-align: center;
+  font-weight: bold;
+  color: var(--blue)
+}
+
 d-figure.base-grid {
   grid-column: screen;
   background: hsl(0, 0%, 97%);

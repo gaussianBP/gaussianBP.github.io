@@ -303,6 +303,7 @@
 
     <p>
       <!-- (i.e. models for which the posterior is assumed to be Gaussian) -->
+      <!-- Use energy formulation in equations? -->
       For Gaussian models, the marginal means are equivalent to the maximum a posteriori parameters (MAP).
       More simply stated, the full posterior is maximized by the same parameter values that maximize the individual marginal posteriors. 
       Therefore by computing the marginals, GBP is finding the MAP solution and also the uncertainty in each estimate.
@@ -386,6 +387,11 @@
       Further away from $l_0$, the linear approximation begins to break down and value of the true factor can differ substantially from the Gaussian approximation.
       During optimization, we can avoid this region of poor approximation by relinearizing often.
       As GBP is local, a just-in-time approach to linearization <d-cite key="Ranganathan:etal:IJCAI2007"></d-cite> can be used in which factors are relinearized individually when the current estimate of the adjacent variables strays from the linearization point.
+    </p>
+
+    <p>
+      <span class="note">Where to include this paragraph about nonlinear</span>
+      When the posterior is not Gaussian, for example due to non-linear relations or robust loss functions, we can repeatedly solve Gaussian approximations of the problem to approach the true solution. There are efficeint libraries <d-cite key="CeresManual, Dellaert:TechReport2012"></d-cite> for non-linear Gaussian inference which use trust region methods like Gauss-Newton or line search methods to guide the repeated linear steps.
     </p>
 
     <h3 id="robust-loss-functions">Robust Loss Functions</h3>
@@ -482,7 +488,7 @@
       Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build coarsened graphs that represent the same problem. 
       In general, most problems are more unstructured and it is not possible to build a coarsened or abstracted representation of the original problem.
       An alternative approach, is to introduce long range connections into the original graph which represent more global features and act as shortcuts for propagating global information.
-      This is tackled in <span class="note">(ref)</span> which adds nodes for planes on top of a point-based SLAM factor graph, leading to faster convergence.
+      This is tackled in <span class="note"><d-cite key="Ortiz:planes2021"></d-cite>></span> which adds nodes for planes on top of a point-based SLAM factor graph, leading to faster convergence.
     </p>
 
     <!-- <figure class="l-page-outset">
@@ -492,64 +498,50 @@
     <h2 id="related-methods">Related Methods</h2>
 
     <p>
-      To recap, inference in Gaussian models, is equivalent to solving the linear system $Ax=b$ for (1) $x$ and (2) the block diagonal elements of $A^{-1}$, where $A$ is a real, square, symmetric, positive definite matrix with known sparsity structure.
-      Solving for (1) is <b>MAP inference</b> while solving for (1) and (2) is <b>marginal inference</b>.
-      When the posterior is not Gaussian, for example due to non-linear relations or robust loss functions, we can repeatedly solve Gaussian approximations of the problem at each iteration. 
+      To recap, inference in Gaussian models, is equivalent to solving the linear system $Ax=b$ for (1) $x$ and (2) the block diagonal elements of $A^{-1}$.
+      The information matrix $A$ is a real, square, symmetric, positive definite matrix with known sparsity structure.
+      Solving for only (1) is <b>MAP inference</b> while solving for both (1) and (2) is <b>marginal inference</b>.
     </p>
     <p>
-      GBP is a marginal inference algorithm for Gaussian models. 
-      We summarise some related algorithms for MAP and marginal inference in the figure below. 
-      It is not a comprehensive list of inference algorithms and we have excluded sampling based inference methods. 
+      In the figure below, we present a visual overview of methods for Gaussian inference. 
+      GBP is a marginal inference algorithm and you can hover over the circles in the figure to explore how GBP relates closely to other methods. 
+      Note that the figure is not a comprehensive list - for example we have excluded sampling based inference methods. 
     </p>
 
     <d-figure id="related"></d-figure>
 
     <p>
-      We have shown in green methods that are naturally node-wise parallel.
-      The other methods are not naturally parallel however there have been efforts to make somewhat parallel versions of these methods (e.g. parallel conjugate gradient ref, parallel decomposition ref). 
+      With so many different methods, choosing which method to use can be a challenge in itself. 
+      Judging the speed of each method is complex and depends on both the sparsity structure of $A$ and on the implementation on the available hardware. 
+      Our key argument in this article is that we want a general method that:
     </p>
-
+    <div class="box">
+    <ol>
+      <li>Estimates uncertainties i.e. does marginal inference rather than MAP inference.</li>
+      <li>Can work well for arbitrary sparsity structure.</li>
+      <li>Can maximally exploit available hardware parallelism i.e. is node-wise parallel <d-footnote>An algorithm that is node-wise parallel is as parallel. This is because node-wise parallel means that only variables that are conditionally dependent communicate directly.</d-footnote>.</li>
+    </ol>
+    <p class="statement">
+      These principles point us towards Gaussian Belief Propagation.
+    </p>
+    </div>
     <p>
-      Parallelism is important, not relying on fixed structure is important.
-      Evidence that GBP is faster for loopy graphs without fixed structure (ref my work). 
+      Other notable candidate methods are Expectation Propagation (EP) <d-cite key="minka2013ep"></d-cite> and Barfoot's algorithm <d-cite key="barfoot2020fundamental"></d-cite>.
+      EP is generally not node-wise parallel and simplifies to GBP in the special case when it is node-wise parallel, while Barfoot's algorithm involves extra communication edges and is yet to be applied to real problems. 
+      For these reasons GBP stands out as the extreme case that maximizes parallelism and minimizes communication - two principles that are at the core of scalable and low-power computation.
     </p>
 
+    <!--
 
-    <!-- <p>
-      In computer vision / robotics, methods to efficiently recover specific blocks of the covariance matrix that you want <d-cite key="Triggs:etal:VISALG1999, kaess2009covariance"></d-cite>. 
-      There have been many attempts to parallelize many of these methods, e.g.  
-    </p>
-
-    <p>
-      As we have discussed, BP is a method for computing marginal distributions which for Gaussian models is equivalent to solving a linear system $\Lambda \mu=\eta$, where $\mu$ is the marginal means and the diagonal elements of $\Lambda^{-1}$ are the marginal covariances. 
-      For non-linear problems, the solution can be reached by successively taking steps to solve Gaussian approximations of the true model.
-    </p>
     <p>
       Disregarding the uncertainty calculation, GBP is solving a non-linear least squares problem to minimize the sum of the factor energies. 
       There are a host of non-linear least squares solvers that can be divided into line search methods and trust region methods.
       Line search methods choose a descent direction and then step size at each iteration.
       Trust region methods approximate the energy using a model within a trust region - in the Gauss-Newton algorithm the model is a quadratic function meaning the factors are approximated as Gaussians as in GBP.
       In trust region methods, the fundamental step involves solving efficient linear solvers that leverage sparsity structure in the symmetric and positive definite information matrix.
-      The best linear solver for a specific problem depends very much on the problem structure.
-      We can broadly divide linear solvers into direct and indirect methods.
-      Direct methods (e.g. Gaussian elimination, QR and Cholesky factorization) solve the linear system exactly in a fixed number of steps 
-      but can be computationally expensive and difficult to distribute for large problems. 
-      Indirect methods (e.g. gradient descent, conjugate gradient, the Jacobi and Gauss-Seidel methods) converge to the solution from an initial estimate over many steps.
-      For large systems indirect methods can be less memory intesive and faster.
-      These methods have culminated efficient and robust non-linear least squares solvers <d-cite key="CeresManual, Dellaert:TechReport2012"></d-cite>.
-    </p>
-
+    </p>    
     <p>
-       are all indirect algorithms that compute the marginal means.
-      In contrast, GBP is an indirect method that also updates the covariance matrix, which allows us to track uncertainty, as well as the means. 
-      In fact, with a synchronous message passing schedule GBP is equivalent to the Jacobi method <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>.
-    </p>
-    
-    <p>
-      The linear solvers can also be used for full probabilistic inference, as the factorized information matrix can be inverted. 
-    For probabilistic inference there are also a host of algorithms, inference is essentially integration: 
-    Approximate inference algorithms: rejection sampling, monte carlo (Gibbs sampling, metropolis hastings), particle filters, variational methods (mean field inference, interpretation of GBP as variational method - Bethe free energy).
-    Other distributed probabilistic inference algorithms exist <d-cite key="barfoot2020fundamental"></d-cite>, has not been shown to work, uses extra memory and computation and not as distributed. 
+    Approximate inference algorithms: rejection sampling, monte carlo (Gibbs sampling, metropolis hastings), particle filters, 
     </p> -->
 
     <h2 id="discussion">Discussion</h2>
