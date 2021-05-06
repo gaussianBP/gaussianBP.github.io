@@ -77,7 +77,7 @@
     <p>
       As ML is increasingly embedded into the physical world, power consumption and communication costs both within and across systems will become limiting factors. 
       Both can be minimized by co-developing algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
-      Towards this goal, Sutter identifies the emergence of a "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, and distributed compute.
+      Towards this goal, Sutter identifies the emergence of a "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous compute.
     </p>
     <p>
       To operate in the real world, ML systems of the future will also need to be highly inhomogeneous in their representation. 
@@ -96,6 +96,11 @@
       High level diagram for different structure of problems (sequential, autoregressive, )
     </p>
 
+    <p class="note">
+Andy - I  would be  even stronger than saying a core component; probability is the only way we know to build convergent incremental inference systems. Also probability as the glue between systems that need to inferface.
+    </p>
+
+    
     <p>
       We believe that the a core component of future systems will be the ability to represent the world probabilistically. 
       Systems that can take into account the relative uncertainty of new data are able to more appropriately update their existing beliefs, learn from less data (meaning less computation and lower energy costs; <span class="note">ref.</span>) and mitigate catastrophic forgetting in continually learning settings <span class="note">(ref.)</span>. 
@@ -120,6 +125,12 @@
       Want convergence guarantees. 
 
     </p>
+
+    <p class="note">
+Andy - takes a long time to get to the first mention of GBP.
+    </p>
+
+      
     <p>
       In this article, we discuss Gaussian Belief Propagation (GBP) as a strong general purpose algorithmic and representational framework for large scale distributed inference. 
       GBP is a special case of loopy belief propagation (BP), which operates on a per node basis by purely local message passing. 
@@ -130,6 +141,12 @@
     <p>
       This iterative, asynchronous operation will enable large graphs that are 'always approximately correct', in the sense that local clusters of nodes may be well converged relative to one another, despite misalignment with more distant clusters. This could, for example enable an embodied agent or robot to perform local obstacle avoidance without needing the global graph to have converged. This property is also attractive from an energy consumption perspective; computation can be focused on regions relevant to the current task demand to enable 'just in time' convergence <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>.
     </p>
+
+   <p class="note">
+Andy - stronger - GBP is special; GBP with robust factors and linearisation is much more general than most people would think.
+    </p>
+
+    
     <p>
       Unlike general loopy BP, GBP is convergent under well defined conditions <d-cite key="Bickson:PhDThesis:2008"></d-cite>.
       In this article, we will show that GBP is intimately linked to the essential problem of solving linear systems of equations $Ax = b$. 
