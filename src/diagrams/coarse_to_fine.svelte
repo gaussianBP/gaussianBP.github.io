@@ -546,8 +546,9 @@
 
     </div>
 
-    <figcaption style="text-align: center;">
-        Multiscale learning. Iterate through GBP while changing the scale of the problem. 
+    <figcaption style="text-align: left;">
+        Use the buttons at the top to iterate through GBP while changing the scale of the problem. 
+        We found that the fastest convergence can be achieved by doing a few iterations at the coarsest level and then going straight to the finest level.
     </figcaption>
 
 

@@ -21,6 +21,10 @@
   grid-row-gap: inherit;
 }
 
+d-figure.wider{
+  grid-column: page;
+}
+
 .right-d-figure {
   float: right;
   position: relative;

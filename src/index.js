@@ -29,6 +29,11 @@ const RelatedComponent = new Related({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#related')
 });
 
+import Phases from "./diagrams/phases.svelte";
+const PhasesComponent = new Phases({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#phases')
+});
+
 // import Playground from "./diagrams/playground_tabs.svelte";
 // const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars
 //   target: document.querySelector('#playground')
