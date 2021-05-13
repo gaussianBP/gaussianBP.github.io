@@ -911,7 +911,7 @@ TODO
         width: 600px;
     }
 
-   #control-panel {
+    #control-panel {
         width: 600px;
         line-height: 1em;
         display: grid;
@@ -1043,6 +1043,10 @@ TODO
 
             <div id="play-pause-reset-speed">
                 <div id="play-pause-reset">
+                    <button class="gbp-button" style="outline: none;" on:click={reset}>
+                        <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
+                    </button>    
+                    
                     {#if gbp_on || attention_on}
                         <button class="gbp-button" class:disabled={attention_on} on:click={switchGBP}>
                             <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
@@ -1051,11 +1055,7 @@ TODO
                         <button class="gbp-button" class:disabled={attention_on} on:click={switchGBP}>
                             <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
                         </button>
-                    {/if}
-
-                    <button class="gbp-button" style="outline: none;" on:click={reset}>
-                        <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
-                    </button>                
+                    {/if}            
                 </div>            
 
                 <div id="speed-slider-container" class="slider-container">
@@ -1083,12 +1083,12 @@ TODO
             </div>
 
             <span class="hint bold-text">
-                Balance the data factors against smoothing factors:
+                Balance the data and smoothing factors:
             </span>
 
             <div id="precision-sliders">
                 <div class="slider-container">
-                    Measurement precision: <br>
+                    Data precision: <br>
                     <input class="full-width-slider" type="range" min="{10000}" max="{1/0.001**2}" bind:value={priorLam} step="100"/>
                     <div class="status">
                         ({(priorLam/10000).toFixed(0)} units)

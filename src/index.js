@@ -19,6 +19,12 @@ const CoarseToFineComponent = new CoarseToFine({ // eslint-disable-line no-unuse
   target: document.querySelector('#coarse_to_fine')
 });
 
+// import CoarseToFinev2 from "./diagrams/coarse_to_fine_v2.svelte";
+// const CoarseToFinev2Component = new CoarseToFinev2({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#coarse_to_fine_v2')
+// });
+
+
 import Huber from "./diagrams/huber.svelte";
 const HuberComponent = new Huber({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#huber')
@@ -89,10 +95,10 @@ const FactorLinearisationComponent = new FactorLinearisation({ // eslint-disable
 //   target: document.querySelector('#custom_playground')
 // });
 
-// import Robot from "./diagrams/robot2d.svelte";
-// const RobotComponent = new Robot({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#robot')
-// });
+import GBP1d from "./diagrams/gbp1d.svelte";
+const GBP1dComponent = new GBP1d({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#gbp1d')
+});
 
 
 // import RobotNonlinearSim from "./diagrams/gbp2d_nonlinear.svelte";

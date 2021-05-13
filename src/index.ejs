@@ -62,17 +62,17 @@
 
     <g>
 
+    <p class="note">
+      Begin with abstract like overview of article, so we mention GBP early on.
+    </p>
+
     <h2 id="introduction">Introduction </h2>
 
 
-
     <p class="note">
-Andy - main thought at the moment - there is so much good stuff in here, but  I think we're missing  the mark at the moment with regard to giving the reader an actual  feel for  the   main  element of just how  GBP works  and  what  its character is. I would argue for bringing the GBP playground back, or at least something like that, where the reader can really experiment with click by click GBP updates, robust factors, etc.
+      Andy - main thought at the moment - there is so much good stuff in here, but  I think we're missing  the mark at the moment with regard to giving the reader an actual  feel for  the   main  element of just how  GBP works  and  what  its character is. I would argue for bringing the GBP playground back, or at least something like that, where the reader can really experiment with click by click GBP updates, robust factors, etc.
     </p>
 
-
-
-    
     <p>
       The "Bitter Lesson" of machine learning (ML) research has been that "general methofds that leverage computation are ultimately the most effective, and by a large margin" <d-cite key="Sutton:BitterLesson2019"></d-cite>. At the time of writing, the state-of-the-art across most ML benchmarks is dominated by GPU driven deep learning.
     </p>
@@ -163,6 +163,17 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
       We will also explore how introducing non-linear factors can extend the framework for more flexible representation, how message scheduling affects convergence  and how communication overheads can be minimized by adding hierarchical structure. 
     </p>
 
+    <div class="box">
+      <ol>
+        <li>Local.</li>
+        <ul>
+          <li>Can work well for arbitrary sparsity structure.</li>
+          <li>Can maximally exploit available hardware parallelism i.e. is local <d-footnote>An algorithm that is node-wise parallel is as parallel as possible. This is because that only variables that are conditionally dependent communicate directly.</d-footnote>.</li>
+        </ul>
+        <li>Probabilistic: Estimates uncertainties i.e. does marginal inference rather than MAP inference.</li>
+        <li>Iterative</li>
+      </ol>
+    </div>
 
     <h2 id="technical-introduction">Technical Introduction </h2>
 
@@ -307,14 +318,9 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
 
       <d-figure id="bp_equations" class="subgrid"></d-figure>
     
-      <d-figure id="message_passing"></d-figure>
       <p>
         So far, although we have outlined the BP equations, we have not specified the form of the factors, messages or beliefs. 
         In the remainder of the techical introduction, we focus on Gaussian belief propagation which is a special form of continous BP for Gaussian models. 
-      </p>
-
-      <p class="note">
-        Andy - I feel here that I'm really missing the chance to play with GBP to understand what passing each message does  for myself. Can the diagram here be changed to an interactive simulation where we can click on nodes to send messages?  i.e. more like the GBP playground? Or have that as well?
       </p>
 
       <h3 id="gaussian-models">Gaussian Models</h2>
@@ -410,7 +416,10 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
     </p>
 
     <d-figure id="message_passing"></d-figure>
-
+    
+    <p class="note">
+      Andy - I feel here that I'm really missing the chance to play with GBP to understand what passing each message does  for myself. Can the diagram here be changed to an interactive simulation where we can click on nodes to send messages?  i.e. more like the GBP playground? Or have that as well?
+    </p>
 
     <h2 id="beyond-the-standard-algorithm">Beyond the standard algorithm </h2>
 
@@ -514,6 +523,7 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
 
     <p class="note">
       Could include comment here about captcha paper and balancing competing hypotheses.
+      Robust factors play similar role to non-linearities in neural networks.
     </p>
 
     </g>
@@ -547,6 +557,8 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
       An attention-driven schedule can be very economical with compute and energy, only sending the most task-critical messages. 
       Sometimes, if we are only interested in a particular local set of marginals, solving the graph locally without global convergence may be enough to give accurate relative estimates.
     </p>
+
+    <d-figure id="gbp1d" class="subgrid"></d-figure>
 
     <p>
       In the <a href="#attentiongl">figure</a> below we explore attention-driven message passing for the task of image denoising. The figure also revisits the use of robust loss functions with GBP via covariance rescaling which is crucial for sharp denoising. 
@@ -586,6 +598,7 @@ Andy - I am still struggling to understand what is happening in this figure... j
 
     
     <d-figure id="coarse_to_fine"></d-figure>
+    <!-- <d-figure id="coarse_to_fine_v2"></d-figure> -->
 
     <p>
       Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build coarsened representations the same problem. 
@@ -624,20 +637,7 @@ Andy - I am still struggling to understand what is happening in this figure... j
     </p>
 
 
-    <div class="box">
-      <ol>
-        <li>Local.</li>
-        <ul>
-          <li>Can work well for arbitrary sparsity structure.</li>
-          <li>Can maximally exploit available hardware parallelism i.e. is local <d-footnote>An algorithm that is node-wise parallel is as parallel as possible. This is because that only variables that are conditionally dependent communicate directly.</d-footnote>.</li>
-        </ul>
-        <li>Probabilistic: Estimates uncertainties i.e. does marginal inference rather than MAP inference.</li>
-        <li>Iterative</li>
-      </ol>
-      <p class="statement">
-        These principles point us towards Gaussian Belief Propagation.
-      </p>
-      </div>
+
 
     <!--
 

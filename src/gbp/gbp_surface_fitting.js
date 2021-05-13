@@ -12,6 +12,16 @@ export class FactorGraph {
     this.past_first_meas = 0;
   }
 
+  get_beliefs() {
+    let belief_etas = [];
+    let belief_lams = [];
+    for(var c=0; c<this.var_nodes.length; c++) {
+      belief_etas.push(this.var_nodes[c].belief.eta.get(0,0))
+      belief_lams.push(this.var_nodes[c].belief.lam.get(0,0))
+    }
+    return [belief_etas, belief_lams];
+  }
+
   update_beliefs() {
     for(var c=0; c<this.var_nodes.length; c++) {
       this.var_nodes[c].update_belief();
@@ -68,15 +78,18 @@ export class FactorGraph {
       bigLam.set(ix+1, ix+1, bigLam.get(ix+1, ix+1) + this.factors[c].factor.lam.get(1, 1));
     }
 
+    // console.log(bigEta, bigLam);
+
     const Cov = m.inverse(bigLam);
     const Means = Cov.mmul(bigEta);
 
-    for(var c=0; c<this.var_nodes.length; c++) {
-      this.var_nodes[c].MAP_mean = Means.get(c, 0);
-      this.var_nodes[c].MAP_std = Math.sqrt(Cov.get(c, c));
-    }
+    // console.log(Means, Cov);
 
-    return Means;
+    // for(var c=0; c<this.var_nodes.length; c++) {
+    //   this.var_nodes[c].MAP_mean = Means.get(c, 0);
+    //   this.var_nodes[c].MAP_std = Math.sqrt(Cov.get(c, c));
+    // }
+    return [Means, Cov.diag()];
   }
 
   compare_to_MAP() {
@@ -122,14 +135,33 @@ export class FactorGraph {
     this.sweep_ix = next_ix;
     this.forward = next_forward;
   }
+
+  send_mess_left(id) {
+    if (id > 0) { 
+      this.factors[id-1].send_mess(0); 
+      if (this.factors[id-1].messages[0].eta.get(0,0) != 0) {
+        this.var_nodes[id-1].update_belief(); 
+      }
+    }
+  }
+
+  send_mess_right(id) {  
+    if (id < this.var_nodes.length-1) { 
+      this.factors[id].send_mess(1); 
+      if (this.factors[id].messages[1].eta.get(0,0) != 0) {
+        this.var_nodes[id+1].update_belief(); 
+      }
+    }
+  }
+
+
 }
 
 export class VariableNode {
-  constructor(id, x) {
+  constructor(id) {
     this.var_id = id;
     this.belief = new gauss.Gaussian(m.Matrix.zeros(1, 1), m.Matrix.zeros(1, 1));
     this.dofs = 1;
-    this.x = x;
 
     this.MAP_mean = null;
     this.MAP_std = null;
@@ -169,7 +201,8 @@ export class LinearFactor {
     this.lambdas = [];
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
 
-    this.messages = [];
+    this.messages = [new gauss.Gaussian(m.Matrix.zeros(1, 1), m.Matrix.zeros(1, 1)),
+                     new gauss.Gaussian(m.Matrix.zeros(1, 1), m.Matrix.zeros(1, 1))];
   }
 
   compute_factor() {
@@ -185,39 +218,47 @@ export class LinearFactor {
   send_mess(ix) {
     if (ix) {
       const mess1 = new gauss.Gaussian([[0]], [[0]]);
-      mess1.eta = new m.Matrix([[this.factor.eta.get(1, 0) - 
+      if (!(this.adj_beliefs[0].lam.get(0, 0)==0 && this.lambdas.length==1)) {  // If message has absolute information
+        mess1.eta = new m.Matrix([[this.factor.eta.get(1, 0) - 
           this.factor.lam.get(1, 0) * (this.factor.eta.get(0, 0) + this.adj_beliefs[0].eta.get(0, 0) - this.messages[0].eta.get(0, 0)) / 
           (this.factor.lam.get(0, 0) + this.adj_beliefs[0].lam.get(0, 0) - this.messages[0].lam.get(0, 0))]]);
-      mess1.lam = new m.Matrix([[this.factor.lam.get(1, 1) - 
+        mess1.lam = new m.Matrix([[this.factor.lam.get(1, 1) - 
           this.factor.lam.get(1, 0) * this.factor.lam.get(0, 1) / 
           (this.factor.lam.get(0, 0) + this.adj_beliefs[0].lam.get(0, 0) - this.messages[0].lam.get(0, 0))]]);
+      }
       this.messages[1] = mess1;
     } else {
       const mess0 = new gauss.Gaussian([[0]], [[0]]);
-      mess0.eta = new m.Matrix([[this.factor.eta.get(0, 0) - 
-          this.factor.lam.get(0, 1) * (this.factor.eta.get(1, 0) + this.adj_beliefs[1].eta.get(0, 0) - this.messages[1].eta.get(0, 0)) / 
-          (this.factor.lam.get(1, 1) + this.adj_beliefs[1].lam.get(0, 0) - this.messages[1].lam.get(0, 0))]]);
-      mess0.lam = new m.Matrix([[this.factor.lam.get(0, 0) - 
-          this.factor.lam.get(0, 1) * this.factor.lam.get(1, 0) / 
-          (this.factor.lam.get(1, 1) + this.adj_beliefs[1].lam.get(0, 0) - this.messages[1].lam.get(0, 0))]]);
+      if (!(this.adj_beliefs[1].lam.get(0, 0)==0 && this.lambdas.length==1)) {  // If message has absolute information
+        mess0.eta = new m.Matrix([[this.factor.eta.get(0, 0) - 
+            this.factor.lam.get(0, 1) * (this.factor.eta.get(1, 0) + this.adj_beliefs[1].eta.get(0, 0) - this.messages[1].eta.get(0, 0)) / 
+            (this.factor.lam.get(1, 1) + this.adj_beliefs[1].lam.get(0, 0) - this.messages[1].lam.get(0, 0))]]);
+        mess0.lam = new m.Matrix([[this.factor.lam.get(0, 0) - 
+            this.factor.lam.get(0, 1) * this.factor.lam.get(1, 0) / 
+            (this.factor.lam.get(1, 1) + this.adj_beliefs[1].lam.get(0, 0) - this.messages[1].lam.get(0, 0))]]);
+      }
       this.messages[0] = mess0;
     }
   }
 
   send_both_mess(){
+    const old_mess0 = this.messages[0];
     this.send_mess(0);
+    const new_mess0 = this.messages[0];
+    this.messages[0] = old_mess0;
     this.send_mess(1);
+    this.messages[0] = new_mess0;
   }
 }
 
 
-export function create1Dgraph(n_var_nodes, x_offset, x_spacing, smoothness_std) {
+export function create1Dgraph(n_var_nodes, smoothness_std) {
 
   const graph = new FactorGraph()
 
   // Create variable nodes
   for(var i=0; i<n_var_nodes; i++) {
-    const var_node = new VariableNode(i, x_offset + i*x_spacing);
+    const var_node = new VariableNode(i);
     graph.var_nodes.push(var_node);
   }
 
