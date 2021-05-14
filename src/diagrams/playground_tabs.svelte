@@ -1,24 +1,48 @@
 <script>
     import { Tabs, TabList, TabPanel, Tab } from '../utils/tabs/tabs.js';
     
-  	import CustomPlayground from './pose_graph2d.svelte';
+  	import CustomPlayground from './pose_graph2d_linear.svelte';
 	import Robot from './robot2d.svelte';
 	
 </script>
 
+<style>
 
-<Tabs>
-	<TabList>
-		<Tab>Customizable 2D Pose Graphs</Tab>
-		<Tab>2D Robot Simulation</Tab>
-	</TabList>
+	#wrapper {
+		grid-column: page;
+	}
 
-	<TabPanel>
-        <CustomPlayground/>
-	</TabPanel>
+    #caption {
+        text-align: left;
+        grid-column: page;
+    }
 
-	<TabPanel>
-        <Robot/>
-	</TabPanel>
+</style>
 
-</Tabs>
+<figure class="subgrid">
+
+    <div id="wrapper" class="interactive-container">
+
+		<Tabs>
+			<TabList>
+				<Tab>Customizable 2D Pose Graphs</Tab>
+				<Tab>2D Robot Simulation</Tab>
+			</TabList>
+
+			<TabPanel>
+				<CustomPlayground/>
+			</TabPanel>
+
+			<TabPanel>
+				<Robot/>
+			</TabPanel>
+
+		</Tabs>
+
+    </div>
+
+    <figcaption id="caption">
+        Gaussian Belief propagation playground.
+    </figcaption>
+
+</figure>

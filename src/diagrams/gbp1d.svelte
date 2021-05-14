@@ -419,7 +419,7 @@
     #svg {
         width: 600px;
         height: 300px;
-        background-color: var(--gray-bg);
+        background-color: #FCF7DE;
         border: 1px solid var(--gray);
     }
 
@@ -584,7 +584,6 @@
     }
 
     .hidden {
-        /* stroke: black; */
         display: none;
     }
 
@@ -838,7 +837,7 @@
 
     <figcaption id="caption">
         1D line fitting. 
-        Create your data factors and experiment with different message passing schedules. 
+        Create data factors by clicking on the canvas and experiment with different message passing schedules. 
         Use the synchronous, random and sweep schedules or create your own by clicking on variable nodes to send messages.
         Note the variable nodes start at the bottom of the canvas before they have received any messages.
     </figcaption>

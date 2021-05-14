@@ -40,10 +40,10 @@ const PhasesComponent = new Phases({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#phases')
 });
 
-// import Playground from "./diagrams/playground_tabs.svelte";
-// const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#playground')
-// });
+import Playground from "./diagrams/playground_tabs.svelte";
+const PlaygroundComponent = new Playground({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#playground')
+});
 
 import GaussianGM from "./diagrams/gaussian_gm.svelte";
 const GaussianGMComponent = new GaussianGM({ // eslint-disable-line no-unused-vars

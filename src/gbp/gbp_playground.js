@@ -1,17 +1,45 @@
 import * as m from 'ml-matrix';
 import * as gauss from '../utils/gaussian';
 import { getEllipse } from '../utils/gaussian';
-import * as nlm from "./nonlinear_meas_fn.js";
 import * as r from "random";
 
-
-var offset_distance_tolerance = 10;
 
 export class FactorGraph {
   constructor() {
     this.var_nodes = [];
     this.factor_nodes = [];
   }
+
+  update_beliefs(ids = null, update_ellipses=true) {
+    for (let i = 0; i < this.var_nodes.length; i++) {
+      if (ids == null) {
+        this.var_nodes[i].update_belief(this);
+        if (update_ellipses) { this.var_nodes[i].update_ellipse(); }
+      } else if (ids.includes(this.var_nodes[i].id)) {
+        this.var_nodes[i].update_belief(this);
+        if (update_ellipses) { this.var_nodes[i].update_ellipse(); }
+      }
+    }
+  }
+
+  update_ellipses() {
+    for (var i = 0; i < this.var_nodes.length; i++) {
+      this.var_nodes[i].update_ellipse();
+    }
+  }
+
+  send_messages() {
+    for (var i = 0; i < this.factor_nodes.length; i++) {
+      this.factor_nodes[i].pass_message(this);
+    }
+  }
+
+  sync_iter() {
+    this.send_messages();
+    this.update_beliefs();
+  }
+
+
 
   find_node(id) {
     id = parseInt(id);
@@ -53,21 +81,6 @@ export class FactorGraph {
       }
     }
     return null;
-  }
-
-  find_element(x, y) {
-    for (var i = 0; i < this.var_nodes.length; i++) {
-      if (Math.sqrt(Math.pow(this.var_nodes[i].x - x, 2) +
-        Math.pow(this.var_nodes[i].y - y, 2)) <= offset_distance_tolerance) {
-        return this.var_nodes[i];
-      }
-    }
-    for (var i = 0; i < this.factor_nodes.length; i++) {
-      if (Math.sqrt(Math.pow(this.factor_nodes[i].x - x, 2) +
-        Math.pow(this.factor_nodes[i].y - y, 2)) <= offset_distance_tolerance) {
-        return this.factor_nodes[i];
-      }
-    }
   }
 
   remove_node(id) {
@@ -131,12 +144,6 @@ export class FactorGraph {
     }
   }
 
-  update_cov_ellipses() {
-    for (var i = 0; i < this.var_nodes.length; i++) {
-      this.var_nodes[i].update_cov_ellipse();
-    }
-  }
-
   update_factor_node_location() {
     for (var i = 0; i < this.factor_nodes.length; i++) {
       var factor_node = this.factor_nodes[i]
@@ -167,23 +174,13 @@ export class FactorGraph {
       if (factor_node) {
         node1.send_message(this);
         factor_node.pass_message(this);
-        node2.receive_message(this);
+        node2.update_belief(this);
       }
       else {
         return false;
       }
     }
     return true
-  }
-
-  check_connection() {
-    // Check if all nodes are connected to neighbors
-    if (this.factor_nodes.every(factor_node => factor_node.adj_ids.length != 0) &&  // Every factor node has adjacent variable nodes
-      this.var_nodes.every(var_node => var_node.adj_ids.length != 0))  // Every variable node is connected to some factor nodes
-    {
-      return true;
-    }
-    return false;
   }
 
   compute_error() {
@@ -195,28 +192,13 @@ export class FactorGraph {
     return total_error;
   }
 
-  relinearize() {
-    for (var i = 0; i < this.factor_nodes.length; i ++) {
-      if (this.factor_nodes[i].type == "nonlinear_factor") {
-        this.factor_nodes[i].compute_factor();
-      }
-    }
-  }
-
-  update_beliefs() {
-    for (let i = 0; i < this.var_nodes.length; i++) {
-      this.var_nodes[i].receive_message(this);
-      this.var_nodes[i].update_cov_ellipse();
-    }
-  }
-
   priors_to_gt() {
     for (let i = 0; i < this.var_nodes.length; i++) {
       let var_node = this.var_nodes[i];
       var_node.prior.eta = var_node.prior.lam.mmul(new m.Matrix([[var_node.x], [var_node.y]]));
       var_node.belief.eta = var_node.prior.eta.clone();
       var_node.belief.lam = var_node.prior.lam.clone();
-      var_node.update_cov_ellipse();
+      var_node.update_ellipse();
     }
   }
 
@@ -311,14 +293,8 @@ export class FactorGraph {
     for (var i = 0; i < this.factor_nodes.length; i++) {
       var factor_node = this.factor_nodes[i];    
 
-      if (factor_node.type == "linear_factor") {
-        factor_node.lambda = [1 / (params["linear"]["noise_model_std"] * params["linear"]["noise_model_std"])];
-      } else if (factor_node.type == "nonlinear_factor") {
-        factor_node.lambda = new m.Matrix([
-          [1 / Math.pow(params["nonlinear"]["angle_noise_model_std"], 2), 0],
-          [0, 1 / Math.pow(params["nonlinear"]["dist_noise_model_std"], 2)],
-        ]);
-      }
+      factor_node.lambda = [1 / (params["linear"]["noise_model_std"] * params["linear"]["noise_model_std"])];
+
       factor_node.compute_factor();
     }
   }
@@ -335,14 +311,8 @@ export class FactorGraph {
         params = odometry_params;
       }
 
-      if (factor_node.type == "linear_factor") {
-        factor_node.lambda = [1 / (params["linear"]["noise_model_std"] * params["linear"]["noise_model_std"])];
-      } else if (factor_node.type == "nonlinear_factor") {
-        factor_node.lambda = new m.Matrix([
-          [1 / Math.pow(params["nonlinear"]["angle_noise_model_std"], 2), 0],
-          [0, 1 / Math.pow(params["nonlinear"]["dist_noise_model_std"], 2)],
-        ]);
-      }
+      factor_node.lambda = [1 / (params["linear"]["noise_model_std"] * params["linear"]["noise_model_std"])];
+
       factor_node.compute_factor();
     }
   }
@@ -376,11 +346,8 @@ export class FactorGraph {
       // Checks factor doesn't already exist and that nodes are two different var nodes
 
       let factor_node;
-      if (meas_model == "linear") {
-        factor_node = this.add_linear_factor(node1, node2, meas_params["linear"], id);
-      } else {
-        factor_node = this.add_nonlinear_factor(node1, node2, meas_params["nonlinear"], id);
-      }
+      factor_node = this.add_linear_factor(node1, node2, meas_params["linear"], id);
+
     
       factor_node.adj_var_dofs = [2, 2];
       factor_node.adj_beliefs = [node1.belief, node2.belief];
@@ -389,8 +356,8 @@ export class FactorGraph {
       this.factor_nodes.push(factor_node);
       node1.adj_ids.push(id);
       node2.adj_ids.push(id);
-      node1.receive_message(this);
-      node2.receive_message(this);
+      node1.update_belief(this);
+      node2.update_belief(this);
     }
   }
 
@@ -405,104 +372,6 @@ export class FactorGraph {
 
     return factor_node;
   }
-
-  add_nonlinear_factor(node1, node2, params, id = null) {
-
-    if (node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >= 0) {
-      var meas_func = nlm.measFnR;
-      var jac_func = nlm.jacFnR;
-    } else {
-      var meas_func = nlm.measFnL;
-      var jac_func = nlm.jacFnL;
-    }
-    const factor_node = new NonLinearFactor(4, id, [node1.id, node2.id], meas_func, jac_func);
-    const angle_noise_gen = r.normal(0, params["angle_noise_std"]*params["angle_noise_std"]);
-    const dist_noise_gen = r.normal(0, params["dist_noise_std"]*params["dist_noise_std"]);
-    factor_node.meas_noise = new m.Matrix([[angle_noise_gen()], [dist_noise_gen()]]);
-    factor_node.meas = factor_node.meas_func(node1.belief.getMean(), node2.belief.getMean());
-    factor_node.meas.add(factor_node.meas_noise);
-    // factor_node.eta_damping = eta_damping;
-    factor_node.lambda = new m.Matrix([
-      [1 / Math.pow(params["angle_noise_model_std"], 2), 0],
-      [0, 1 / Math.pow(params["dist_noise_model_std"], 2)],
-    ]);
-
-    return factor_node;
-  }
-
-  update_meas_model(meas_model, params, id = null) {
-
-    for (var i = 0; i < this.factor_nodes.length; i++) {
-      var factor_node = this.factor_nodes[i];
-      var node1 = this.find_node(factor_node.adj_ids[0]);
-      var node2 = this.find_node(factor_node.adj_ids[1]);
-
-      if (factor_node.id == id || id == null) {
-        if (factor_node.type == "linear_factor" && meas_model == "nonlinear") {
-
-          if (node2.belief.getMean().get(0, 0) - node1.belief.getMean().get(0, 0) >= 0) {
-            var meas_func = nlm.measFnR;
-            var jac_func = nlm.jacFnR;
-          } else {
-            var meas_func = nlm.measFnL;
-            var jac_func = nlm.jacFnL;
-          }
-          const new_factor_node = new NonLinearFactor(
-            4, factor_node.id, factor_node.adj_ids, meas_func, jac_func);
-
-          const angle_noise_gen = r.normal(0, params["nonlinear"]["angle_noise_std"]*params["nonlinear"]["angle_noise_std"]);
-          const dist_noise_gen = r.normal(0, params["nonlinear"]["dist_noise_std"]*params["nonlinear"]["dist_noise_std"]);
-          new_factor_node.meas_noise = new m.Matrix([[angle_noise_gen()], [dist_noise_gen()]]);
-          
-          new_factor_node.meas = new_factor_node.meas_func(
-            node1.belief.getMean(),
-            node2.belief.getMean()
-          );
-          new_factor_node.meas.add(new_factor_node.meas_noise);
-          new_factor_node.lambda = new m.Matrix([
-            [1 / Math.pow(params["nonlinear"]["angle_noise_model_std"], 2), 0],
-            [0, 1 / Math.pow(params["nonlinear"]["dist_noise_model_std"], 2)],
-          ]);;
-        
-          new_factor_node.adj_var_dofs = [2, 2];
-          new_factor_node.adj_beliefs = [node1.belief, node2.belief];
-          new_factor_node.zero_messages();
-          new_factor_node.compute_factor();
-          this.factor_nodes[i] = new_factor_node;
-          node1.receive_message(this);
-          node2.receive_message(this);
-        } else if (factor_node.type == "nonlinear_factor"  && meas_model == "linear") {
-          const new_factor_node = new LinearFactor(4, factor_node.id, factor_node.adj_ids);
-          const noise_gen = r.normal(0, params["linear"]["noise_std"]*params["linear"]["noise_std"]);
-          new_factor_node.meas_noise = new m.Matrix([[noise_gen()], [noise_gen()]]);
-          new_factor_node.meas = new_factor_node.meas_func(
-            [node1.x, node1.y],
-            [node2.x, node2.y]
-          );
-          new_factor_node.meas.add(new_factor_node.meas_noise);
-          new_factor_node.lambda = [1 / (params["noise_model_std"] * params["noise_model_std"])];
-          new_factor_node.adj_var_dofs = [2, 2];
-          new_factor_node.adj_beliefs = [node1.belief, node2.belief];
-          new_factor_node.zero_messages();
-          new_factor_node.compute_factor();
-          this.factor_nodes[i] = new_factor_node;
-          node1.receive_message(this);
-          node2.receive_message(this);
-        }
-      }
-    }
-
-  }
-
-  sync_iter() {
-    for (var i = 0; i < this.factor_nodes.length; i++) {
-      this.factor_nodes[i].pass_message(this);
-    }
-    for (var i = 0; i < this.var_nodes.length; i++) {
-      this.var_nodes[i].pass_message(this);
-    }
-  }
-
 
 }
 
@@ -556,7 +425,7 @@ export class VariableNode {
     }
   }
 
-  update_cov_ellipse() {
+  update_ellipse() {
     var values = this.belief.getCovEllipse();
     this.belief_ellipse.cx = this.belief.getMean().get(0, 0);
     this.belief_ellipse.cy = this.belief.getMean().get(1, 0);
@@ -565,8 +434,7 @@ export class VariableNode {
     this.belief_ellipse.angle = values[1] / Math.PI * 180;
   }
 
-  receive_message(graph) {
-    // Adopted from Joseph Ortiz's implementation in gbp2d.js
+  compute_belief(graph) {
     this.belief.eta = this.prior.eta.clone();
     this.belief.lam = this.prior.lam.clone();
     for (var i = 0; i < this.adj_ids.length; i++) {
@@ -576,8 +444,7 @@ export class VariableNode {
     }
   }
 
-  send_message(graph) {
-    // Adopted from Joseph Ortiz's implementation in gbp2d.js
+  send_belief(graph) {
     for (var i = 0; i < this.adj_ids.length; i++) {
       var factor_node = graph.find_node(this.adj_ids[i]);
       var idx = factor_node.adj_ids.indexOf(this.id);
@@ -585,9 +452,9 @@ export class VariableNode {
     }
   }
 
-  pass_message(graph) {
-    this.receive_message(graph);
-    this.send_message(graph);
+  update_belief(graph) {
+    this.compute_belief(graph);
+    this.send_belief(graph);
   }
 }
 
@@ -596,7 +463,7 @@ export class LinearFactor {
     this.type = "linear_factor";
     this.dofs = dofs;
     this.id = id;
-    this.adj_ids = adj_ids;//.sort((a, b) => a - b);
+    this.adj_ids = adj_ids;  //.sort((a, b) => a - b);
     this.adj_var_dofs = [];
     this.adj_beliefs = [];
 
@@ -645,7 +512,6 @@ export class LinearFactor {
   }
 
   compute_factor() {
-    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     this.factor.eta = m.Matrix.zeros(this.dofs, 1);
     this.factor.lam = m.Matrix.zeros(this.dofs, this.dofs);
     for (var i = 0; i < this.jacs.length; i++) {
@@ -654,8 +520,57 @@ export class LinearFactor {
     }
   }
 
+  send_message_to(graph, ids) {
+    
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      if (ids.includes(this.adj_ids[i])) {
+        var eta_factor = this.factor.eta.clone();
+        var lam_factor = this.factor.lam.clone();
+
+        // Take product with incoming messages, general for factor connected to arbitrary num var nodes
+        var mess_start_dim = 0;
+        for (var j = 0; j < this.adj_ids.length; j++) {
+          if (i != j) {
+            const eta_prod = m.Matrix.sub(this.adj_beliefs[j].eta, this.messages[j].eta);
+            const lam_prod = m.Matrix.sub(this.adj_beliefs[j].lam, this.messages[j].lam);
+            new m.MatrixSubView(eta_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, 0, 0).add(eta_prod);
+            new m.MatrixSubView(lam_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1).add(lam_prod);
+          }
+          mess_start_dim += this.adj_var_dofs[j];
+        }
+
+        // For factor connecting 2 variable nodes
+        if (i == 0) {
+          var eo = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
+          var eno = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
+          var loo = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
+          var lnono = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
+          var lnoo = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
+          var lono = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
+        } else if (i == 1) {
+          var eno = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
+          var eo = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
+          var lnono = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
+          var loo = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
+          var lono = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
+          var lnoo = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
+        }
+
+        const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
+        const block = lono.mmul(m.inverse(lnono));
+        message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
+        message.eta.mul(1 - this.eta_damping);
+        message.eta.add(this.messages[i].eta.mul(this.eta_damping));
+        message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
+        this.messages[i] = message;
+      }
+    }
+
+  }
+
+
   pass_message(graph, id = null) {
-    // Adopted from Joseph Ortiz's implementation in gbp2d.js
+
     for (var i = 0; i < this.adj_ids.length; i++) {
       if (!id || id == this.adj_ids[i]) {
         var eta_factor = this.factor.eta.clone();
@@ -700,108 +615,4 @@ export class LinearFactor {
       }
     }
   }
-}
-
-export class NonLinearFactor {
-  constructor(dofs, id, adj_ids, meas_func, jac_func) {
-    this.type = "nonlinear_factor";
-    this.dofs = dofs;
-    this.id = id;
-    this.adj_ids = adj_ids;//.sort((a, b) => a - b);
-    this.adj_var_dofs = [];
-    this.adj_beliefs = [];
-
-    // To compute factor when factor is combination of many factor types (e.g. measurement and smoothness)
-    this.jacs = [];
-    this.meas = [];
-    this.meas_noise = [];
-    this.lambda = [];
-    this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
-    this.lin_point;
-    this.meas_func = meas_func;
-    this.jac_func = jac_func;
-
-    this.incoming_id = null;
-    this.messages = [];
-    this.eta_damping = 0.;
-
-    this.x = 0;
-    this.y = 0;
-  }
-
-  zero_messages() {
-    this.messages = [];
-    for (let i=0; i < this.adj_var_dofs.length; i++) {
-      this.messages.push(
-        new gauss.Gaussian(
-          m.Matrix.zeros(this.adj_var_dofs[i], 1), 
-          m.Matrix.zeros(this.adj_var_dofs[i], this.adj_var_dofs[i])
-        ));
-    }
-  }
-
-  compute_factor() {
-    // Adopted from Joseph Ortiz's implementation in gbp2d.js
-    const node1_coords = this.adj_beliefs[0].getMean();
-    const node2_coords = this.adj_beliefs[1].getMean();
-    this.lin_point = new m.Matrix([[node1_coords.get(0, 0)], [node1_coords.get(1, 0)], 
-                                  [node2_coords.get(0, 0)], [node2_coords.get(1, 0)]]);
-    var jac = this.jac_func(node1_coords, node2_coords);
-
-    const measurement = this.meas_func(node1_coords, node2_coords);
-    const bracket = jac.mmul(this.lin_point).add(this.meas).sub(measurement);
-    this.factor.eta = (jac.transpose().mmul(this.lambda)).mmul(bracket);
-    this.factor.lam = (jac.transpose().mmul(this.lambda)).mmul(jac);
-  }
-
-  pass_message(graph, id = null) {
-    // Adopted from Joseph Ortiz's implementation in gbp2d.js
-    for (var i = 0; i < this.adj_ids.length; i++) {
-      if (!id || id == this.adj_ids[i]) {
-        var eta_factor = this.factor.eta.clone();
-        var lam_factor = this.factor.lam.clone();
-
-        // Take product with incoming messages, general for factor connected to arbitrary num var nodes
-        var mess_start_dim = 0;
-        for (var j = 0; j < this.adj_ids.length; j++) {
-          if (i != j) {
-            const eta_prod = m.Matrix.sub(this.adj_beliefs[j].eta, this.messages[j].eta);
-            const lam_prod = m.Matrix.sub(this.adj_beliefs[j].lam, this.messages[j].lam);
-            new m.MatrixSubView(eta_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, 0, 0).add(eta_prod);
-            new m.MatrixSubView(lam_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1).add(lam_prod);
-          }
-          mess_start_dim += this.adj_var_dofs[j];
-        }
-
-        // For factor connecting 2 variable nodes
-        if (i == 0) {
-          var eo = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
-          var eno = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
-          var loo = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
-          var lnono = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
-          var lnoo = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
-          var lono = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
-        } else if (i == 1) {
-          var eno = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
-          var eo = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
-          var lnono = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
-          var loo = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
-          var lono = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
-          var lnoo = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
-        }
-
-        const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
-        const block = lono.mmul(m.inverse(lnono));
-        message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
-        message.eta.mul(1 - this.eta_damping);
-        message.eta.add(this.messages[i].eta.mul(this.eta_damping));
-        message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
-        this.messages[i] = message;
-      }
-    }
-  }
-}
-
-export function print(content) {
-  console.log(content);
 }

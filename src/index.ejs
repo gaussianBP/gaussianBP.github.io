@@ -35,19 +35,19 @@
       <nav class="l-text toc figcaption">
         <h3>Contents</h3>
         <div><a href="#introduction">Introduction</a></div>
-        <ul>
+        <!-- <ul>
           <li><a href="#the-need-for-probabilistic-inference">The need for probabilistic inference </a></li>
           <li><a href="#gaussian-belief-propagation">Gaussian Belief Propagation</a></li>
-        </ul>
+        </ul> -->
         <div><a href="#technical-introduction">Technical Introduction</a></div>
-        <ul>
+        <!-- <ul>
           <li><a href="#probabilistic-inference">Probabilistic Inference</a></li>
           <li><a href="#factor-graphs">Factor Graphs</a></li>
           <li><a href="#the-belief-propagation-algorithm">The Belief Propagation Algorithm</a></li>
           <li><a href="#gaussian-models">Gaussian Models</a></li>
           <li><a href="#from-gaussian-inference-to-linear-algebra">From Gaussian Inference to Linear Algebra</a></li>
           <li><a href="#gaussian-belief-propagation-ti">Gaussian Belief Propagation</a></li>
-        </ul>
+        </ul> -->
         <div><a href="#beyond-the-standard-algorithm">Beyond the standard algorithm</a></div>
         <ul>
           <li><a href="#non-linear-factors">Non-linear factors</a></li>
@@ -417,6 +417,11 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
 
     <d-figure id="message_passing"></d-figure>
     
+    <figure class="l-page-outset">
+      <d-figure id="playground"></d-figure>
+    </figure>
+
+
     <p class="note">
       Andy - I feel here that I'm really missing the chance to play with GBP to understand what passing each message does  for myself. Can the diagram here be changed to an interactive simulation where we can click on nodes to send messages?  i.e. more like the GBP playground? Or have that as well?
     </p>
@@ -537,35 +542,52 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
 
     <p>
       It turns out that choosing the message schedule is an easy way to speed up convergence and there are a number of different approaches. Simply swapping synchronous updates for random message passing tends to improve convergence, while a fixed "round-robin" schedule can do even better <d-cite key="koller2009probabilistic"></d-cite>.
-    </p>
-
-    <p>
       Better yet, if each message requires some unit of computation (and therefore energy), it's possible to prioritise sending messages that we think will contribute most to the overall convergence of the system.
-      This is the idea behind residual belief propagation (RBP) <d-cite key="Elidan:etal:UAI2006"></d-cite>, which forms a queue of messages to be sent according to the norm of the difference from the previous message.
-      Of course, it isn't possible to form this queue without actually computing all the messages and so using a cheap proxy for computing the residuals saves time <d-cite key="Sutton:McCallum:UAI2007"></d-cite>.
-      Empirically RBP produces even faster and more likely convergence than a "round-robin" schedule and has also been used to accelerate the construction of spatial maps <d-cite key="Ranganathan:etal:IJCAI2007"></d-cite>.
+      This is the idea behind residual belief propagation (RBP) <d-cite key="Elidan:etal:UAI2006"></d-cite> and similar variants <d-cite key="Sutton:McCallum:UAI2007, Ranganathan:etal:IJCAI2007"></d-cite>, which form a message queue according to the norm of the difference from the previous message.
     </p>
 
     <p>
-      <span class="note">Talfan - can you rewrite this paragraph.</span>
-      There is some evidence that the brain may apply a similar economical principle to RBP <d-cite key="Evans:Burgess:NIPS2019"></d-cite>. Also much like neural activity, GBP can operate without a global clock meaning in practical terms that GBP can be implemented on neuromorphic hardware or can be the language for communication between distributed agents or devices.
+      In the <a href="#gbp1d">figure</a> below, we explore different message schedules for 1D line fitting / surface estimation.
+      The blue circles and lines show the mean and standard deviation of the belief estimates of the surface height at fixed intervals along the horizontal direction. 
+      The red squares are surface measurements that produce data factors in the graph and there are also smoothness factors between all adjacent variable nodes encouraging the surface estimates to be close.
+      You can add your own data factors by clicking on the canvas and a diagram of the factor graph is in the bottom right of the <a href="#gbp1d">figure</a>.
     </p>
 
     <p>
-      More generally, GBP is an example of <i>factorized computation</i> <d-cite key="diehl2018factorized"></d-cite> in which a problem is solved by jointly solving many interdependent subproblems.
-      In this light, as we rarely require full global solutions, GBP can operate in a <b>just-in-time</b> or <b>attention-driven</b> fashion, focusing processing on parts of the graph to solve local subproblems when the task demands. 
-      An attention-driven schedule can be very economical with compute and energy, only sending the most task-critical messages. 
-      Sometimes, if we are only interested in a particular local set of marginals, solving the graph locally without global convergence may be enough to give accurate relative estimates.
+      The underlying factor graph is a chain (no loops) and so will converge after one sweep of messages from left to right and back again.
+      You can send messages through the graph using the preset schedules (synchronous, random or sweep) or create your own schedule by clicking on a variable node to send messages outwards.
     </p>
 
     <d-figure id="gbp1d" class="subgrid"></d-figure>
 
     <p>
-      In the <a href="#attentiongl">figure</a> below we explore attention-driven message passing for the task of image denoising. The figure also revisits the use of robust loss functions with GBP via covariance rescaling which is crucial for sharp denoising. 
+      Playing around with different schedules for surface estimation highlights two important properties of GBP.
+      First, GBP can converge with an arbitrary message passing schedule. 
+      As a consequence, GBP can readily operate in systems with no global clock and varying local compute budgets such as on neuromorphic hardware or between a group of distributed devices <d-cite key="micusik2020ego"></d-cite>.
+    </p>
+
+    <p>
+      The second property is that GBP can achieve approximate local convergence without global convergence. 
+      This stems from GBP being a <i>factorized computation</i> <d-cite key="diehl2018factorized"></d-cite> method, in which a global problem is solved by jointly solving many interdependent local subproblems.
+      As we often do not require a full global solution, GBP can operate in a <b>just-in-time</b> or <b>attention-driven</b> fashion, focusing processing on parts of the graph to solve local subproblems when the task demands. 
+      This attention-driven scheduling can be very economical with compute and energy, only sending the most task-critical messages. 
+      <!-- Sometimes, if we are only interested in a particular local set of marginals, solving the graph locally without global convergence may be enough to give accurate relative estimates. -->
+    </p>
+
+
+    <p>
+      In the <a href="#attentiongl">figure</a> below we explore attention-driven message passing for image denoising. 
+      Image denoising is the 2D equivalent of the surface estimation problem from the previous <a href="#gbp1d">figure</a>. 
+      The only difference is that previously although variable nodes were at discrete locations the data factors were at any location, while now the data factors are at the same discrete locations as the variable nodes with one per node.
+      The figure also revisits the use of robust loss functions with GBP via covariance rescaling which is crucial for sharp denoising. 
     </p>
 
     <d-figure id="attentiongl" class="subgrid"></d-figure>
 
+    <p>
+      <span class="note">Talfan - not sure if / where this best fits in:</span>
+      There is some evidence that the brain may apply a similar economical principle to RBP <d-cite key="Evans:Burgess:NIPS2019"></d-cite>. 
+    </p>
 
     <h3 id="multiscale-learning">Multiscale Learning</h3>
 
@@ -606,10 +628,6 @@ Andy - I am still struggling to understand what is happening in this figure... j
       An alternative approach, is to introduce long range connections into the original graph which represent more global features and act as shortcuts for propagating global information.
       This is tackled in <span class="note">fix ref<d-cite key="Ortiz:planes2021"></d-cite></span> which adds nodes for planes on top of a point-based SLAM factor graph, allowing global information to propagate more quickly through these higher-level nodes.
     </p>
-
-    <!-- <figure class="l-page-outset">
-      <d-figure id="playground"></d-figure>
-    </figure> -->
   
     <h2 id="related-methods">Related Methods</h2>
 
@@ -654,6 +672,10 @@ Andy - I am still struggling to understand what is happening in this figure... j
 
     <h2 id="discussion">Discussion</h2>
   
+    <p class="note">
+      GBP is the transformer of probabilistic inference.
+    </p>
+
 
   </d-article>
 
