@@ -55,9 +55,14 @@ const FactorGraphComponent = new FactorGraph({ // eslint-disable-line no-unused-
   target: document.querySelector('#factor_graph')
 });
 
-import MessagePassing from "./diagrams/message_passing.svelte";
-const MessagePassingComponent = new MessagePassing({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#message_passing')
+// import MessagePassing from "./diagrams/message_passing.svelte";
+// const MessagePassingComponent = new MessagePassing({ // eslint-disable-line no-unused-vars
+//   target: document.querySelector('#message_passing')
+// });
+
+import GBPIntuition from "./diagrams/gbp_intuition.svelte";
+const GBPIntuitionComponent = new GBPIntuition({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#gbp_intuition')
 });
 
 import BPEquations from "./diagrams/bp_eqns.svelte";

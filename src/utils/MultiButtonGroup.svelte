@@ -29,8 +29,12 @@
         font-size: 1em;
         color: black;
         background-color: Transparent;
-        border-radius: 4px;
-        width: fit-content
+        border-radius: 0px;
+        width: 100px;
+    }
+
+    #button-group button:not(:last-child) {
+        border-right: 0.5px solid var(--gray);
     }
 
 	button.selected {
@@ -38,9 +42,9 @@
 	}
 
     #button-group {
-        border: 1px solid green; /* Green border */
+        border: 1.0px solid green; /* Green border */
         background-color:  rgba(0, 0, 0, 0.1);
-        border-radius: var(--border-radius);
+        border-radius: 3px;
         float: left; 
         margin-left: 5px;
         margin-right: 5px;

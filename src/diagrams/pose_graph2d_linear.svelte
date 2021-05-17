@@ -10,29 +10,24 @@
     import * as gbp from "../gbp/gbp_playground.js";
 
     // svg
-    let svg;
     let svg_width = 600;
     let svg_height = 600;
 
     // GBP parameters
-    // var eta_damping = 0;
-    let prior_std = 50;
-    let meas_params = {
+    export let prior_std = 100;
+    export let meas_params = {
         "linear" : {
-            "noise_model_std": 40,
+            "noise_model_std": 20,
             "noise_std": 2,
         }
     };
 
-
-    let highlight_id = null;
-
-    // Playground
+    // Local graph variables
     let graph;
     $: var_nodes = [];
     $: factor_nodes = [];
-
-    let n_var_nodes = 5;
+    const damping = 0.7;  // Only for grid
+    const dropout = 0.;  // Only for grid
 
     // Drag and drop function
     const click_time_span = 150; // Threshold for time span during click
@@ -47,271 +42,200 @@
     let current_mouse_location = { x: null, y: null };
 
     // Message passing animation
-    const clear_message_highlight_delay = 0.5;
-    let pause_one_iter = false;
-    let animation_in_progress = false; // set to true to prevent new input during animation
-    $: message_bubbles = [];
-    $: update_var_node = {
-        node_id: null,
-        old: null,
-        new: null,
-    };
-
+    let highlight_id = null;
     $: message_bubbles = [];
     $: moving_beliefs = [];
-
     const bubble_progress = tweened(0);
     const move_belief_progress = tweened(0);
     const bubble_time = 400;  // ms
     const move_belief_time = 500;
     const highlight_time = 300;
 
-
-    let messages = []; //  { message: null, timestamp: null, duration: null };
-
     // UI
-    const time_res = 0.1; // time resolution
     let n_iters = 0; 
-    let iter_sec = 1.0;
-    let counter = 0;
     let mode = "edit";
-    let passing_message = false;
-
-    let show_batch = true;
-
-
+    let lastTime = 0;
     let speed = 0;
+    let dist_to_MAP = 0;
     const speed_labels = ["1/4x", "1/2x", "1x", "5x", "10x"];
     const iters_per_sec = [1, 2, 4, 20, 40];
+    let sync_on = false;
+    let show_batch = true;
 
     // Visual appearance
     let factor_size = 20;
     let radius = 10;
     let mean_radius = 6;
     let can_open = false;
-    let gt_color = "green";
-    let linear_color = "orange";
 
-    const meas_model = "linear";
+    // Preset initializations
+    const chain_prior = {"0":{"eta":[100,300],"lam":1},"1":{"eta":[0.01980625,0.022881250000000002],"lam":0.0001},"2":{"eta":[0.02830625,0.039581250000000005],"lam":0.0001},"3":{"eta":[0.04020625,0.021181250000000002],"lam":0.0001},"4":{"eta":[0.05270625,0.03848125],"lam":0.0001}};
+    const grid_prior = {"0":{"eta":[100,100],"lam":1},"1":{"eta":[0.024606250000000017,0.007181250000000011],"lam":0.0001},"2":{"eta":[0.05340625000000004,0.014781250000000003],"lam":0.0001},"3":{"eta":[0.005006250000000001,0.03498125],"lam":0.0001},"4":{"eta":[0.027306249999999997,0.03518125000000002],"lam":0.0001},"5":{"eta":[0.04500625,0.025081250000000006],"lam":0.0001},"6":{"eta":[0.015206250000000003,0.04338125000000001],"lam":0.0001},"7":{"eta":[0.034306250000000045,0.05538125],"lam":0.0001},"8":{"eta":[0.05020625000000001,0.04408125000000003],"lam":0.0001}};
+    const loop_prior = {"0":{"eta":[100,100],"lam":1},"1":{"eta":[0.02500625,0.01588125],"lam":0.0001},"2":{"eta":[0.04320625,0.0069812500000000005],"lam":0.0001},"3":{"eta":[0.05150625,0.024081250000000002],"lam":0.0001},"4":{"eta":[0.044306250000000005,0.04178125],"lam":0.0001},"5":{"eta":[0.03210625,0.054081250000000004],"lam":0.0001},"6":{"eta":[0.01150625,0.04208125],"lam":0.0001},"7":{"eta":[0.00770625,0.02388125],"lam":0.0001}};
+
 
     onMount(() => {
-        reset_playground();
-
-        console.log(graph);
-        console.log(var_nodes, factor_nodes);
-
-        for (let c=0; c < graph.factor_nodes.length; c++) {
-            console.log(graph.factor_nodes[c].adj_ids);
-            console.log(graph.var_nodes[graph.factor_nodes[c].adj_ids[0]])
-        }
-
+        set_playground("linear");
     });
 
-    onInterval(() => update_playground(), parseInt(1000 / 60));
-
     onInterval(() => {
-            pass_message_interval();
+        update_local_vars()
 
+        if (sync_on) {
+            const now = Date.now();
+            if ((now - lastTime) > 1000 / iters_per_sec[speed+2]) {
+                graph.sync_iter();
+                n_iters++;
+                lastTime = now;
+            }
         }
-    , 1000 * time_res);
+
+    }, 1000 / 30);
 
 
-  // ************************************************************
-  // Callback functions
-  // ************************************************************
-
-  function update_playground() {
-
-    if (mode == "edit") {
-      graph.update_node_id();
-      graph.update_factor_node_location();
-    }
-    var_nodes = graph.var_nodes;
-    factor_nodes = graph.factor_nodes;
-
-    iter_sec = 1 / iters_per_sec[speed+2];
-
-    if (mode == "init") {
-      graph.update_priors(prior_std, true);  // Update beliefs as prior std is changed with slider
-      graph.update_ellipses();
-      graph.update_factor_noise_models(meas_params);  // Update factors as meas noise models are changed with sliders
-      graph.compute_MAP();
-    }
-  }
-
-  function pass_message_interval() {
-    // Enables pass message in adjustable interval
-    if (mode == "play" && passing_message) {
-      if (counter >= iter_sec * 10 - 1 || !iter_sec) {
-        counter = 0;
-        if (!pause_one_iter) {
-          sync_iter();
-
-        } else {
-          pause_one_iter = false;
+    $: {
+        if (graph) {  // Update prior factors when prior_std is changed
+            graph.update_priors(prior_std, true);
+            graph.update_ellipses();  
+            graph.compute_MAP();
+            dist_to_MAP = graph.compare_to_MAP();
         }
-      } else {
-        counter++;
-      }
     }
-  }
 
-  // ************************************************************
-  // Playground templates
-  // ************************************************************
-
-  function create_empty_playground() {
-    graph = new gbp.FactorGraph();
-    graph.add_var_node(svg_width / 2, svg_height / 2, prior_std, 0);
-    return graph;
-  }
-
-  function create_linear_playground(n_var_nodes) {
-    graph = new gbp.FactorGraph();
-
-    let x0 = 100;
-    let inc = (svg_width - 2*x0) / (n_var_nodes-1);
-
-    graph.add_var_node(x0, svg_height / 2, prior_std, 0);
-    for (let j=1; j < n_var_nodes; j++) {
-      graph.add_var_node(x0 + j*inc, svg_height / 2, prior_std, 2*j);
-      graph.add_factor_node(2*(j-1), 2*j, meas_model, meas_params, 2*j-1);
+    $: {
+        if (graph) {  // Update data factors when meas_params is changed
+            graph.update_factor_noise_models(meas_params);
+            graph.compute_MAP();
+            dist_to_MAP = graph.compare_to_MAP();
+        }
     }
-    return graph;
-  }
+
+    // Playground templates -----------------------------------------------------------
+
+    function create_empty_playground() {
+        graph = new gbp.FactorGraph();
+        graph.add_var_node(svg_width / 2, svg_height / 2, prior_std, 0);
+        return graph;
+    }
+
+    function create_linear_playground(n_var_nodes = 5) {
+        graph = new gbp.FactorGraph();
+        const x0 = 100;
+        const inc = (svg_width - 2*x0) / (n_var_nodes-1);
+
+        for (let j=0; j < n_var_nodes; j++) {
+            graph.add_var_node(x0 + j*inc, svg_height / 2, prior_std);
+        }
+        for (let j=1; j < n_var_nodes; j++) {
+            graph.add_factor_node(j-1, j, "linear", meas_params);
+        }
+        return graph;
+    }
 
     function create_grid_playground() {
-        const grid_size = 3;
         graph = new gbp.FactorGraph();
-
-        let prior_std = 0.6;
-        let anchor_prior_std = 0.0001;
-
-        let x0 = 100;
-        let inc = (svg_width - 2*x0) / (grid_size-1);
+        const grid_size = 3;
+        const x0 = 100;
+        const inc = (svg_width - 2*x0) / (grid_size-1);
 
         for (var i=0; i<grid_size; i++) {
             for (var j=0; j<grid_size; j++) {
-                graph.add_var_node(x0 + j*inc, x0 + i*inc, prior_std, 3*i+j);
+                graph.add_var_node(x0 + j*inc, x0 + i*inc, prior_std, grid_size*i+j);
                 if (i!=0 && j!=0) {
                     graph.var_nodes[i*grid_size + j].prior.eta = graph.var_nodes[i*grid_size + j].prior.lam.mmul(new m.Matrix(
                     [[x0 + j*inc], [x0 + i*inc]]));              
                 }
             }
         }
-        
         for (var i=0; i<grid_size; i++) {
             for (var j=0; j<grid_size; j++) {
                 if (j < 2) {
-                    graph.add_factor_node(3*i + j, 3*i + j + 1, "linear", meas_params); // factor with node below
+                    graph.add_factor_node(grid_size*i + j, grid_size*i + j + 1, "linear", meas_params); // factor with node below
                 }
                 if (i < 2) {
-                    graph.add_factor_node(3*i + j, 3*i + j + 3, "linear", meas_params); // factor with node on rhs
+                    graph.add_factor_node(grid_size*i + j, grid_size*i + j + grid_size, "linear", meas_params); // factor with node on rhs
                 }
             }
         }
-        console.log(graph);
+        for (var i=0; i<graph.factor_nodes.length; i++) {
+            graph.factor_nodes[i].damping = damping;
+            graph.factor_nodes[i].dropout = dropout;
+        }
         return graph;
     }
 
-  function create_loop_playground(n_var_nodes = 2) {
-    graph = new gbp.FactorGraph();
-    for (var i = 0; i < n_var_nodes; i++) {
-      if (i < 8) {
-        graph.add_var_node(50 + 100 * i, 100, prior_std, i * 2);
-      } else if (i < 15) {
-        graph.add_var_node(750, 100 + 100 * (i - 7), prior_std, i * 2);
-      } else if (i < 22) {
-        graph.add_var_node(50 + 100 * (21 - i), 750, prior_std, i * 2);
-      } else if (i < 28) {
-        graph.add_var_node(50, 100 + 100 * (28 - i), prior_std, i * 2);
-      } else {
-        graph.add_var_node(svg_width * Math.random(), svg_height * Math.random(), prior_std, i * 2 );
-      }
-      if (i > 0) {
-        graph.add_factor_node((i - 1) * 2, i * 2, meas_model, meas_params, i * 2 - 1);
-      }
+    function create_loop_playground(n_var_nodes = 8) {
+        graph = new gbp.FactorGraph();
+        const x0 = 100;
+        const inc = (svg_width - 2*x0) / 2;
+        
+        for (var i = 0; i < n_var_nodes; i++) {
+            if (i < 3) {
+                graph.add_var_node(x0 + i*inc, x0, prior_std);
+            } else if (i < 5) {
+                graph.add_var_node(x0 + 2*inc, x0 + inc*(i - 2), prior_std);
+            } else if (i < 7) {
+                graph.add_var_node(x0 + 2*inc - inc*(i - 4), x0 + 2*inc, prior_std);
+            } else {
+                graph.add_var_node(x0, x0 + inc - inc*(i - 7), prior_std);
+            }
+        }
+        for (var i = 1; i < n_var_nodes; i++) {
+            graph.add_factor_node(i-1, i, "linear", meas_params);
+        }
+        graph.add_factor_node(n_var_nodes-1, 0, "linear", meas_params);
+        return graph;
     }
-    return graph;
-  }
 
-  function clear_playground() {
-    var_nodes = [];
-    factor_nodes = [];
-    passing_message = false;
-    graph = create_empty_playground();
-    graph.update_beliefs();
-    graph.compute_MAP();
-    update_playground();
-    n_iters = 0;
-  }
-
-
-    function reset_playground() {
+    function set_playground(type="linear") {
         var_nodes = [];
         factor_nodes = [];
-        passing_message = false;
-        graph = create_linear_playground(n_var_nodes);
-        var_nodes = graph.var_nodes;
-        factor_nodes = graph.factor_nodes;
+        mode = "edit";
+        sync_on = false;
+        n_iters = 0;
+
+        if (type == "empty") {
+            graph = create_empty_playground();
+        } else if (type == "grid") {
+            graph = create_grid_playground();
+        } else if (type == "loop") {
+            graph = create_loop_playground();
+        } else {  // Default to linear
+            graph = create_linear_playground();
+        }
+
         graph.update_beliefs();
         graph.compute_MAP();
-        update_playground();
-        n_iters = 0;
+        dist_to_MAP = graph.compare_to_MAP();
+        update_local_vars();
     }
 
-    function grid_playground() {
-        var_nodes = [];
-        factor_nodes = [];
-        passing_message = false;
-        graph = create_grid_playground(n_var_nodes);
+    // Other functions ------------------------------------------------------
+
+    function update_local_vars() {
         var_nodes = graph.var_nodes;
         factor_nodes = graph.factor_nodes;
-        graph.update_beliefs();
-        graph.compute_MAP();
-        update_playground();
+    }
+
+    function clear_previous_message() {
+        for (var i = 0; i < graph.var_nodes.length; i++) {
+            var var_node = graph.var_nodes[i];
+            var_node.belief.lam = var_node.prior.lam.clone();
+            var_node.belief.eta = var_node.prior.eta.clone();
+        }
+        for (var i = 0; i < graph.factor_nodes.length; i++) {
+            var factor_node = graph.factor_nodes[i];
+            factor_node.adj_beliefs = factor_node.adj_ids.map(
+                (adj_id) => graph.find_node(adj_id).belief
+            );
+            factor_node.zero_messages();
+            factor_node.compute_factor();
+        }
         n_iters = 0;
+        sync_on = false;
     }
 
-  // ************************************************************
-  // Message passing functions
-  // ************************************************************
-
-
-    function sync_iter() {
-        graph.sync_iter();
-        n_iters++;
-    }
-
-
-
-  function clear_previous_message() {
-    for (var i = 0; i < graph.var_nodes.length; i++) {
-      var var_node = graph.var_nodes[i];
-      var_node.belief.lam = var_node.prior.lam.clone();
-      var_node.belief.eta = var_node.prior.eta.clone();
-    }
-    for (var i = 0; i < graph.factor_nodes.length; i++) {
-      var factor_node = graph.factor_nodes[i];
-      factor_node.adj_beliefs = factor_node.adj_ids.map(
-        (adj_id) => graph.find_node(adj_id).belief
-      );
-      factor_node.zero_messages();
-      factor_node.compute_factor();
-    }
-    // sync_pass_message();
-    n_iters = 0;
-    passing_message = false;
-  }
-
-  function pause_gbp() {
-    passing_message = false;
-  }
-
-
-  // ************************************************************
-  // Animation functions
-  // ************************************************************
+    // Animation functions -------------------------------------------------------------
 
     function highlight_node(id) {
         highlight_id = id;
@@ -320,10 +244,8 @@
 
     function create_message_bubble(id0, id1) {
         const message_bubble = { 
-            x0: graph.find_node(id0).belief_ellipse.cx, 
-            y0: graph.find_node(id0).belief_ellipse.cy, 
-            x1: graph.find_node(id1).belief_ellipse.cx, 
-            y1: graph.find_node(id1).belief_ellipse.cy, 
+            x: {start: graph.find_node(id0).belief_ellipse.cx, end: graph.find_node(id1).belief_ellipse.cx},
+            y: {start: graph.find_node(id0).belief_ellipse.cy, end: graph.find_node(id1).belief_ellipse.cy},
         };
         message_bubbles.push(message_bubble);
         bubble_progress.set(1, {
@@ -344,12 +266,9 @@
             
             const move_belief = {
                 id: id,
-                x0: node.belief_ellipse.cx,
-                y0: node.belief_ellipse.cy,
-                r0: node.belief_ellipse.rx,
-                x1: mean.get(0,0), 
-                y1: mean.get(1,0),
-                r1: Math.sqrt(values[0][0]),
+                x: {start: node.belief_ellipse.cx, end: mean.get(0,0)},
+                y: {start: node.belief_ellipse.cy, end: mean.get(1,0)},
+                r: {start: node.belief_ellipse.rx, end: Math.sqrt(values[0][0])}
             }
             moving_beliefs.push(move_belief);
             
@@ -361,8 +280,9 @@
             });
 
             setTimeout(() => {
-                clear_moving_beliefs();
                 node.update_ellipse();
+                update_local_vars();
+                clear_moving_beliefs();
             }, bubble_time + move_belief_time);
         }
     }
@@ -378,132 +298,126 @@
     }
 
 
-  // ************************************************************
-  // Mouse handler functions
-  // ************************************************************
+  // Mouse handler functions ------------------------------------------------------------
 
-  function mousedown_handler(e) {
-    mousedown_time = Date.now();
-    mouse_up = false;
+    function mousedown_handler(e) {
+        mousedown_time = Date.now();
+        mouse_up = false;
 
-    node_mousedown = null;
-    const possible_nodes = e.composedPath().filter((element) => element.classList != undefined);
-    node_mousedown = possible_nodes.find((element) => element.classList[0] == "node_g");
-    
-    if (node_mousedown && node_mousedown.id == "new_node") {
-      graph.add_var_node(svg_width - 30, 30, prior_std);
-      clear_previous_message();
-      node_mousedown = graph.var_nodes[graph.var_nodes.length - 1];
-    }
-    else if (node_mousedown) {
-      node_mousedown = graph.find_node(node_mousedown.id);
-    }
-  }
-
-  function mousemove_handler(e) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    current_mouse_location = {
-      x: e.clientX - rect.x,
-      y: e.clientY - rect.y,
-    };
-
-    // Open trash can lid if hovering over it
-    node_onhover = null;
-    node_onhover = e.path.find((element) => element.classList == "node_g");
-    if (node_onhover && moving_node && node_mousedown.type == "var_node") {
-      if (node_onhover.id == "trash") {
-        can_open = true;
-      } else {
-        can_open = false;
-      }
-    } else {
-      can_open = false;
-    }
-
-    if (node_mousedown) {
-      moving_node = true;
-      if (mode == "edit") {  // If in edit mode update node gt position
-        node_mousedown.x = current_mouse_location.x;
-        node_mousedown.y = current_mouse_location.y;
-      } else if (mode == "init") {  // If in init mode update node prior
-        node_mousedown.move_node(current_mouse_location.x, current_mouse_location.y, graph, false);
-        node_mousedown.update_ellipse();
-        graph.compute_MAP();
-      }
-    }
-  }
-
-  function mouseup_handler(e) {
-    click_time = Date.now() - mousedown_time;
-    mouse_up = true;
-
-    if (mode == "edit") {
-      let drop = false;
-
-      node_onhover = null;
-      node_onhover = e.path.find((element) => element.classList == "node_g");
-      if (moving_node && node_mousedown.type == "var_node") {
-        if (node_onhover) {
-          if (node_onhover.id == "trash") {
-            graph.remove_node(node_mousedown.id);
-            graph.update_node_id();
-            can_open = false;
-          } else{
-            drop = true;
-          }
-        } else {
-          drop = true;
-        }
-      }
-      
-      if (drop) { // Moved variable node (not to bin)
-        clear_previous_message();
-        node_mousedown.move_node(node_mousedown.x, node_mousedown.y, graph);
-      }
-    }
-
-    node_mousedown = null;
-    moving_node = false;
-  }
-
-  function click_handler(e) {
-    if (mode == "edit") {
-      edit_click_handler(e);
-    } else if (mode == "play") {
-      play_click_handler(e);
-    }
-  }
-
-  function edit_click_handler(e) {
-    // Handles creating factors between variable nodes
-    node_clicked = null;
-    const possible_nodes = e.composedPath().filter((element) => element.classList != undefined);
-    node_clicked = possible_nodes.find((element) => element.classList[0] == "node_g");
-
-    if (click_time <= click_time_span && mouse_up) {
-      if (node_clicked) {
-        node_clicked = graph.find_node(node_clicked.id);
-        if (!last_node_clicked) {  // if not in dragging mode to create factor
-          last_node_clicked = node_clicked;  // Enter dragging mode
-        } else {  // if in dragging mode
-          if (node_clicked.type == "var_node" && last_node_clicked.type == "var_node") {
-            graph.add_factor_node(last_node_clicked.id, node_clicked.id, meas_model, meas_params);
+        node_mousedown = null;
+        const possible_nodes = e.composedPath().filter((element) => element.classList != undefined);
+        node_mousedown = possible_nodes.find((element) => element.classList[0] == "node_g");
+        
+        if (node_mousedown && node_mousedown.id == "new_node") {
+            graph.add_var_node(svg_width - 30, 30, prior_std);
             clear_previous_message();
-            last_node_clicked = null;
-          } else {
-            last_node_clicked = node_clicked;
-          }
+            node_mousedown = graph.var_nodes[graph.var_nodes.length - 1];
         }
-      } else {
-        last_node_clicked = null;
-      }
-    } else {
-      last_node_clicked = null;
+        else if (node_mousedown) {
+            node_mousedown = graph.find_node(node_mousedown.id);
+        }
     }
-  }
 
+    function mousemove_handler(e) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        current_mouse_location = {
+            x: e.clientX - rect.x,
+            y: e.clientY - rect.y,
+        };
 
+        // Open trash can lid if hovering over it
+        node_onhover = null;
+        node_onhover = e.path.find((element) => element.classList == "node_g");
+        if (node_onhover && moving_node && node_mousedown.type == "var_node") {
+            if (node_onhover.id == "trash") {
+                can_open = true;
+            } else {
+                can_open = false;
+            }
+        } else {
+            can_open = false;
+        }
 
+        if (node_mousedown) {
+            moving_node = true;
+            if (mode == "edit") {  // If in edit mode update node gt position
+                node_mousedown.x = current_mouse_location.x;
+                node_mousedown.y = current_mouse_location.y;
+            } else if (mode == "init") {  // If in init mode update node prior
+                node_mousedown.move_node(current_mouse_location.x, current_mouse_location.y, graph, false);
+                node_mousedown.update_ellipse();
+                graph.compute_MAP();
+                dist_to_MAP = graph.compare_to_MAP();
+            }
+        }
+    }
+
+    function mouseup_handler(e) {
+        click_time = Date.now() - mousedown_time;
+        mouse_up = true;
+
+        if (mode == "edit") {
+            let drop = false;
+
+            node_onhover = null;
+            node_onhover = e.path.find((element) => element.classList == "node_g");
+            if (moving_node && node_mousedown.type == "var_node") {
+                if (node_onhover) {
+                    if (node_onhover.id == "trash") {
+                        graph.remove_node(node_mousedown.id);
+                        graph.update_node_id();
+                        can_open = false;
+                    } else{
+                        drop = true;
+                    }
+                } else {
+                    drop = true;
+                }
+            }
+            if (drop) { // Moved variable node (not to bin)
+                clear_previous_message();
+                node_mousedown.move_node(node_mousedown.x, node_mousedown.y, graph);
+            }
+        }
+        node_mousedown = null;
+        moving_node = false;
+    }
+
+    function click_handler(e) {
+        if (mode == "edit") {
+            edit_click_handler(e);
+        } else if (mode == "play") {
+            play_click_handler(e);
+        }
+    }
+
+    function edit_click_handler(e) {
+        // Handles creating factors between variable nodes
+        node_clicked = null;
+        const possible_nodes = e.composedPath().filter((element) => element.classList != undefined);
+        node_clicked = possible_nodes.find((element) => element.classList[0] == "node_g");
+
+        if (click_time <= click_time_span && mouse_up) {
+            if (node_clicked) {
+                node_clicked = graph.find_node(node_clicked.id);
+                if (!last_node_clicked) {  // if not in dragging mode to create factor
+                    last_node_clicked = node_clicked;  // Enter dragging mode
+                } else {  // if in dragging mode
+                    if (node_clicked.type == "var_node" && last_node_clicked.type == "var_node") {
+                        graph.add_factor_node(last_node_clicked.id, node_clicked.id, "linear", meas_params);
+                        clear_previous_message();
+                        last_node_clicked = null;
+                    } else {
+                        last_node_clicked = node_clicked;
+                    }
+                }
+            } else {
+                last_node_clicked = null;
+            }
+        } else {
+            last_node_clicked = null;
+        }
+    }
 
     function play_click_handler(e) {
         node_clicked = null;
@@ -523,8 +437,31 @@
                 create_message_bubble(node_clicked.id, dest_id);
                 move_belief(dest_id);
             }
+        }
+    }
 
-            // console.log("sending message from node", node_clicked.id, "to nodes ", updated_ids);
+    // Event handlers -----------------------------------------------------------
+
+    function handle_mode_change(e) {
+        clear_previous_message();
+        graph.update_beliefs();
+
+        if (mode == "edit") {
+            graph.priors_to_gt();  // Reset all beliefs to be at priors and zero all messages
+        }
+        if (mode != "edit") {
+            graph.compute_MAP();
+            dist_to_MAP = graph.compare_to_MAP();
+        }
+        node_clicked = null;
+        last_node_clicked = null;
+        sync_on = false;
+        n_iters = 0;
+    }
+
+    function toggleSyncGBP(e) {
+        if (mode == "play") {
+            sync_on = !sync_on;
         }
     }
 
@@ -539,10 +476,10 @@
             factor.send_message_to(graph, [dest_id]);
             graph.update_beliefs([dest_id], false); // don't update ellipses
 
+            // Animations
             highlight_node(source_id);
             create_message_bubble(source_id, dest_id);
             move_belief(dest_id);
-
             // console.log("random message from var ", source_id, "via  factor", factor.id, "to variable", dest_id)
         }
     }
@@ -553,6 +490,7 @@
             graph.update_beliefs(null, false);
             n_iters++;
 
+            // Animations
             for (var i = 0; i < graph.factor_nodes.length; i++) {
                 create_message_bubble(graph.factor_nodes[i].adj_ids[0], graph.factor_nodes[i].adj_ids[1]);
                 create_message_bubble(graph.factor_nodes[i].adj_ids[1], graph.factor_nodes[i].adj_ids[0]);
@@ -560,45 +498,53 @@
             for (var i = 0; i < graph.var_nodes.length; i++) {
                 move_belief(graph.var_nodes[i].id);
             }
-            console.log(moving_beliefs)
         }
     }
 
-  function handle_mode_change() {
+    function saveGraph(e) {
+        const priors = {};
 
-    clear_previous_message();
-    graph.update_beliefs();
-
-    if (mode == "edit") {
-      // Reset all beliefs to be at priors and zero all messages
-      graph.priors_to_gt();
+        for (var i = 0; i < graph.var_nodes.length; i++) {
+            const n = graph.var_nodes[i];
+            priors[n.id] = {
+                eta: [n.prior.eta.get(0,0), n.prior.eta.get(1,0)],
+                lam: n.prior.lam.get(0,0)
+            };
+        }
+        console.log(JSON.stringify(priors));
     }
 
-    if (mode != "edit") {
-      graph.compute_MAP();
+    function load_priors(type, priors) {
+        set_playground(type);
+        for (var i = 0; i < graph.var_nodes.length; i++) {
+            const n = graph.var_nodes[i];
+            n.prior.eta = new m.Matrix([[priors[n.id].eta[0]], [priors[n.id].eta[1]]]);
+            n.prior.lam = new m.Matrix([[priors[n.id].lam, 0.], [0., priors[n.id].lam]]);
+        }
+        graph.update_beliefs()
     }
-    node_clicked = null;
-    last_node_clicked = null;
-    passing_message = false;
-    n_iters = 0;
-  }
 
-  function toggle_passing_message() {
-    if (mode == "play") {
-      passing_message = !passing_message;
+
+    // Utility functions --------------------------------------------------------
+
+    function max(list) {
+        return Math.max(...list.map((sub_list) => Math.max(...sub_list)));
     }
-    if (passing_message) {
-      counter = iter_sec * 10 - 1;
+
+    function min(list) {
+        return Math.min(...list.map((sub_list) => Math.min(...sub_list)));
     }
-  }
 
-  function max(list) {
-    return Math.max(...list.map((sub_list) => Math.max(...sub_list)));
-  }
+    function get_factor_loc(f) {
+        // Factor is located at average position of variable nodes
+        const x = (graph.find_node(f.adj_ids[0]).x + graph.find_node(f.adj_ids[1]).x) / 2;
+        const y = (graph.find_node(f.adj_ids[0]).y + graph.find_node(f.adj_ids[1]).y) / 2;
+        return [x, y];
+    }
 
-  function min(list) {
-    return Math.min(...list.map((sub_list) => Math.min(...sub_list)));
-  }
+    function linear_progress(x, p) {
+        return x.start + (x.end - x.start)*p;
+    }
 
 </script>
 
@@ -660,6 +606,13 @@
         stroke: green;
         stroke-opacity: 0.5;
         fill-opacity: 0;
+    }
+
+    .map-diff {
+        stroke: green;
+        opacity: 0.5;
+        stroke-width: 1;
+        stroke-dasharray: 6, 3;
     }
 
     .highlight-mean {
@@ -750,7 +703,6 @@
         fill: var(--red);
     }
 
-
 </style>
 
 
@@ -760,7 +712,6 @@
 
     <svg
       id="svg"
-      bind:this={svg}
       on:mousedown={mousedown_handler}
       on:mousemove={mousemove_handler}
       on:mouseup={mouseup_handler}
@@ -803,27 +754,27 @@
                 <line class="edge" 
                     x1={graph.find_node(f.adj_ids[0]).x} y1={graph.find_node(f.adj_ids[0]).y} 
                     x2={graph.find_node(f.adj_ids[1]).x} y2={graph.find_node(f.adj_ids[1]).y}/>
-                <g class="node_g" id={f.id} transform="translate({f.x} {f.y})">
+                <g class="node_g" id={f.id} transform="translate({get_factor_loc(f)[0]} {get_factor_loc(f)[1]})">
                     <rect class="factor-node" x={-10} y={-10} width={factor_size} height={factor_size}/>
                     <text class="node-text" x={0} y={5}> {f.id}</text>
                 </g>
             {:else}
                 {#if moving_beliefs.map(x => x.id).includes(f.adj_ids[0]) && moving_beliefs.map(x => x.id).includes(f.adj_ids[1])}
                     <line class="edge" 
-                        x1={moving_beliefs.find(x => x.id == f.adj_ids[0]).x0 + (moving_beliefs.find(x => x.id == f.adj_ids[0]).x1-moving_beliefs.find(x => x.id == f.adj_ids[0]).x0) * $move_belief_progress} 
-                        y1={moving_beliefs.find(x => x.id == f.adj_ids[0]).y0 + (moving_beliefs.find(x => x.id == f.adj_ids[0]).y1-moving_beliefs.find(x => x.id == f.adj_ids[0]).y0) * $move_belief_progress}
-                        x2={moving_beliefs.find(x => x.id == f.adj_ids[1]).x0 + (moving_beliefs.find(x => x.id == f.adj_ids[1]).x1-moving_beliefs.find(x => x.id == f.adj_ids[1]).x0) * $move_belief_progress} 
-                        y2={moving_beliefs.find(x => x.id == f.adj_ids[1]).y0 + (moving_beliefs.find(x => x.id == f.adj_ids[1]).y1-moving_beliefs.find(x => x.id == f.adj_ids[1]).y0) * $move_belief_progress}/>                    
+                        x1={linear_progress(moving_beliefs.find(x => x.id == f.adj_ids[0]).x, $move_belief_progress)} 
+                        y1={linear_progress(moving_beliefs.find(x => x.id == f.adj_ids[0]).y, $move_belief_progress)}
+                        x2={linear_progress(moving_beliefs.find(x => x.id == f.adj_ids[1]).x, $move_belief_progress)} 
+                        y2={linear_progress(moving_beliefs.find(x => x.id == f.adj_ids[1]).y, $move_belief_progress)}/>                    
                 {:else if moving_beliefs.map(x => x.id).includes(f.adj_ids[0])}
                     <line class="edge" 
-                        x1={moving_beliefs.find(x => x.id == f.adj_ids[0]).x0 + (moving_beliefs.find(x => x.id == f.adj_ids[0]).x1-moving_beliefs.find(x => x.id == f.adj_ids[0]).x0) * $move_belief_progress} 
-                        y1={moving_beliefs.find(x => x.id == f.adj_ids[0]).y0 + (moving_beliefs.find(x => x.id == f.adj_ids[0]).y1-moving_beliefs.find(x => x.id == f.adj_ids[0]).y0) * $move_belief_progress}
+                        x1={linear_progress(moving_beliefs.find(x => x.id == f.adj_ids[0]).x, $move_belief_progress)} 
+                        y1={linear_progress(moving_beliefs.find(x => x.id == f.adj_ids[0]).y, $move_belief_progress)}
                         x2={graph.find_node(f.adj_ids[1]).belief_ellipse.cx} 
                         y2={graph.find_node(f.adj_ids[1]).belief_ellipse.cy}/>
                 {:else if moving_beliefs.map(x => x.id).includes(f.adj_ids[1])}
                     <line class="edge" 
-                        x2={moving_beliefs.find(x => x.id == f.adj_ids[1]).x0 + (moving_beliefs.find(x => x.id == f.adj_ids[1]).x1-moving_beliefs.find(x => x.id == f.adj_ids[1]).x0) * $move_belief_progress} 
-                        y2={moving_beliefs.find(x => x.id == f.adj_ids[1]).y0 + (moving_beliefs.find(x => x.id == f.adj_ids[1]).y1-moving_beliefs.find(x => x.id == f.adj_ids[1]).y0) * $move_belief_progress}
+                        x2={linear_progress(moving_beliefs.find(x => x.id == f.adj_ids[1]).x, $move_belief_progress)} 
+                        y2={linear_progress(moving_beliefs.find(x => x.id == f.adj_ids[1]).y, $move_belief_progress)}
                         x1={graph.find_node(f.adj_ids[0]).belief_ellipse.cx} y1={graph.find_node(f.adj_ids[0]).belief_ellipse.cy}/>
                 {:else}
                     <line class="edge" 
@@ -845,19 +796,26 @@
                 {#if show_batch}
                     <circle class="gt-mean" cx={n.MAP_ellipse.cx} cy={n.MAP_ellipse.cy} r={mean_radius}/>
                     <ellipse class="gt-cov" fill="url(#gt_cov_gradient)"
-                    cx={n.MAP_ellipse.cx} cy={n.MAP_ellipse.cy} rx={n.MAP_ellipse.rx} ry={n.MAP_ellipse.ry}
-                    transform="rotate({n.MAP_ellipse.angle}, {n.MAP_ellipse.cx}, {n.MAP_ellipse.cy})"/>
+                        cx={n.MAP_ellipse.cx} cy={n.MAP_ellipse.cy} rx={n.MAP_ellipse.rx} ry={n.MAP_ellipse.ry}
+                        transform="rotate({n.MAP_ellipse.angle}, {n.MAP_ellipse.cx}, {n.MAP_ellipse.cy})"/>
+                    {#if moving_beliefs.map(x => x.id).includes(n.id)}
+                        <line class="map-diff" x1={n.MAP_ellipse.cx} y1={n.MAP_ellipse.cy} 
+                        x2={linear_progress(moving_beliefs.find(x => x.id == n.id).x, $move_belief_progress)} 
+                        y2={linear_progress(moving_beliefs.find(x => x.id == n.id).y, $move_belief_progress)}/>
+                    {:else}
+                        <line class="map-diff" x1={n.MAP_ellipse.cx} y1={n.MAP_ellipse.cy} x2={n.belief_ellipse.cx} y2={n.belief_ellipse.cy}/>
+                    {/if}
                 {/if}
 
                 {#if moving_beliefs.map(x => x.id).includes(n.id)}
                     <circle class="belief-mean" r={mean_radius}
-                        cx={moving_beliefs.find(x => x.id == n.id).x0 + (moving_beliefs.find(x => x.id == n.id).x1-moving_beliefs.find(x => x.id == n.id).x0) * $move_belief_progress} 
-                        cy={moving_beliefs.find(x => x.id == n.id).y0 + (moving_beliefs.find(x => x.id == n.id).y1-moving_beliefs.find(x => x.id == n.id).y0) * $move_belief_progress}/>
+                        cx={linear_progress(moving_beliefs.find(x => x.id == n.id).x, $move_belief_progress)}
+                        cy={linear_progress(moving_beliefs.find(x => x.id == n.id).y, $move_belief_progress)}/>
                     <ellipse class="belief-cov" fill="url(#belief_covariance_gradient)"
-                        cx={moving_beliefs.find(x => x.id == n.id).x0 + (moving_beliefs.find(x => x.id == n.id).x1-moving_beliefs.find(x => x.id == n.id).x0) * $move_belief_progress} 
-                        cy={moving_beliefs.find(x => x.id == n.id).y0 + (moving_beliefs.find(x => x.id == n.id).y1-moving_beliefs.find(x => x.id == n.id).y0) * $move_belief_progress} 
-                        rx={moving_beliefs.find(x => x.id == n.id).r0 + (moving_beliefs.find(x => x.id == n.id).r1-moving_beliefs.find(x => x.id == n.id).r0) * $move_belief_progress} 
-                        ry={moving_beliefs.find(x => x.id == n.id).r0 + (moving_beliefs.find(x => x.id == n.id).r1-moving_beliefs.find(x => x.id == n.id).r0) * $move_belief_progress}/>
+                        cx={linear_progress(moving_beliefs.find(x => x.id == n.id).x, $move_belief_progress)} 
+                        cy={linear_progress(moving_beliefs.find(x => x.id == n.id).y, $move_belief_progress)} 
+                        rx={linear_progress(moving_beliefs.find(x => x.id == n.id).r, $move_belief_progress)} 
+                        ry={linear_progress(moving_beliefs.find(x => x.id == n.id).r, $move_belief_progress)}/>
                 {:else}
                     <g class="node_g" id={n.id} cursor="pointer" draggable="true">
                         <circle class:belief-mean={highlight_id != n.id} class:highlight-mean={highlight_id == n.id} id={"node_belief_mean_"+n.id} 
@@ -875,8 +833,8 @@
         {#each message_bubbles as b}
             <circle
                 class="mess-bubble" r={5}
-                cx={b.x0 + (b.x1 - b.x0) * $bubble_progress}
-                cy={b.y0 + (b.y1 - b.y0) * $bubble_progress}
+                cx={linear_progress(b.x, $bubble_progress)}
+                cy={linear_progress(b.y, $bubble_progress)}
                 opacity={1 - 4 * ($bubble_progress - 0.5) * ($bubble_progress - 0.5)} />
         {/each}
 
@@ -913,19 +871,29 @@
       </label>    
     </div>
 
+    <span class="hint bold-text">
+        Preconfigured graphs:
+    </span>
+
     <div>
-        <button on:click={reset_playground}>
+        <button on:click={() => set_playground("linear")}>
             Reset playground
         </button>
-
-        <button on:click={clear_playground}>
+        <button on:click={() => set_playground("empty")}>
             Clear playground
         </button>  
-
-        <button on:click={grid_playground}>
+        <button on:click={() => set_playground("grid")}>
             Grid
-        </button>  
+        </button>
+        <button on:click={() => set_playground("loop")}>
+            Loop
+        </button>    
     </div>
+
+
+    <span class="hint bold-text">
+        Send messages through the graph:
+    </span>
 
     <div>
         <button on:click={randomMessage}>
@@ -933,6 +901,9 @@
         </button>  
     </div>
 
+    <span class="hint bold-text">
+        Synchronous message passing:
+    </span>
 
     <div id="play-speed">
         <div id="center">
@@ -942,12 +913,12 @@
         </div>
 
         <div id="play-pause">
-            {#if passing_message}
-                <button class="gbp-button" on:click={toggle_passing_message}>
+            {#if sync_on}
+                <button class="gbp-button" on:click={toggleSyncGBP}>
                     <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
                 </button>
             {:else}
-                <button class="gbp-button" class:not_pressable={mode != "play"} on:click={toggle_passing_message}>
+                <button class="gbp-button" class:not_pressable={mode != "play"} on:click={toggleSyncGBP}>
                     <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
                 </button>
             {/if}              
@@ -962,21 +933,6 @@
         </div>  
     </div>
 
-
-    <!-- <div>
-        {#if passing_message}
-            <button class="icon-button" style="outline: none;" data-tooltip="Pause GBP" on:click={toggle_passing_message}>
-            <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
-            </button>
-        {:else}
-            <button class="icon-button" style="outline: none;" class:not_pressable={mode != "play"} on:click={toggle_passing_message}>
-            <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
-            </button>
-        {/if}
-
-    </div> -->
-
-
     <span class="hint bold-text">
         Balance the data and smoothing factors:
     </span>
@@ -984,7 +940,7 @@
     <div id="precision-sliders">
         <div class="slider-container">
             Prior std: <br>
-            <input class="full-width-slider" type="range" min="{30}" max="{60}" bind:value={prior_std}/>
+            <input class="full-width-slider" type="range" min="{30}" max="{200}" bind:value={prior_std}/>
             <div class="status">
                 ({prior_std} units)
             </div>
@@ -992,7 +948,7 @@
 
         <div class="slider-container">
             Measurement std: <br>
-            <input class="full-width-slider" type="range" min="{5e-5}" max="{0.0051}" bind:value={meas_params["linear"]["noise_model_std"]} step="5e-5"/>
+            <input class="full-width-slider" type="range" min="{5}" max="{60}" bind:value={meas_params["linear"]["noise_model_std"]}/>
             <div class="status">
                 ({meas_params["linear"]["noise_model_std"]} units)
             </div>
@@ -1002,7 +958,13 @@
 
     <div>
         <button on:click={() => { show_batch = !show_batch; }}>
-            Toggle GT marginals
+            Toggle true marginals
+        </button>  
+        <button on:click={saveGraph}>
+            Save graph
+        </button>  
+        <button on:click={() => load_priors("grid", grid_prior)}>
+            Load graph
         </button>  
     </div>
 

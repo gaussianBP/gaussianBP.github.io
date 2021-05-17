@@ -922,7 +922,7 @@ TODO
     }
 
 
-    @media (min-width: 1300px) {
+    @media (min-width: 1180px) {
         #wrapper {
             grid-template-columns: auto 400px;
             grid-template-rows: auto;  

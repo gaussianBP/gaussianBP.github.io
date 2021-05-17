@@ -91,14 +91,12 @@
         if (sync_on) {
             const now = Date.now();
             if ((now - lastTime) > 1000 / iters_per_sec[speed+2]) {
-
                 graph.sync_iter();
                 beliefs = beliefs_show(graph.get_beliefs());
                 n_iters++;
 
                 lastTime = now;
             }
-
         }
         
         if (meas_lam != meas_lam_check) {
@@ -393,7 +391,7 @@
         width: 600px;
     }
 
-    @media (min-width: 1300px) {
+    @media (min-width: 1180px) {
         #wrapper {
             grid-template-columns: auto 400px;
             grid-template-rows: auto;  

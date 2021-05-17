@@ -3,6 +3,9 @@ import * as gauss from '../utils/gaussian';
 import { getEllipse } from '../utils/gaussian';
 import * as r from "random";
 
+const seedrandom = require('seedrandom');
+r.use(seedrandom('foobar'));
+
 
 export class FactorGraph {
   constructor() {
@@ -30,7 +33,7 @@ export class FactorGraph {
 
   send_messages() {
     for (var i = 0; i < this.factor_nodes.length; i++) {
-      this.factor_nodes[i].pass_message(this);
+      this.factor_nodes[i].send_both_messages(this);
     }
   }
 
@@ -144,45 +147,6 @@ export class FactorGraph {
     }
   }
 
-  update_factor_node_location() {
-    for (var i = 0; i < this.factor_nodes.length; i++) {
-      var factor_node = this.factor_nodes[i]
-      var x = 0;
-      var y = 0;
-      for (var j = 0; j < factor_node.adj_ids.length; j++) {
-        var adj_var_node = this.find_node(factor_node.adj_ids[j]);
-        x += adj_var_node.x;
-        y += adj_var_node.y;
-      }
-      x /= factor_node.adj_ids.length;
-      y /= factor_node.adj_ids.length;
-      factor_node.x = x;
-      factor_node.y = y;
-    }
-  }
-
-  pass_message(node1_id, node2_id) {
-    // TODO: temporary implementation, need to integrate to gbp2d
-    // FIXME: 
-    var node1 = this.find_node(parseInt(node1_id));
-    var node2 = this.find_node(parseInt(node2_id));
-    if (node1.id == node2.id) {
-      node1.pass_message(this);
-    }
-    else {
-      var factor_node = this.find_factor_node(node1.id, node2.id);
-      if (factor_node) {
-        node1.send_message(this);
-        factor_node.pass_message(this);
-        node2.update_belief(this);
-      }
-      else {
-        return false;
-      }
-    }
-    return true
-  }
-
   compute_error() {
     var total_error = 0;
     for (var i = 0; i < this.var_nodes.length; i++) {
@@ -203,7 +167,6 @@ export class FactorGraph {
   }
 
   compute_MAP() {
-    // Adopted from Joseph Ortiz's implementation in gbp2d.js
     var total_dofs = 0;
     for (var i = 0; i < this.var_nodes.length; i ++) {
       total_dofs += this.var_nodes[i].dofs;
@@ -292,9 +255,7 @@ export class FactorGraph {
     // Update lambda and compute new factor 
     for (var i = 0; i < this.factor_nodes.length; i++) {
       var factor_node = this.factor_nodes[i];    
-
       factor_node.lambda = [1 / (params["linear"]["noise_model_std"] * params["linear"]["noise_model_std"])];
-
       factor_node.compute_factor();
     }
   }
@@ -480,7 +441,9 @@ export class LinearFactor {
     this.factor = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
     this.incoming_id = null;
     this.messages = [];
-    this.eta_damping = 0.;
+
+    this.damping = 0.;
+    this.dropout = 0.;
 
     this.x = 0;
     this.y = 0;
@@ -520,99 +483,71 @@ export class LinearFactor {
     }
   }
 
+
+  comp_mess(i) {
+    const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
+
+    if (Math.random() <  this.dropout) {  // Send previous message
+      message.eta = this.messages[i].eta;
+      message.lam = this.messages[i].lam;
+      return message;
+    }
+
+    var eta_factor = this.factor.eta.clone();
+    var lam_factor = this.factor.lam.clone();
+
+    // Take product with incoming messages, general for factor connected to arbitrary num var nodes
+    var mess_start_dim = 0;
+    for (var j = 0; j < this.adj_ids.length; j++) {
+      if (i != j) {
+        const eta_prod = m.Matrix.sub(this.adj_beliefs[j].eta, this.messages[j].eta);
+        const lam_prod = m.Matrix.sub(this.adj_beliefs[j].lam, this.messages[j].lam);
+        new m.MatrixSubView(eta_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, 0, 0).add(eta_prod);
+        new m.MatrixSubView(lam_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1).add(lam_prod);
+      }
+      mess_start_dim += this.adj_var_dofs[j];
+    }
+
+    // For factor connecting 2 variable nodes
+    if (i == 0) {
+      var eo = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
+      var eno = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
+      var loo = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
+      var lnono = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
+      var lnoo = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
+      var lono = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
+    } else if (i == 1) {
+      var eno = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
+      var eo = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
+      var lnono = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
+      var loo = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
+      var lono = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
+      var lnoo = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
+    }
+
+    const block = lono.mmul(m.inverse(lnono));
+    message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
+    message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
+    if (this.messages[i].eta.get(0,0) != 0.) {  // Do not damp on first iteration
+      message.eta.mul(1 - this.damping);
+      message.eta.add(this.messages[i].eta.mul(this.damping));
+      message.lam.mul(1 - this.damping);
+      message.lam.add(this.messages[i].lam.mul(this.damping));
+    }
+    return message;
+  }
+
   send_message_to(graph, ids) {
-    
     for (var i = 0; i < this.adj_ids.length; i++) {
       if (ids.includes(this.adj_ids[i])) {
-        var eta_factor = this.factor.eta.clone();
-        var lam_factor = this.factor.lam.clone();
-
-        // Take product with incoming messages, general for factor connected to arbitrary num var nodes
-        var mess_start_dim = 0;
-        for (var j = 0; j < this.adj_ids.length; j++) {
-          if (i != j) {
-            const eta_prod = m.Matrix.sub(this.adj_beliefs[j].eta, this.messages[j].eta);
-            const lam_prod = m.Matrix.sub(this.adj_beliefs[j].lam, this.messages[j].lam);
-            new m.MatrixSubView(eta_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, 0, 0).add(eta_prod);
-            new m.MatrixSubView(lam_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1).add(lam_prod);
-          }
-          mess_start_dim += this.adj_var_dofs[j];
-        }
-
-        // For factor connecting 2 variable nodes
-        if (i == 0) {
-          var eo = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
-          var eno = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
-          var loo = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
-          var lnono = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
-          var lnoo = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
-          var lono = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
-        } else if (i == 1) {
-          var eno = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
-          var eo = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
-          var lnono = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
-          var loo = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
-          var lono = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
-          var lnoo = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
-        }
-
-        const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
-        const block = lono.mmul(m.inverse(lnono));
-        message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
-        message.eta.mul(1 - this.eta_damping);
-        message.eta.add(this.messages[i].eta.mul(this.eta_damping));
-        message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
-        this.messages[i] = message;
-      }
-    }
-
-  }
-
-
-  pass_message(graph, id = null) {
-
-    for (var i = 0; i < this.adj_ids.length; i++) {
-      if (!id || id == this.adj_ids[i]) {
-        var eta_factor = this.factor.eta.clone();
-        var lam_factor = this.factor.lam.clone();
-
-        // Take product with incoming messages, general for factor connected to arbitrary num var nodes
-        var mess_start_dim = 0;
-        for (var j = 0; j < this.adj_ids.length; j++) {
-          if (i != j) {
-            const eta_prod = m.Matrix.sub(this.adj_beliefs[j].eta, this.messages[j].eta);
-            const lam_prod = m.Matrix.sub(this.adj_beliefs[j].lam, this.messages[j].lam);
-            new m.MatrixSubView(eta_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, 0, 0).add(eta_prod);
-            new m.MatrixSubView(lam_factor, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1, mess_start_dim, mess_start_dim + this.adj_var_dofs[j] - 1).add(lam_prod);
-          }
-          mess_start_dim += this.adj_var_dofs[j];
-        }
-
-        // For factor connecting 2 variable nodes
-        if (i == 0) {
-          var eo = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
-          var eno = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
-          var loo = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
-          var lnono = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
-          var lnoo = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
-          var lono = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
-        } else if (i == 1) {
-          var eno = new m.MatrixSubView(eta_factor, 0, 1, 0, 0);
-          var eo = new m.MatrixSubView(eta_factor, 2, 3, 0, 0);
-          var lnono = new m.MatrixSubView(lam_factor, 0, 1, 0, 1);
-          var loo = new m.MatrixSubView(lam_factor, 2, 3, 2, 3);
-          var lono = new m.MatrixSubView(lam_factor, 2, 3, 0, 1);
-          var lnoo = new m.MatrixSubView(lam_factor, 0, 1, 2, 3);
-        }
-
-        const message = new gauss.Gaussian([[0], [0]], [[0, 0], [0, 0]]);
-        const block = lono.mmul(m.inverse(lnono));
-        message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
-        message.eta.mul(1 - this.eta_damping);
-        message.eta.add(this.messages[i].eta.mul(this.eta_damping));
-        message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
-        this.messages[i] = message;
+        this.messages[i] = this.comp_mess(i);
       }
     }
   }
+
+  send_both_messages(graph) {
+    this.send_message_to(graph, [this.adj_ids[0]]);
+    this.send_message_to(graph, [this.adj_ids[1]]);
+  }
+
 }

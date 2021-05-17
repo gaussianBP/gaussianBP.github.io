@@ -408,23 +408,17 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
       Due to the closure properties of Gaussians, the beliefs and messages are also Gaussians and GBP operates by storing and passing around information vectors and precision matrices.
     </p>
     <p>
-      As in loopy belief propagation, the GBP beliefs converge towards the marginal distributions, however unlike other forms of loopy BP, GBP has theoretical guarantees that it computes the exact marginal means on convergence <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
+      As is the case for loopy belief propagation, the GBP beliefs converge towards the marginal distributions, however unlike other forms of loopy BP, GBP has theoretical guarantees that it computes the exact marginal means on convergence <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>.
+      Unfortunately, the same is not true for the variances and although the variances often converge to the true marginal variances, they are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
       Although GBP does not in general have convergence guarantees, there some convergence conditions <d-cite key="Bickson:PhDThesis:2008, du2018convergence, su2015convergence"></d-cite> as well as methods to improve chances of convergence (see chapter 22 in <d-cite key="murphy2012machine"></d-cite>). 
     </p>
     <p>  
-      The interactive figure below shows the high level operation of GBP for a simple grid alignment problem - messages are passed iteratively through the graph and the beliefs converge towards the true marginals.
+      The interactive <a href="#gbp_intuition">figure</a> below explores the operation of GBP for a simple grid alignment problem. We have chosen a spatial estimation problem as it is intuitive to visualize the beliefs, however GBP can just as easily be applied to any non-spatial inference problem. 
+      The figure is divided into two parts.
+      The first shows the algorithm level operation of GBP: as you progress the slider, messages are passed iteratively through the graph and the beliefs converge towards the true marginals. Part 2 aims to give intuition for the message-level operation of GBP. You can send individual messages through the graph and observe how neighbouring beliefs are updated and that GBP converges to the true marginals regardless of the order in which messages are passed.
     </p>
 
-    <d-figure id="message_passing"></d-figure>
-    
-    <figure class="l-page-outset">
-      <d-figure id="playground"></d-figure>
-    </figure>
-
-
-    <p class="note">
-      Andy - I feel here that I'm really missing the chance to play with GBP to understand what passing each message does  for myself. Can the diagram here be changed to an interactive simulation where we can click on nodes to send messages?  i.e. more like the GBP playground? Or have that as well?
-    </p>
+    <d-figure id="gbp_intuition"></d-figure>
 
     <h2 id="beyond-the-standard-algorithm">Beyond the standard algorithm </h2>
 
@@ -675,6 +669,8 @@ Andy - I am still struggling to understand what is happening in this figure... j
     <p class="note">
       GBP is the transformer of probabilistic inference.
     </p>
+
+    <d-figure id="playground" class="subgrid"></d-figure>
 
 
   </d-article>

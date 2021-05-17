@@ -1,4 +1,5 @@
 <script>
+
     import * as grid from "../gbp/grid.js";
 
     let t = 0;
@@ -13,21 +14,6 @@
     let xstart = 503;
     let ystart = 22;
     const frac_std = 0.7;
-
-    let showHint = false;
-
-	function handleMouseOver(e) {
-        let group = e.composedPath().find((element) => element.classList[0] == "node_g");
-        if (group.id == "hint-icon") {
-            showHint = true;
-        }
-	}
-	function handleMouseOut(e) {
-        let group = e.composedPath().find((element) => element.classList[0] == "node_g");
-        if (group.id == "hint-icon") {
-            showHint = false;
-        }
-    }
 
 </script>
 
@@ -53,12 +39,12 @@
     }
 
     .belief-mean {
-        fill: var(--blue);
+        fill: #0095DD;
     }
 
     .belief-std {
-        stroke: var(--blue);
-        stroke-opacity: 0.4;
+        stroke: #0095DD;
+        stroke-opacity: 0.75;
     }
 
     .marg-mean {
@@ -71,20 +57,14 @@
         stroke-width: 1.5;
     }
 
-    /* .hidden {
-        display: none;
-    } */
-
-    /* #hint-icon {
-        cursor: pointer;
-    } */
-
 </style>
 
 
 <figure class="subgrid">
     <div id="wrapper" class="interactive-container">
 
+        <div>
+        
         <input id="iteration-slider" type="range" min="0" max="10" bind:value={t} step="0.01"/>
 
         <svg width="682" height="199" viewBox="0 -4 682 195" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -198,7 +178,7 @@
 
             <defs>
                 <radialGradient id="belief_cov_gradient">
-                    <stop offset="0.35" stop-color="rgb(0,0,250)" stop-opacity="0.5" />
+                    <stop offset="0.35" stop-color="#0095DD" stop-opacity="0.5" />
                     <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
                 </radialGradient>
                 <radialGradient id="marg_cov_gradient">
@@ -207,6 +187,7 @@
                 </radialGradient>
             </defs>
         </svg>
+        </div>
 
     </div>
     
