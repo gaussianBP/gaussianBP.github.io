@@ -12,10 +12,10 @@
 		grid-column: page;
 	}
 
-    #caption {
+    /* #caption {
         text-align: left;
         grid-column: page;
-    }
+    } */
 
 </style>
 
@@ -25,8 +25,8 @@
 
 		<Tabs>
 			<TabList>
-				<Tab>Customizable 2D Pose Graphs</Tab>
-				<Tab>2D Robot Simulation</Tab>
+				<Tab>Pose Graphs</Tab>
+				<Tab>Robot Simulation</Tab>
 			</TabList>
 
 			<TabPanel>
@@ -41,8 +41,8 @@
 
     </div>
 
-    <figcaption id="caption">
+    <!-- <figcaption id="caption">
         Gaussian Belief propagation playground.
-    </figcaption>
+    </figcaption> -->
 
 </figure>

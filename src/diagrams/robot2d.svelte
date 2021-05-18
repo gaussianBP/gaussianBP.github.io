@@ -1,287 +1,421 @@
 <script>
-  import { onMount } from "svelte";
-  import { onInterval } from "../utils/util.js";
-  import * as gbp from "../gbp/gbp_playground.js";
+    import { onMount } from "svelte";
+    import { onInterval } from "../utils/util.js";
+    import * as gbp from "../gbp/gbp_playground.js";
 
-  // svg
-  let svg;
-  let svg_width = 800;
-  let svg_height = 800;
 
-  // Playground
-  let graph;
-  $: var_nodes = [];
-  $: factor_nodes = [];
+    // Playground
+    let graph;
+    $: var_nodes = [];
+    $: factor_nodes = [];
 
-  let n_landmarks = 20;
+    let svg_width = 600;
+    let svg_height = 600;
 
-  // GBP parameters
-  // var eta_damping = 0;
-  let lmk_prior_std = 60;
-  let robot_prior_std = 60;
-  let meas_model = "linear";
-
-  let odometry_params = {
-    "linear" : {
-      "noise_model_std": 40,
-      "noise_std": 2,
-    },
-  }
-
-  let meas_params = {
-    "linear" : {
-      "noise_model_std": 40,
-      "noise_std": 2,
-    },
-    "nonlinear" : {
-      "angle_noise_model_std": 0.5,
-      "angle_noise_std": 0.4,  
-      "dist_noise_model_std": 40,
-      "dist_noise_std": 2,
+    // GBP parameters
+    let lmk_prior_std = 60;
+    let robot_prior_std = 100;
+    let odometry_params = {
+        "linear" : {
+        "noise_model_std": 40,
+        "noise_std": 2,
+        },
     }
-  };
+    let meas_params = {
+        "linear" : {
+        "noise_model_std": 40,
+        "noise_std": 2,
+        }
+    };
 
-  // UI
-  const time_res = 0.01; // time resolution
-  let iters_per_sec = 10;
-  let n_iters = 0; // this counts how many times the overall graph has completed a sweep/sync
-  let iter_sec = 1.0;
-  let counter = 0;
-  let gbp_on = true;
+    // UI
+    let n_iters = 0; 
+    let lastTime = 0;
+    let dist_to_MAP = 0;
+    let speed = 0;
+    const speed_labels = ["1/4x", "1/2x", "1x", "5x", "10x"];
+    const iters_per_sec = [1, 2, 4, 20, 40];
+    let sync_on = false;
+    let show_batch = false;
+    let show_ground_truth = false;
 
-  let show_belief_mean = true;
-  let show_belief_cov = true;
-  let show_MAP_mean = false;
-  let show_MAP_cov = false;
-  let show_ground_truth = true;
-  let show_edges = true;
+    // Visual appearance
+    const factor_size = 20;
+    const radius = 10;
+    const lmk_radius = 5;
+    const mean_radius = 3;
 
-  // Visual appearance
-  const factor_size = 20;
-  const radius = 10;
-  const lmk_radius = 6;
-  const mean_radius = 2;
-  const gt_color = "green";
-  const belief_color = "red";
-  const map_color = "blue";
-  const linear_color = "orange";
-  const nonlinear_color = "purple";
-  const robot_color = "red";
-  const lmk_color = "orange";
-  const lmk_belief_color = "yellow";
-
-
-  // Robot motion params
-  let robot_loc = {x: 100, y: 100};
-  let last_key_pose = {x: robot_loc.x, y: robot_loc.y};
-  const step = 11;
-  const new_pose_dist = 75;
-  const meas_range = 150;
+    // Robot motion params
+    let n_landmarks = 16;
+    let robot_loc = {x: 100, y: 100};
+    let last_key_pose = {x: robot_loc.x, y: robot_loc.y};
+    let lastPoseId = 0;
+    const step = 11;
+    const new_pose_dist = 75;
+    const meas_range = 100;
 
 
-  onMount(() => {
-    reset_playground();
-  });
+    onMount(() => {
+        set_playground();
+    });
 
-  onInterval(() => update_playground(), 10);
+    onInterval(() => {
+        update_local_vars()
 
-  onInterval(() => pass_message_interval(), 1000 * time_res);
+        if (sync_on) {
+            const now = Date.now();
+            if ((now - lastTime) > 1000 / iters_per_sec[speed+2]) {
+                graph.sync_iter();
+                n_iters++;
+                lastTime = now;
+            }
+        }
 
+    }, 1000 / 30);
 
-  // ************************************************************
-  // Callback functions
-  // ************************************************************
-
-  function update_playground() {
-    graph.update_node_id();
-    graph.update_factor_node_location();
-    var_nodes = graph.var_nodes;
-    factor_nodes = graph.factor_nodes;
-
-    iter_sec = 1 / iters_per_sec;
-
-    check_add_new_pose()
-
-    // graph.update_priors(prior_std, true);  // Update beliefs as prior std is changed with slider
-    graph.update_factor_noise_models_robotsim(meas_params, odometry_params, n_landmarks);  // Update factors as meas noise models are changed with sliders
-    graph.update_cov_ellipses();
-    graph.compute_MAP();
-  }
-
-  function pass_message_interval() {
-    // Enables pass message in adjustable interval
-    if (gbp_on) {
-      if (counter * time_res >= iter_sec ) {
-        counter = 0;
-        graph.relinearize();
-        sync_pass_message();
-      } else {
-        counter++;
-      }
-    }
-  }
-
-  // ************************************************************
-  // Playground templates
-  // ************************************************************
-
-  function create_empty_playground() {
-
-    // Create initial factor graph
-    graph = new gbp.FactorGraph();
-
-    // Generate landmarks, first landmark near robot
-    let lmk1_todo = true;
-    while (lmk1_todo) {
-      var x = robot_loc.x + Math.random() * meas_range / Math.sqrt(2) - meas_range / (2 * Math.sqrt(2)); 
-      var y = robot_loc.y + Math.random() * meas_range / Math.sqrt(2) - meas_range / (2 * Math.sqrt(2)); 
-      if ( x>20 && x<svg_width-20 && y>20 && y<svg_height-20) {
-        graph.add_var_node(x, y, lmk_prior_std, 0, n_landmarks);
-        lmk1_todo = false;
-      }
-    }
-    for (var i=0; i<n_landmarks-1; i++) {
-      var x = Math.random() * (svg_width - 20) + 10;
-      var y = Math.random() * (svg_height - 20) + 10;
-      graph.add_var_node(x, y, lmk_prior_std, 0, n_landmarks);
+    $: {
+        check_add_new_pose(robot_loc);
     }
 
-    graph.add_var_node(robot_loc.x, robot_loc.y, robot_prior_std, n_landmarks, n_landmarks);
-
-    console.log(graph.var_nodes)
-
-    add_meas_factors();  // add initial measurements
-
-    var_nodes = graph.var_nodes;
-    factor_nodes = graph.factor_nodes;
-
-    return graph;
-  }
-
-  function reset_playground() {
-    graph = create_empty_playground();
-    graph.update_beliefs();
-    graph.compute_MAP();
-    update_playground();
-    gbp_on = true;
-    n_iters = 0;
-  }
-
-  function add_meas_factors() {
-    // Add measurement factors for latest robot pose
-    let pose = graph.var_nodes[graph.var_nodes.length - 1];
-
-    for (var j=0; j<n_landmarks; j++) {
-      let lmk = graph.var_nodes[j];
-      var dist = Math.sqrt(Math.pow(lmk.x - pose.x, 2) + Math.pow(lmk.y - pose.y, 2));
-      if (dist < meas_range) {
-        graph.add_factor_node(pose.id, lmk.id, meas_model, meas_params);
-      }
+    $: {
+        if (graph) {  // Update data factors when meas_params is changed
+            graph.update_factor_noise_models_robotsim(meas_params, odometry_params);
+            graph.compute_MAP();
+            dist_to_MAP = graph.compare_to_MAP();
+        }
     }
-  }
 
-  // ************************************************************
-  // Message passing functions
-  // ************************************************************
-
-
-  function sync_pass_message() {
-    for (var i = 0; i < graph.factor_nodes.length; i++) {
-      graph.factor_nodes[i].pass_message(graph);
+    function update_local_vars() {
+        var_nodes = graph.var_nodes;
+        factor_nodes = graph.factor_nodes;
     }
-    for (var i = 0; i < graph.var_nodes.length; i++) {
-      graph.var_nodes[i].pass_message(graph);
-      graph.var_nodes[i].update_cov_ellipse();
+
+    function create_empty_playground() {
+        graph = new gbp.FactorGraph();
+        graph.add_var_node(robot_loc.x, robot_loc.y, robot_prior_std, 0, "pose");
+        update_local_vars();
+        graph.update_beliefs();
     }
-    n_iters++;
-  }
 
-
-  function clear_previous_message() {
-    for (var i = 0; i < graph.var_nodes.length; i++) {
-      var var_node = graph.var_nodes[i];
-      var_node.belief.lam = var_node.prior.lam.clone();
-      var_node.belief.eta = var_node.prior.eta.clone();
+    function create_playground() {
+        graph = new gbp.FactorGraph();
+        graph.add_var_node(robot_loc.x, robot_loc.y, robot_prior_std, 0, "pose");
+        for (var i=0; i<n_landmarks; i++) {
+            var x = Math.random() * (svg_width - 20) + 10;
+            var y = Math.random() * (svg_height - 20) + 10;
+            graph.add_var_node(x, y, lmk_prior_std, null, "lmk");
+        }
+        add_meas_factors(0);  // add initial measurements
+        update_local_vars();
     }
-    for (var i = 0; i < graph.factor_nodes.length; i++) {
-      var factor_node = graph.factor_nodes[i];
-      factor_node.adj_beliefs = factor_node.adj_ids.map(
-        (adj_id) => graph.find_node(adj_id).belief
-      );
-      factor_node.zero_messages();
-      factor_node.compute_factor();
+
+    function set_playground(type="full") {
+        sync_on = true;
+        n_iters = 0;
+        lastPoseId = 0;
+        if (type == "empty") {
+            create_empty_playground();
+        } else {
+            create_playground();
+        }
+        graph.update_beliefs();
+        graph.compute_MAP();
+        dist_to_MAP = graph.compare_to_MAP();
     }
-    // sync_pass_message();
-    n_iters = 0;
-    gbp_on = true;
-  }
- 
 
-  function check_add_new_pose() {
-    const dist = Math.sqrt(Math.pow(robot_loc.x - last_key_pose.x, 2) + Math.pow(robot_loc.y - last_key_pose.y, 2));
-
-    if (dist > new_pose_dist) {
-      graph.add_var_node(robot_loc.x, robot_loc.y, robot_prior_std);
-      last_key_pose = {x: robot_loc.x, y: robot_loc.y};
-      graph.add_factor_node(var_nodes[var_nodes.length-2].id, var_nodes[var_nodes.length-1].id, "linear", odometry_params);
-      add_meas_factors(); 
+    function add_meas_factors(id) {
+        // Add measurement factors for latest robot pose
+        const node1 = graph.var_nodes[id];
+        for (let j=0; j < graph.var_nodes.length; j++) {
+            if (graph.var_nodes[j].note != node1.note) {
+                const node2 = graph.var_nodes[j];
+                const dist = Math.sqrt(Math.pow(node2.x - node1.x, 2) + Math.pow(node2.y - node1.y, 2));
+                if (dist < meas_range) {
+                    if (node2.note == "lmk") {
+                        graph.add_factor_node(node1.id, node2.id, "linear", meas_params, null, "meas");
+                    } else {
+                        graph.add_factor_node(node2.id, node1.id, "linear", meas_params, null, "meas");
+                    }
+                }
+            }
+        }
     }
-  }
 
+  // Message passing functions  ------------------------------------------------------
 
-  function click_handler(e) {
-    // add landmark
-  }
-
-  // If factors are linear they are replaced by nonlinear factors and vice-versa
-  function change_meas_model(e, id = null) {
-    clear_previous_message();
-    graph.update_meas_model(meas_model, meas_params, id);
-    clear_previous_message();
-  }
-
-
-  function toggle_gbp() {
-    gbp_on = !gbp_on;
-    if (gbp_on) {
-      counter = iter_sec * 10 - 1;
+    function clear_previous_message() {
+        for (var i = 0; i < graph.var_nodes.length; i++) {
+            const var_node = graph.var_nodes[i];
+            var_node.belief.lam = var_node.prior.lam.clone();
+            var_node.belief.eta = var_node.prior.eta.clone();
+        }
+        for (var i = 0; i < graph.factor_nodes.length; i++) {
+            const factor_node = graph.factor_nodes[i];
+            factor_node.adj_beliefs = factor_node.adj_ids.map(
+                (adj_id) => graph.find_node(adj_id).belief
+            );
+            factor_node.zero_messages();
+            factor_node.compute_factor();
+        }
+        n_iters = 0;
+        sync_on = true;
     }
-  }
+    
 
-  function max(list) {
-    return Math.max(...list.map((sub_list) => Math.max(...sub_list)));
-  }
+    function check_add_new_pose(robot_pos) {
+        const dist = Math.sqrt(Math.pow(robot_pos.x - last_key_pose.x, 2) + Math.pow(robot_pos.y - last_key_pose.y, 2));
+        if (dist > new_pose_dist) {
+            graph.add_var_node(robot_pos.x, robot_pos.y, robot_prior_std, null, "pose");
+            graph.update_beliefs();
+            last_key_pose = {x: robot_pos.x, y: robot_pos.y};
+            graph.add_factor_node(lastPoseId, var_nodes[var_nodes.length-1].id, "linear", odometry_params, null, "odometry");
+            lastPoseId = var_nodes[var_nodes.length-1].id;
+            add_meas_factors(graph.var_nodes.length - 1); 
+            graph.update_beliefs();
+            graph.compute_MAP();
+        }
+    }
 
-  function min(list) {
-    return Math.min(...list.map((sub_list) => Math.min(...sub_list)));
-  }
 
+    // Event handlers --------------------------------------------------
 
+    function addLandmark(e) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const mouse = {
+            x: e.clientX - rect.x,
+            y: e.clientY - rect.y,
+        };
+        graph.add_var_node(mouse.x, mouse.y, lmk_prior_std, null, "lmk");
+        add_meas_factors(graph.var_nodes.length - 1);
+        graph.compute_MAP();
+    }
 
 	function handleKeydown(e) {
-    if (e.key == "w") {
-      if (robot_loc.y > radius + step) {
-        robot_loc.y -= step;
-      }
-    }
-    else if (e.key == "s") {
-      if (robot_loc.y < svg_height - radius - step) {
-        robot_loc.y += step;
-      }
-    }
-    else if (e.key == "a") {
-      if (robot_loc.x > radius + step) {
-        robot_loc.x -= step;
-      }
-    }
-    else if (e.key == "d") {
-      if (robot_loc.x < svg_width - radius - step) {
-        robot_loc.x += step;
-      }
-    }
+        if (e.key == "w") {
+            if (robot_loc.y > radius + step) {
+                robot_loc.y -= step;
+            }
+        }
+        else if (e.key == "s") {
+            if (robot_loc.y < svg_height - radius - step) {
+                robot_loc.y += step;
+            }
+        }
+        else if (e.key == "a") {
+            if (robot_loc.x > radius + step) {
+                robot_loc.x -= step;
+            }
+        }
+        else if (e.key == "d") {
+            if (robot_loc.x < svg_width - radius - step) {
+                robot_loc.x += step;
+            }
+        }
 	}
 
+    function toggleSyncGBP(e) {
+        sync_on = !sync_on;
+    }
+
+    function randomMessage(e) {
+        const factor_ix = Math.floor(Math.random() * graph.factor_nodes.length);
+        const dest_ix = Math.floor(Math.random() * 2);
+        const factor = graph.factor_nodes[factor_ix];
+        const dest_id = factor.adj_ids[dest_ix];
+        const source_id = factor.adj_ids[(dest_ix+1)%2];
+
+        factor.send_message_to(graph, [dest_id]);
+        graph.update_beliefs([dest_id], false); // don't update ellipses
+
+        // // Animations
+        // highlight_node(source_id);
+        // create_message_bubble(source_id, dest_id);
+        // move_belief(dest_id);s
+        // console.log("random message from var ", source_id, "via  factor", factor.id, "to variable", dest_id)
+    }
+
+    function oneSyncIter(e) {
+        graph.send_messages();
+        graph.update_beliefs(null, true);
+        n_iters++;
+
+        // // Animations
+        // for (var i = 0; i < graph.factor_nodes.length; i++) {
+        //     create_message_bubble(graph.factor_nodes[i].adj_ids[0], graph.factor_nodes[i].adj_ids[1]);
+        //     create_message_bubble(graph.factor_nodes[i].adj_ids[1], graph.factor_nodes[i].adj_ids[0]);
+        // }
+        // for (var i = 0; i < graph.var_nodes.length; i++) {
+        //     move_belief(graph.var_nodes[i].id);
+        // }
+    }
+
+
+
 </script>
+
+
+<style>
+
+    #wrapper {
+        display: grid;
+        font-size: 14px;
+        user-select: none;
+        grid-column: page;  /* start and end the grid on the page */
+        max-width: calc(100vw - 2em);
+        grid-template-columns: auto 400px;
+        grid-template-rows: auto;  
+        grid-auto-flow: column;
+        grid-column-gap: 25px;
+        width: 1025px;
+    }
+
+    #svg {
+        background-color: #FCF7DE;
+        border: 1px solid var(--gray);
+        width: 600px;
+        height: 600px;
+    }
+
+    button {
+        border: none;
+        padding: 0.4em 0.7em;
+        text-align: center;
+        text-decoration: none;
+        font-size: 1.05em;
+        margin-top: 1px;
+        float: left; 
+        margin-left: 5px;
+        margin-right: 5px;
+        border-radius: var(--border-radius);
+        border: 1px solid green; /* Green border */
+        background-color:  rgba(0, 0, 0, 0.1);
+    }
+
+    .belief-mean {
+        fill: #0095DD;
+    }
+    .belief-cov {
+        stroke: #0095DD;
+        stroke-opacity: 0.75;
+    }
+    .lmk-mean {
+        fill: orange;
+    }
+    .lmk-cov {
+        stroke: orange;
+        stroke-opacity: 0.75;
+    }
+    .gt-mean {
+        fill: green;
+    }
+    .gt-cov {
+        stroke: green;
+        stroke-opacity: 0.5;
+        fill-opacity: 0;
+    }
+    .meas-edge {
+        stroke: purple;
+        stroke-width: 1.5; 
+        stroke-opacity: 0.7;
+    }
+    .odometry-edge {
+        stroke: black;
+        stroke-width: 1.5; 
+        stroke-opacity: 0.7; 
+    }
+
+    .hint {
+        color: rgba(0, 0, 0, 0.6);
+        user-select: text;
+        font-size: 16px;
+        line-height: 1.4em;
+    }
+    
+    .bold-text {
+        font-weight: bold;
+    }
+
+    .status {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.6);
+        font-family: monospace;
+    }
+    .slider-container {
+        font-size: 14px;
+    }
+
+    .full-width-slider {
+        width: 100%;
+    }
+
+    #precision-sliders {
+        display: grid; 
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 20px;
+    }
+
+    .gbp-button {
+        float: left;
+        outline: none;
+        border: none;
+        background-color: white;
+    }
+
+    #speed-slider-container {
+        /* text-align: center; */
+        vertical-align: middle;
+        margin-top: 8px;
+    }
+
+    #play-speed {
+        display: grid; 
+        grid-template-columns: 1fr 1fr 2.4fr;
+        grid-gap: 2px;
+    }
+
+    #center {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #centerleft {
+        display: flex;
+        align-items: center;
+    }
+
+    #robot {
+        fill: red;
+        stroke: black;
+        stroke-width: 1;
+    }
+
+    #hints-panel {
+        font-size: 13px;
+        color: grey;
+        line-height: 1.5em;
+    }
+
+    .clickable {
+        cursor: pointer;
+    }
+
+    #wasdbox {
+        display: grid;
+        grid-template-columns: 1fr 2.5fr;
+        margin-top: 10px;
+    }
+
+    #settings-panel {
+        display: grid;
+        line-height: 1em;
+        grid-template-rows: 65px 38px 80px 38px 74px 50px 68px auto auto;
+        width: 100%;
+        font-size: 16px;
+        user-select: none;
+    }
+
+</style>
 
 
 <svelte:head>
@@ -290,24 +424,19 @@
 
 <svelte:window on:keydown={handleKeydown}/>
 
+<div id="wrapper">
 
-<div class="demo-container">
+  <div id="svg-container">
 
-  <div id="playground-container">
-
-    <svg
-      bind:this={svg}
-      width={svg_width}
-      height={svg_height}
-      on:click={click_handler}>
+    <svg id="svg" class="clickable" on:click={addLandmark}>
 
       <defs>
         <radialGradient id="lmk_belief_cov_gradient">
-          <stop offset="0.35" stop-color="{lmk_belief_color}" stop-opacity="0.5" />
+          <stop offset="0.35" stop-color="orange" stop-opacity="0.5" />
           <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
         </radialGradient>
         <radialGradient id="robot_belief_cov_gradient">
-          <stop offset="0.35" stop-color="{belief_color}" stop-opacity="0.5" />
+          <stop offset="0.35" stop-color="#0095DD" stop-opacity="0.5" />
           <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
         </radialGradient>
         <radialGradient id="MAP_cov_gradient">
@@ -316,256 +445,195 @@
         </radialGradient>
       </defs>
 
-      <!-- Draw edges -->
-      {#each factor_nodes as factor, i}
-        {#if factor.adj_ids[1] < n_landmarks}
-          <line 
-            x1={factor.adj_beliefs[0].getMean().get(0,0)} 
-            y1={factor.adj_beliefs[0].getMean().get(1,0)} 
-            x2={factor.adj_beliefs[1].getMean().get(0,0)} 
-            y2={factor.adj_beliefs[1].getMean().get(1,0)} 
-            stroke="blue" 
-            stroke-width="1"/>
-        {:else}
-          <line 
-            x1={factor.adj_beliefs[0].getMean().get(0,0)} 
-            y1={factor.adj_beliefs[0].getMean().get(1,0)} 
-            x2={factor.adj_beliefs[1].getMean().get(0,0)} 
-            y2={factor.adj_beliefs[1].getMean().get(1,0)} 
-            stroke="black" 
-            stroke-width="1"/>
-        {/if}
-      {/each}
+        {#each factor_nodes as f}
+            <line class:meas-edge={f.note == "meas"} class:odometry-edge={f.note == "odometry"} 
+                x1={f.adj_beliefs[0].getMean().get(0,0)} y1={f.adj_beliefs[0].getMean().get(1,0)} 
+                x2={f.adj_beliefs[1].getMean().get(0,0)} y2={f.adj_beliefs[1].getMean().get(1,0)}/>
+        {/each}
 
 
-      {#each var_nodes as var_node, i}
+        {#each var_nodes as n, i}
 
-        <!-- Draw landmarks -->
-        {#if var_node.id < n_landmarks}
-          {#if var_node.adj_ids.length == 0}
-            <circle cx={var_node.x} cy={var_node.y} r={lmk_radius} fill={lmk_color}/>
-          {:else}
+            {#if n.note == "lmk"}
+                <circle cx={n.x} cy={n.y} r={lmk_radius} fill="purple"/>
+                {#if n.adj_ids.length != 0}
+                    {#if show_batch}
+                    <circle class="gt-mean" cx={n.MAP_ellipse.cx} cy={n.MAP_ellipse.cy} r={mean_radius}/>
+                    <ellipse class="gt-cov" fill="url(#MAP_cov_gradient)"
+                        cx={n.MAP_ellipse.cx} cy={n.MAP_ellipse.cy} rx={n.MAP_ellipse.rx} ry={n.MAP_ellipse.ry}
+                        transform="rotate({n.MAP_ellipse.angle}, {n.MAP_ellipse.cx}, {n.MAP_ellipse.cy})"/>
+                    {/if}
 
-            {#if show_ground_truth}
-              <circle cx={var_node.x} cy={var_node.y} r={mean_radius} fill={gt_color}/>
+                    <circle class="lmk-mean" cx={n.belief_ellipse.cx} cy={n.belief_ellipse.cy} r={mean_radius}/>
+                    <ellipse class="lmk-cov" fill="url(#lmk_belief_cov_gradient)"
+                    cx={n.belief_ellipse.cx} cy={n.belief_ellipse.cy} rx={n.belief_ellipse.rx} ry={n.belief_ellipse.ry}
+                    transform="rotate({n.belief_ellipse.angle}, {n.belief_ellipse.cx}, {n.belief_ellipse.cy})"/>
+                {/if}
+
+            {:else if n.note == "pose"}
+                {#if show_ground_truth}
+                    <circle class="gt-node" cx={n.x} cy={n.y} r={mean_radius}/>
+                {/if}
+                {#if show_batch}
+                    <circle class="gt-mean" cx={n.MAP_ellipse.cx} cy={n.MAP_ellipse.cy} r={mean_radius}/>
+                    <ellipse class="gt-cov" fill="url(#MAP_cov_gradient)"
+                    cx={n.MAP_ellipse.cx} cy={n.MAP_ellipse.cy} rx={n.MAP_ellipse.rx} ry={n.MAP_ellipse.ry}
+                    transform="rotate({n.MAP_ellipse.angle}, {n.MAP_ellipse.cx}, {n.MAP_ellipse.cy})"/>
+                {/if}
+
+                <circle class="belief-mean" cx={n.belief_ellipse.cx} cy={n.belief_ellipse.cy} r={mean_radius}/>
+                <ellipse class="belief-cov" fill="url(#robot_belief_cov_gradient)"
+                    cx={n.belief_ellipse.cx} cy={n.belief_ellipse.cy} rx={n.belief_ellipse.rx} ry={n.belief_ellipse.ry}
+                    transform="rotate({n.belief_ellipse.angle}, {n.belief_ellipse.cx}, {n.belief_ellipse.cy})"/>
             {/if}
+        {/each}
 
-            {#if show_MAP_mean}
-              <circle cx={var_node.MAP_ellipse.cx} cy={var_node.MAP_ellipse.cy} r={mean_radius} fill={map_color}/>
-            {/if}
-
-            {#if show_MAP_cov}
-              <ellipse
-                cx={var_node.MAP_ellipse.cx}
-                cy={var_node.MAP_ellipse.cy}
-                rx={var_node.MAP_ellipse.rx}
-                ry={var_node.MAP_ellipse.ry}
-                transform="rotate({var_node.MAP_ellipse.angle}, {var_node.MAP_ellipse.cx}, {var_node.MAP_ellipse.cy})"
-                stroke={map_color}
-                fill="url(#MAP_cov_gradient)"
-                stroke-opacity={0.5}
-                fill-opacity={0} />
-            {/if}
-
-            {#if show_belief_mean}
-              <circle id={"node_belief_mean_"+var_node.id} cx={var_node.belief_ellipse.cx} cy={var_node.belief_ellipse.cy} r={mean_radius} fill={belief_color}/>
-            {/if}
-            {#if show_belief_cov}
-              <ellipse
-                cx={var_node.belief_ellipse.cx}
-                cy={var_node.belief_ellipse.cy}
-                rx={var_node.belief_ellipse.rx}
-                ry={var_node.belief_ellipse.ry}
-                transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
-                stroke={lmk_belief_color}
-                fill="url(#lmk_belief_cov_gradient)"
-                stroke-opacity={0.75} />
-              <ellipse
-                cx={var_node.belief_ellipse.cx}
-                cy={var_node.belief_ellipse.cy}
-                rx={var_node.belief_ellipse.rx}
-                ry={var_node.belief_ellipse.ry}
-                transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
-                stroke={lmk_belief_color}
-                stroke-width={2}
-                stroke-opacity={0}
-                fill={lmk_belief_color}
-                fill-opacity={0} />
-            {/if}
-          {/if}
-
-
-        <!-- Draw robot poses -->
-        {:else}
-
-          {#if show_ground_truth}
-            <circle cx={var_node.x} cy={var_node.y} r={mean_radius} fill={gt_color}/>
-          {/if}
-
-          {#if show_MAP_mean}
-            <circle cx={var_node.MAP_ellipse.cx} cy={var_node.MAP_ellipse.cy} r={mean_radius} fill={map_color}/>
-          {/if}
-
-          {#if show_MAP_cov}
-            <ellipse
-              cx={var_node.MAP_ellipse.cx}
-              cy={var_node.MAP_ellipse.cy}
-              rx={var_node.MAP_ellipse.rx}
-              ry={var_node.MAP_ellipse.ry}
-              transform="rotate({var_node.MAP_ellipse.angle}, {var_node.MAP_ellipse.cx}, {var_node.MAP_ellipse.cy})"
-              stroke={map_color}
-              fill="url(#MAP_cov_gradient)"
-              stroke-opacity={0.5}
-              fill-opacity={0} />
-          {/if}
-
-          {#if show_belief_mean}
-            <circle id={"node_belief_mean_"+var_node.id} cx={var_node.belief_ellipse.cx} cy={var_node.belief_ellipse.cy} r={mean_radius} fill={belief_color}/>
-          {/if}
-          {#if show_belief_cov}
-            <ellipse
-              cx={var_node.belief_ellipse.cx}
-              cy={var_node.belief_ellipse.cy}
-              rx={var_node.belief_ellipse.rx}
-              ry={var_node.belief_ellipse.ry}
-              transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
-              stroke={belief_color}
-              fill="url(#robot_belief_cov_gradient)"
-              stroke-opacity={0.75} />
-            <ellipse
-              cx={var_node.belief_ellipse.cx}
-              cy={var_node.belief_ellipse.cy}
-              rx={var_node.belief_ellipse.rx}
-              ry={var_node.belief_ellipse.ry}
-              transform="rotate({var_node.belief_ellipse.angle}, {var_node.belief_ellipse.cx}, {var_node.belief_ellipse.cy})"
-              stroke={belief_color}
-              stroke-width={2}
-              stroke-opacity={0}
-              fill={belief_color}
-              fill-opacity={0} />
-          {/if}
-        {/if}
-      {/each}
-
-      <circle cx={robot_loc.x} cy={robot_loc.y} r={radius} fill={robot_color}/>
+        <circle id="robot" cx={robot_loc.x} cy={robot_loc.y} r={radius}/>
 
     </svg>
   </div>
 
 
-  <div id="playground-settings-panel">
+    <div id="settings-panel">
 
-    <div style="display: inline-block;">
-      {#if gbp_on}
-        <button class="icon-button" style="outline: none;" data-tooltip="Pause GBP" on:click={toggle_gbp}>
-          <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
-        </button>
-      {:else}
-        <button class="icon-button" style="outline: none;" data-tooltip="Play GBP" on:click={toggle_gbp}>
-          <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
-        </button>
-      {/if}
+    <div id="wasdbox" class="hint bold-text">
+        <svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="452.000000pt" height="304.000000pt" viewBox="0 0 452.000000 304.000000" preserveAspectRatio="xMidYMid meet">
+            <g transform="translate(0.000000,304.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none">
+                <path d="M1632 2960 c-18 -11 -41 -34 -52 -52 -19 -32 -20 -52 -20 -628 0 -576 1 -596 20 -628 11 -18 34 -41 52 -52 32 -19 52 -20 628 -20 576 0 596 1 628 20 18 11 41 34 52 52 19 32 20 52 20 628 0 576 -1 596 -20 628 -11 18 -34 41 -52 52 -32 19 -52 20 -628 20 -576 0 -596 -1 -628 -20z m1221 -51 c14 -6 30 -22 36 -36 16 -35 15 -1156 -1 -1186 -25 -47 -10 -46 -628 -46 -618 0 -603 -1 -628 46 -16 30 -17 1151 -1 1187 6 13 21 29 33 34 30 15 1157 16 1189 1z"/>
+                <path d="M2040 2513 c1 -19 108 -404 114 -410 12 -12 20 11 55 154 18 76 36 141 40 145 3 4 24 -62 46 -147 21 -85 44 -155 49 -155 9 0 117 385 116 413 0 4 -8 7 -18 7 -15 0 -24 -25 -51 -137 -41 -169 -46 -179 -59 -128 -71 273 -74 283 -90 258 -4 -7 -23 -75 -42 -152 -19 -78 -38 -141 -41 -141 -3 0 -23 68 -44 150 -32 126 -41 150 -56 150 -11 0 -19 -3 -19 -7z"/>
+                <path d="M132 1480 c-18 -11 -41 -34 -52 -52 -19 -32 -20 -52 -20 -628 0 -576 1 -596 20 -628 11 -18 34 -41 52 -52 32 -19 52 -20 628 -20 576 0 596 1 628 20 18 11 41 34 52 52 19 32 20 52 20 628 0 576 -1 596 -20 628 -11 18 -34 41 -52 52 -32 19 -52 20 -628 20 -576 0 -596 -1 -628 -20z m1221 -51 c14 -6 30 -22 36 -36 16 -35 15 -1156 -1 -1186 -25 -47 -10 -46 -628 -46 -618 0 -603 -1 -628 46 -16 30 -17 1151 -1 1187 6 13 21 29 33 34 30 15 1157 16 1189 1z"/>
+                <path d="M735 1028 c-12 -33 -115 -389 -115 -398 0 -6 9 -10 19 -10 15 0 22 12 31 50 l12 50 68 0 68 0 12 -50 c9 -39 16 -50 32 -50 24 0 25 -4 -46 235 -50 166 -69 207 -81 173z m44 -179 c12 -41 21 -78 21 -82 0 -4 -23 -7 -51 -7 -48 0 -51 1 -45 23 3 12 13 52 23 89 10 37 20 64 24 60 4 -4 16 -41 28 -83z"/> 
+                <path d="M1632 1480 c-18 -11 -41 -34 -52 -52 -19 -32 -20 -52 -20 -628 0 -576 1 -596 20 -628 11 -18 34 -41 52 -52 32 -19 52 -20 628 -20 576 0 596 1 628 20 18 11 41 34 52 52 19 32 20 52 20 628 0 576 -1 596 -20 628 -11 18 -34 41 -52 52 -32 19 -52 20 -628 20 -576 0 -596 -1 -628 -20z m1221 -51 c14 -6 30 -22 36 -36 16 -35 15 -1156 -1 -1186 -25 -47 -10 -46 -628 -46 -618 0 -603 -1 -628 46 -16 30 -17 1151 -1 1187 6 13 21 29 33 34 30 15 1157 16 1189 1z"/>
+                <path d="M2188 1034 c-36 -19 -48 -43 -48 -94 0 -61 14 -79 94 -115 83 -37 97 -52 98 -96 2 -47 -42 -83 -91 -75 -39 6 -71 37 -71 67 0 12 -7 19 -20 19 -36 0 -21 -66 24 -102 14 -12 39 -18 79 -18 51 0 62 4 88 29 24 25 29 38 29 79 0 65 -18 86 -111 131 -71 35 -74 37 -77 74 -4 52 19 77 70 77 43 0 78 -27 78 -60 0 -13 7 -20 20 -20 40 0 16 81 -31 106 -36 18 -96 17 -131 -2z"/> 
+                <path d="M3132 1480 c-18 -11 -41 -34 -52 -52 -19 -32 -20 -52 -20 -628 0 -576 1 -596 20 -628 11 -18 34 -41 52 -52 32 -19 52 -20 628 -20 576 0 596 1 628 20 18 11 41 34 52 52 19 32 20 52 20 628 0 576 -1 596 -20 628 -11 18 -34 41 -52 52 -32 19 -52 20 -628 20 -576 0 -596 -1 -628 -20z m1221 -51 c14 -6 30 -22 36 -36 16 -35 15 -1156 -1 -1186 -25 -47 -10 -46 -628 -46 -618 0 -603 -1 -628 46 -16 30 -17 1151 -1 1187 6 13 21 29 33 34 30 15 1157 16 1189 1z"/>
+                <path d="M3640 830 l0 -210 69 0 c148 0 161 18 161 215 l0 147 -29 29 c-28 28 -34 29 -115 29 l-86 0 0 -210z m164 159 c26 -20 26 -21 26 -159 0 -164 -4 -170 -102 -170 l-58 0 0 168 c0 93 3 172 7 175 15 16 101 7 127 -14z"/> 
+            </g>
+        </svg>
+        <div id="centerleft">
+            Move the robot with WASD keys!
+        </div>
+    </div>
 
-      <button class="icon-button" style="outline: none;" data-tooltip="Reset playground" on:click={reset_playground}>
-        <svg class="icon" id="reset"><use xlink:href="#resetIcon"></use></svg>
-      </button>
+    <span class="hint bold-text" style="padding-top: 20px;">
+        Set the landmarks:
+    </span>
 
+    <div>
+        <svg width="448" height="81" viewBox="0 0 448 81" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <g id="Frame 3" clip-path="url(#c0)">
+            <rect width="448" height="80.2157" fill="white"/>
+            <g id="buttons">
+            <rect class="clickable" on:click={() => set_playground("empty")} id="Delete" x="141" y="0.215698" width="41.7647" height="41.7647" fill="url(#pn0)"/>
+            <rect class="clickable" on:click={set_playground} id="Reset" x="22.196" width="41.7647" height="41.7647" fill="url(#pn1)"/>
+            <path id="Clear landmarks" d="M153.227 53.6063C153.086 54.8094 152.641 55.7391 151.891 56.3954C151.146 57.0464 150.154 57.3719 148.914 57.3719C147.57 57.3719 146.492 56.8902 145.68 55.9266C144.872 54.9631 144.469 53.674 144.469 52.0594V50.9657C144.469 49.9084 144.656 48.9787 145.031 48.1766C145.411 47.3746 145.948 46.76 146.641 46.3329C147.333 45.9006 148.135 45.6844 149.047 45.6844C150.255 45.6844 151.224 46.023 151.953 46.7001C152.682 47.3719 153.107 48.3042 153.227 49.4969H151.719C151.589 48.5907 151.305 47.9344 150.867 47.5282C150.435 47.1219 149.828 46.9188 149.047 46.9188C148.089 46.9188 147.336 47.273 146.789 47.9813C146.247 48.6897 145.977 49.6975 145.977 51.0048V52.1063C145.977 53.3407 146.234 54.3225 146.75 55.0516C147.266 55.7808 147.987 56.1454 148.914 56.1454C149.747 56.1454 150.385 55.9579 150.828 55.5829C151.276 55.2027 151.573 54.5438 151.719 53.6063H153.227ZM156.625 57.2157H155.18V45.2157H156.625V57.2157ZM162.453 57.3719C161.307 57.3719 160.375 56.9969 159.656 56.2469C158.938 55.4917 158.578 54.4839 158.578 53.2235V52.9579C158.578 52.1193 158.737 51.3719 159.055 50.7157C159.378 50.0542 159.826 49.5386 160.398 49.1688C160.977 48.7938 161.602 48.6063 162.273 48.6063C163.372 48.6063 164.227 48.9683 164.836 49.6923C165.445 50.4162 165.75 51.4527 165.75 52.8016V53.4032H160.023C160.044 54.2365 160.286 54.911 160.75 55.4266C161.219 55.9371 161.812 56.1923 162.531 56.1923C163.042 56.1923 163.474 56.0881 163.828 55.8798C164.182 55.6714 164.492 55.3954 164.758 55.0516L165.641 55.7391C164.932 56.8277 163.87 57.3719 162.453 57.3719ZM162.273 49.7938C161.69 49.7938 161.201 50.0074 160.805 50.4344C160.409 50.8563 160.164 51.4501 160.07 52.2157H164.305V52.1063C164.263 51.3719 164.065 50.8042 163.711 50.4032C163.357 49.9969 162.878 49.7938 162.273 49.7938ZM172.648 57.2157C172.565 57.049 172.497 56.7522 172.445 56.3251C171.773 57.023 170.971 57.3719 170.039 57.3719C169.206 57.3719 168.521 57.1376 167.984 56.6688C167.453 56.1949 167.188 55.5959 167.188 54.8719C167.188 53.9917 167.521 53.3094 168.188 52.8251C168.859 52.3355 169.802 52.0907 171.016 52.0907H172.422V51.4266C172.422 50.9214 172.271 50.5204 171.969 50.2235C171.667 49.9214 171.221 49.7704 170.633 49.7704C170.117 49.7704 169.685 49.9006 169.336 50.161C168.987 50.4214 168.812 50.7365 168.812 51.1063H167.359C167.359 50.6844 167.508 50.2782 167.805 49.8876C168.107 49.4917 168.513 49.1792 169.023 48.9501C169.539 48.7209 170.104 48.6063 170.719 48.6063C171.693 48.6063 172.456 48.8511 173.008 49.3407C173.56 49.8251 173.846 50.4943 173.867 51.3485V55.2391C173.867 56.0152 173.966 56.6324 174.164 57.0907V57.2157H172.648ZM170.25 56.1141C170.703 56.1141 171.133 55.9969 171.539 55.7626C171.945 55.5282 172.24 55.2235 172.422 54.8485V53.1141H171.289C169.518 53.1141 168.633 53.6324 168.633 54.6688C168.633 55.1219 168.784 55.4761 169.086 55.7313C169.388 55.9865 169.776 56.1141 170.25 56.1141ZM180.219 50.0594C180 50.023 179.763 50.0048 179.508 50.0048C178.56 50.0048 177.917 50.4084 177.578 51.2157V57.2157H176.133V48.7626H177.539L177.562 49.7391C178.036 48.9839 178.708 48.6063 179.578 48.6063C179.859 48.6063 180.073 48.6428 180.219 48.7157V50.0594ZM127.18 76.2157H125.734V64.2157H127.18V76.2157ZM134.719 76.2157C134.635 76.049 134.568 75.7522 134.516 75.3251C133.844 76.023 133.042 76.3719 132.109 76.3719C131.276 76.3719 130.591 76.1376 130.055 75.6688C129.523 75.1949 129.258 74.5959 129.258 73.8719C129.258 72.9917 129.591 72.3094 130.258 71.8251C130.93 71.3355 131.872 71.0907 133.086 71.0907H134.492V70.4266C134.492 69.9214 134.341 69.5204 134.039 69.2235C133.737 68.9214 133.292 68.7704 132.703 68.7704C132.188 68.7704 131.755 68.9006 131.406 69.161C131.057 69.4214 130.883 69.7365 130.883 70.1063H129.43C129.43 69.6844 129.578 69.2782 129.875 68.8876C130.177 68.4917 130.583 68.1792 131.094 67.9501C131.609 67.7209 132.174 67.6063 132.789 67.6063C133.763 67.6063 134.526 67.8511 135.078 68.3407C135.63 68.8251 135.917 69.4943 135.938 70.3485V74.2391C135.938 75.0152 136.036 75.6324 136.234 76.0907V76.2157H134.719ZM132.32 75.1141C132.773 75.1141 133.203 74.9969 133.609 74.7626C134.016 74.5282 134.31 74.2235 134.492 73.8485V72.1141H133.359C131.589 72.1141 130.703 72.6324 130.703 73.6688C130.703 74.1219 130.854 74.4761 131.156 74.7313C131.458 74.9865 131.846 75.1141 132.32 75.1141ZM139.57 67.7626L139.617 68.8251C140.263 68.0126 141.107 67.6063 142.148 67.6063C143.935 67.6063 144.836 68.6141 144.852 70.6298V76.2157H143.406V70.6219C143.401 70.0126 143.26 69.5621 142.984 69.2704C142.714 68.9787 142.289 68.8329 141.711 68.8329C141.242 68.8329 140.831 68.9579 140.477 69.2079C140.122 69.4579 139.846 69.786 139.648 70.1923V76.2157H138.203V67.7626H139.57ZM146.68 71.9188C146.68 70.6219 146.987 69.5803 147.602 68.7938C148.216 68.0022 149.021 67.6063 150.016 67.6063C151.005 67.6063 151.789 67.9449 152.367 68.6219V64.2157H153.812V76.2157H152.484L152.414 75.3094C151.836 76.0178 151.031 76.3719 150 76.3719C149.021 76.3719 148.221 75.9709 147.602 75.1688C146.987 74.3667 146.68 73.3199 146.68 72.0282V71.9188ZM148.125 72.0829C148.125 73.0412 148.323 73.7912 148.719 74.3329C149.115 74.8746 149.661 75.1454 150.359 75.1454C151.276 75.1454 151.945 74.7339 152.367 73.911V70.0282C151.935 69.2313 151.271 68.8329 150.375 68.8329C149.667 68.8329 149.115 69.1063 148.719 69.6532C148.323 70.2001 148.125 71.01 148.125 72.0829ZM157.422 67.7626L157.461 68.7001C158.081 67.9709 158.917 67.6063 159.969 67.6063C161.151 67.6063 161.956 68.0594 162.383 68.9657C162.664 68.5594 163.029 68.2313 163.477 67.9813C163.93 67.7313 164.464 67.6063 165.078 67.6063C166.932 67.6063 167.875 68.5881 167.906 70.5516V76.2157H166.461V70.6376C166.461 70.0334 166.323 69.5829 166.047 69.286C165.771 68.9839 165.307 68.8329 164.656 68.8329C164.12 68.8329 163.674 68.9943 163.32 69.3173C162.966 69.635 162.76 70.0647 162.703 70.6063V76.2157H161.25V70.6766C161.25 69.4475 160.648 68.8329 159.445 68.8329C158.497 68.8329 157.849 69.2365 157.5 70.0438V76.2157H156.055V67.7626H157.422ZM175.312 76.2157C175.229 76.049 175.161 75.7522 175.109 75.3251C174.438 76.023 173.635 76.3719 172.703 76.3719C171.87 76.3719 171.185 76.1376 170.648 75.6688C170.117 75.1949 169.852 74.5959 169.852 73.8719C169.852 72.9917 170.185 72.3094 170.852 71.8251C171.523 71.3355 172.466 71.0907 173.68 71.0907H175.086V70.4266C175.086 69.9214 174.935 69.5204 174.633 69.2235C174.331 68.9214 173.885 68.7704 173.297 68.7704C172.781 68.7704 172.349 68.9006 172 69.161C171.651 69.4214 171.477 69.7365 171.477 70.1063H170.023C170.023 69.6844 170.172 69.2782 170.469 68.8876C170.771 68.4917 171.177 68.1792 171.688 67.9501C172.203 67.7209 172.768 67.6063 173.383 67.6063C174.357 67.6063 175.12 67.8511 175.672 68.3407C176.224 68.8251 176.51 69.4943 176.531 70.3485V74.2391C176.531 75.0152 176.63 75.6324 176.828 76.0907V76.2157H175.312ZM172.914 75.1141C173.367 75.1141 173.797 74.9969 174.203 74.7626C174.609 74.5282 174.904 74.2235 175.086 73.8485V72.1141H173.953C172.182 72.1141 171.297 72.6324 171.297 73.6688C171.297 74.1219 171.448 74.4761 171.75 74.7313C172.052 74.9865 172.44 75.1141 172.914 75.1141ZM182.883 69.0594C182.664 69.023 182.427 69.0048 182.172 69.0048C181.224 69.0048 180.581 69.4084 180.242 70.2157V76.2157H178.797V67.7626H180.203L180.227 68.7391C180.701 67.9839 181.372 67.6063 182.242 67.6063C182.523 67.6063 182.737 67.6428 182.883 67.7157V69.0594ZM186.578 72.3016L185.672 73.2469V76.2157H184.227V64.2157H185.672V71.4735L186.445 70.5438L189.078 67.7626H190.836L187.547 71.2938L191.219 76.2157H189.523L186.578 72.3016ZM197.25 73.9735C197.25 73.5829 197.102 73.2808 196.805 73.0673C196.513 72.8485 196 72.661 195.266 72.5048C194.536 72.3485 193.956 72.161 193.523 71.9423C193.096 71.7235 192.779 71.4631 192.57 71.161C192.367 70.8589 192.266 70.4996 192.266 70.0829C192.266 69.3902 192.557 68.8042 193.141 68.3251C193.729 67.8459 194.479 67.6063 195.391 67.6063C196.349 67.6063 197.125 67.8537 197.719 68.3485C198.318 68.8433 198.617 69.4761 198.617 70.2469H197.164C197.164 69.8511 196.995 69.51 196.656 69.2235C196.323 68.9371 195.901 68.7938 195.391 68.7938C194.865 68.7938 194.453 68.9084 194.156 69.1376C193.859 69.3667 193.711 69.6662 193.711 70.036C193.711 70.385 193.849 70.648 194.125 70.8251C194.401 71.0022 194.898 71.1714 195.617 71.3329C196.341 71.4943 196.927 71.6871 197.375 71.911C197.823 72.135 198.154 72.4058 198.367 72.7235C198.586 73.036 198.695 73.4188 198.695 73.8719C198.695 74.6272 198.393 75.2339 197.789 75.6923C197.185 76.1454 196.401 76.3719 195.438 76.3719C194.76 76.3719 194.161 76.2522 193.641 76.0126C193.12 75.773 192.711 75.4397 192.414 75.0126C192.122 74.5803 191.977 74.1141 191.977 73.6141H193.422C193.448 74.0985 193.641 74.4839 194 74.7704C194.365 75.0516 194.844 75.1923 195.438 75.1923C195.984 75.1923 196.422 75.0829 196.75 74.8641C197.083 74.6402 197.25 74.3433 197.25 73.9735Z" fill="black"/>
+            <path id="Reset landmarks" d="M27.8359 52.6141H25.1641V57.2157H23.6562V45.8407H27.4219C28.7031 45.8407 29.6875 46.1324 30.375 46.7157C31.0677 47.299 31.4141 48.148 31.4141 49.2626C31.4141 49.9709 31.2214 50.5881 30.8359 51.1141C30.4557 51.6402 29.9245 52.0334 29.2422 52.2938L31.9141 57.1219V57.2157H30.3047L27.8359 52.6141ZM25.1641 51.3876H27.4688C28.2135 51.3876 28.8047 51.1949 29.2422 50.8094C29.6849 50.424 29.9062 49.9084 29.9062 49.2626C29.9062 48.5594 29.6953 48.0204 29.2734 47.6454C28.8568 47.2704 28.2526 47.0803 27.4609 47.0751H25.1641V51.3876ZM36.8047 57.3719C35.6589 57.3719 34.7266 56.9969 34.0078 56.2469C33.2891 55.4917 32.9297 54.4839 32.9297 53.2235V52.9579C32.9297 52.1193 33.0885 51.3719 33.4062 50.7157C33.7292 50.0542 34.1771 49.5386 34.75 49.1688C35.3281 48.7938 35.9531 48.6063 36.625 48.6063C37.724 48.6063 38.5781 48.9683 39.1875 49.6923C39.7969 50.4162 40.1016 51.4527 40.1016 52.8016V53.4032H34.375C34.3958 54.2365 34.638 54.911 35.1016 55.4266C35.5703 55.9371 36.1641 56.1923 36.8828 56.1923C37.3932 56.1923 37.8255 56.0881 38.1797 55.8798C38.5339 55.6714 38.8438 55.3954 39.1094 55.0516L39.9922 55.7391C39.2839 56.8277 38.2214 57.3719 36.8047 57.3719ZM36.625 49.7938C36.0417 49.7938 35.5521 50.0074 35.1562 50.4344C34.7604 50.8563 34.5156 51.4501 34.4219 52.2157H38.6562V52.1063C38.6146 51.3719 38.4167 50.8042 38.0625 50.4032C37.7083 49.9969 37.2292 49.7938 36.625 49.7938ZM46.7031 54.9735C46.7031 54.5829 46.5547 54.2808 46.2578 54.0673C45.9661 53.8485 45.4531 53.661 44.7188 53.5048C43.9896 53.3485 43.4089 53.161 42.9766 52.9423C42.5495 52.7235 42.2318 52.4631 42.0234 52.161C41.8203 51.8589 41.7188 51.4996 41.7188 51.0829C41.7188 50.3902 42.0104 49.8042 42.5938 49.3251C43.1823 48.8459 43.9323 48.6063 44.8438 48.6063C45.8021 48.6063 46.5781 48.8537 47.1719 49.3485C47.7708 49.8433 48.0703 50.4761 48.0703 51.2469H46.6172C46.6172 50.8511 46.4479 50.51 46.1094 50.2235C45.776 49.9371 45.3542 49.7938 44.8438 49.7938C44.3177 49.7938 43.9062 49.9084 43.6094 50.1376C43.3125 50.3667 43.1641 50.6662 43.1641 51.036C43.1641 51.385 43.3021 51.648 43.5781 51.8251C43.8542 52.0022 44.3516 52.1714 45.0703 52.3329C45.7943 52.4943 46.3802 52.6871 46.8281 52.911C47.276 53.135 47.6068 53.4058 47.8203 53.7235C48.0391 54.036 48.1484 54.4188 48.1484 54.8719C48.1484 55.6272 47.8464 56.2339 47.2422 56.6923C46.638 57.1454 45.8542 57.3719 44.8906 57.3719C44.2135 57.3719 43.6146 57.2522 43.0938 57.0126C42.5729 56.773 42.1641 56.4397 41.8672 56.0126C41.5755 55.5803 41.4297 55.1141 41.4297 54.6141H42.875C42.901 55.0985 43.0938 55.4839 43.4531 55.7704C43.8177 56.0516 44.2969 56.1923 44.8906 56.1923C45.4375 56.1923 45.875 56.0829 46.2031 55.8641C46.5365 55.6402 46.7031 55.3433 46.7031 54.9735ZM53.5391 57.3719C52.3932 57.3719 51.4609 56.9969 50.7422 56.2469C50.0234 55.4917 49.6641 54.4839 49.6641 53.2235V52.9579C49.6641 52.1193 49.8229 51.3719 50.1406 50.7157C50.4635 50.0542 50.9115 49.5386 51.4844 49.1688C52.0625 48.7938 52.6875 48.6063 53.3594 48.6063C54.4583 48.6063 55.3125 48.9683 55.9219 49.6923C56.5312 50.4162 56.8359 51.4527 56.8359 52.8016V53.4032H51.1094C51.1302 54.2365 51.3724 54.911 51.8359 55.4266C52.3047 55.9371 52.8984 56.1923 53.6172 56.1923C54.1276 56.1923 54.5599 56.0881 54.9141 55.8798C55.2682 55.6714 55.5781 55.3954 55.8438 55.0516L56.7266 55.7391C56.0182 56.8277 54.9557 57.3719 53.5391 57.3719ZM53.3594 49.7938C52.776 49.7938 52.2865 50.0074 51.8906 50.4344C51.4948 50.8563 51.25 51.4501 51.1562 52.2157H55.3906V52.1063C55.349 51.3719 55.151 50.8042 54.7969 50.4032C54.4427 49.9969 53.9635 49.7938 53.3594 49.7938ZM60.4766 46.7157V48.7626H62.0547V49.8798H60.4766V55.1219C60.4766 55.4605 60.5469 55.7157 60.6875 55.8876C60.8281 56.0542 61.0677 56.1376 61.4062 56.1376C61.5729 56.1376 61.8021 56.1063 62.0938 56.0438V57.2157C61.7135 57.3199 61.3438 57.3719 60.9844 57.3719C60.3385 57.3719 59.8516 57.1766 59.5234 56.786C59.1953 56.3954 59.0312 55.8407 59.0312 55.1219V49.8798H57.4922V48.7626H59.0312V46.7157H60.4766ZM7.67969 76.2157H6.23438V64.2157H7.67969V76.2157ZM15.2188 76.2157C15.1354 76.049 15.0677 75.7522 15.0156 75.3251C14.3438 76.023 13.5417 76.3719 12.6094 76.3719C11.776 76.3719 11.0911 76.1376 10.5547 75.6688C10.0234 75.1949 9.75781 74.5959 9.75781 73.8719C9.75781 72.9917 10.0911 72.3094 10.7578 71.8251C11.4297 71.3355 12.3724 71.0907 13.5859 71.0907H14.9922V70.4266C14.9922 69.9214 14.8411 69.5204 14.5391 69.2235C14.237 68.9214 13.7917 68.7704 13.2031 68.7704C12.6875 68.7704 12.2552 68.9006 11.9062 69.161C11.5573 69.4214 11.3828 69.7365 11.3828 70.1063H9.92969C9.92969 69.6844 10.0781 69.2782 10.375 68.8876C10.6771 68.4917 11.0833 68.1792 11.5938 67.9501C12.1094 67.7209 12.6745 67.6063 13.2891 67.6063C14.263 67.6063 15.026 67.8511 15.5781 68.3407C16.1302 68.8251 16.4167 69.4943 16.4375 70.3485V74.2391C16.4375 75.0152 16.5365 75.6324 16.7344 76.0907V76.2157H15.2188ZM12.8203 75.1141C13.2734 75.1141 13.7031 74.9969 14.1094 74.7626C14.5156 74.5282 14.8099 74.2235 14.9922 73.8485V72.1141H13.8594C12.0885 72.1141 11.2031 72.6324 11.2031 73.6688C11.2031 74.1219 11.3542 74.4761 11.6562 74.7313C11.9583 74.9865 12.3464 75.1141 12.8203 75.1141ZM20.0703 67.7626L20.1172 68.8251C20.763 68.0126 21.6068 67.6063 22.6484 67.6063C24.4349 67.6063 25.3359 68.6141 25.3516 70.6298V76.2157H23.9062V70.6219C23.901 70.0126 23.7604 69.5621 23.4844 69.2704C23.2135 68.9787 22.7891 68.8329 22.2109 68.8329C21.7422 68.8329 21.3307 68.9579 20.9766 69.2079C20.6224 69.4579 20.3464 69.786 20.1484 70.1923V76.2157H18.7031V67.7626H20.0703ZM27.1797 71.9188C27.1797 70.6219 27.487 69.5803 28.1016 68.7938C28.7161 68.0022 29.5208 67.6063 30.5156 67.6063C31.5052 67.6063 32.2891 67.9449 32.8672 68.6219V64.2157H34.3125V76.2157H32.9844L32.9141 75.3094C32.3359 76.0178 31.5312 76.3719 30.5 76.3719C29.5208 76.3719 28.7214 75.9709 28.1016 75.1688C27.487 74.3667 27.1797 73.3199 27.1797 72.0282V71.9188ZM28.625 72.0829C28.625 73.0412 28.8229 73.7912 29.2188 74.3329C29.6146 74.8746 30.1615 75.1454 30.8594 75.1454C31.776 75.1454 32.4453 74.7339 32.8672 73.911V70.0282C32.4349 69.2313 31.7708 68.8329 30.875 68.8329C30.1667 68.8329 29.6146 69.1063 29.2188 69.6532C28.8229 70.2001 28.625 71.01 28.625 72.0829ZM37.9219 67.7626L37.9609 68.7001C38.5807 67.9709 39.4167 67.6063 40.4688 67.6063C41.651 67.6063 42.4557 68.0594 42.8828 68.9657C43.1641 68.5594 43.5286 68.2313 43.9766 67.9813C44.4297 67.7313 44.9635 67.6063 45.5781 67.6063C47.4323 67.6063 48.375 68.5881 48.4062 70.5516V76.2157H46.9609V70.6376C46.9609 70.0334 46.8229 69.5829 46.5469 69.286C46.2708 68.9839 45.8073 68.8329 45.1562 68.8329C44.6198 68.8329 44.1745 68.9943 43.8203 69.3173C43.4661 69.635 43.2604 70.0647 43.2031 70.6063V76.2157H41.75V70.6766C41.75 69.4475 41.1484 68.8329 39.9453 68.8329C38.9974 68.8329 38.349 69.2365 38 70.0438V76.2157H36.5547V67.7626H37.9219ZM55.8125 76.2157C55.7292 76.049 55.6615 75.7522 55.6094 75.3251C54.9375 76.023 54.1354 76.3719 53.2031 76.3719C52.3698 76.3719 51.6849 76.1376 51.1484 75.6688C50.6172 75.1949 50.3516 74.5959 50.3516 73.8719C50.3516 72.9917 50.6849 72.3094 51.3516 71.8251C52.0234 71.3355 52.9661 71.0907 54.1797 71.0907H55.5859V70.4266C55.5859 69.9214 55.4349 69.5204 55.1328 69.2235C54.8307 68.9214 54.3854 68.7704 53.7969 68.7704C53.2812 68.7704 52.849 68.9006 52.5 69.161C52.151 69.4214 51.9766 69.7365 51.9766 70.1063H50.5234C50.5234 69.6844 50.6719 69.2782 50.9688 68.8876C51.2708 68.4917 51.6771 68.1792 52.1875 67.9501C52.7031 67.7209 53.2682 67.6063 53.8828 67.6063C54.8568 67.6063 55.6198 67.8511 56.1719 68.3407C56.724 68.8251 57.0104 69.4943 57.0312 70.3485V74.2391C57.0312 75.0152 57.1302 75.6324 57.3281 76.0907V76.2157H55.8125ZM53.4141 75.1141C53.8672 75.1141 54.2969 74.9969 54.7031 74.7626C55.1094 74.5282 55.4036 74.2235 55.5859 73.8485V72.1141H54.4531C52.6823 72.1141 51.7969 72.6324 51.7969 73.6688C51.7969 74.1219 51.9479 74.4761 52.25 74.7313C52.5521 74.9865 52.9401 75.1141 53.4141 75.1141ZM63.3828 69.0594C63.1641 69.023 62.9271 69.0048 62.6719 69.0048C61.724 69.0048 61.0807 69.4084 60.7422 70.2157V76.2157H59.2969V67.7626H60.7031L60.7266 68.7391C61.2005 67.9839 61.8724 67.6063 62.7422 67.6063C63.0234 67.6063 63.237 67.6428 63.3828 67.7157V69.0594ZM67.0781 72.3016L66.1719 73.2469V76.2157H64.7266V64.2157H66.1719V71.4735L66.9453 70.5438L69.5781 67.7626H71.3359L68.0469 71.2938L71.7188 76.2157H70.0234L67.0781 72.3016ZM77.75 73.9735C77.75 73.5829 77.6016 73.2808 77.3047 73.0673C77.013 72.8485 76.5 72.661 75.7656 72.5048C75.0365 72.3485 74.4557 72.161 74.0234 71.9423C73.5964 71.7235 73.2786 71.4631 73.0703 71.161C72.8672 70.8589 72.7656 70.4996 72.7656 70.0829C72.7656 69.3902 73.0573 68.8042 73.6406 68.3251C74.2292 67.8459 74.9792 67.6063 75.8906 67.6063C76.849 67.6063 77.625 67.8537 78.2188 68.3485C78.8177 68.8433 79.1172 69.4761 79.1172 70.2469H77.6641C77.6641 69.8511 77.4948 69.51 77.1562 69.2235C76.8229 68.9371 76.401 68.7938 75.8906 68.7938C75.3646 68.7938 74.9531 68.9084 74.6562 69.1376C74.3594 69.3667 74.2109 69.6662 74.2109 70.036C74.2109 70.385 74.349 70.648 74.625 70.8251C74.901 71.0022 75.3984 71.1714 76.1172 71.3329C76.8411 71.4943 77.4271 71.6871 77.875 71.911C78.3229 72.135 78.6536 72.4058 78.8672 72.7235C79.0859 73.036 79.1953 73.4188 79.1953 73.8719C79.1953 74.6272 78.8932 75.2339 78.2891 75.6923C77.6849 76.1454 76.901 76.3719 75.9375 76.3719C75.2604 76.3719 74.6615 76.2522 74.1406 76.0126C73.6198 75.773 73.2109 75.4397 72.9141 75.0126C72.6224 74.5803 72.4766 74.1141 72.4766 73.6141H73.9219C73.9479 74.0985 74.1406 74.4839 74.5 74.7704C74.8646 75.0516 75.3438 75.1923 75.9375 75.1923C76.4844 75.1923 76.9219 75.0829 77.25 74.8641C77.5833 74.6402 77.75 74.3433 77.75 73.9735Z" fill="black"/>
+            </g>
+            <path id="Click on the canvas to add landmarks" d="M293.688 33.3906C293.547 34.5938 293.102 35.5234 292.352 36.1797C291.607 36.8307 290.615 37.1562 289.375 37.1562C288.031 37.1562 286.953 36.6745 286.141 35.7109C285.333 34.7474 284.93 33.4583 284.93 31.8438V30.75C284.93 29.6927 285.117 28.763 285.492 27.9609C285.872 27.1589 286.409 26.5443 287.102 26.1172C287.794 25.6849 288.596 25.4688 289.508 25.4688C290.716 25.4688 291.685 25.8073 292.414 26.4844C293.143 27.1562 293.568 28.0885 293.688 29.2812H292.18C292.049 28.375 291.766 27.7188 291.328 27.3125C290.896 26.9062 290.289 26.7031 289.508 26.7031C288.549 26.7031 287.797 27.0573 287.25 27.7656C286.708 28.474 286.438 29.4818 286.438 30.7891V31.8906C286.438 33.125 286.695 34.1068 287.211 34.8359C287.727 35.5651 288.448 35.9297 289.375 35.9297C290.208 35.9297 290.846 35.7422 291.289 35.3672C291.737 34.987 292.034 34.3281 292.18 33.3906H293.688ZM297.086 37H295.641V25H297.086V37ZM300.977 37H299.531V28.5469H300.977V37ZM299.414 26.3047C299.414 26.0703 299.484 25.8724 299.625 25.7109C299.771 25.5495 299.984 25.4688 300.266 25.4688C300.547 25.4688 300.76 25.5495 300.906 25.7109C301.052 25.8724 301.125 26.0703 301.125 26.3047C301.125 26.5391 301.052 26.7344 300.906 26.8906C300.76 27.0469 300.547 27.125 300.266 27.125C299.984 27.125 299.771 27.0469 299.625 26.8906C299.484 26.7344 299.414 26.5391 299.414 26.3047ZM306.688 35.9766C307.203 35.9766 307.654 35.8203 308.039 35.5078C308.424 35.1953 308.638 34.8047 308.68 34.3359H310.047C310.021 34.8203 309.854 35.2812 309.547 35.7188C309.24 36.1562 308.828 36.5052 308.312 36.7656C307.802 37.026 307.26 37.1562 306.688 37.1562C305.536 37.1562 304.62 36.7734 303.938 36.0078C303.26 35.237 302.922 34.1849 302.922 32.8516V32.6094C302.922 31.7865 303.073 31.0547 303.375 30.4141C303.677 29.7734 304.109 29.276 304.672 28.9219C305.24 28.5677 305.909 28.3906 306.68 28.3906C307.628 28.3906 308.414 28.6745 309.039 29.2422C309.669 29.8099 310.005 30.5469 310.047 31.4531H308.68C308.638 30.9062 308.43 30.4583 308.055 30.1094C307.685 29.7552 307.227 29.5781 306.68 29.5781C305.945 29.5781 305.375 29.8438 304.969 30.375C304.568 30.901 304.367 31.6641 304.367 32.6641V32.9375C304.367 33.9115 304.568 34.6615 304.969 35.1875C305.37 35.7135 305.943 35.9766 306.688 35.9766ZM314.031 33.0859L313.125 34.0312V37H311.68V25H313.125V32.2578L313.898 31.3281L316.531 28.5469H318.289L315 32.0781L318.672 37H316.977L314.031 33.0859ZM323.367 32.6953C323.367 31.8672 323.529 31.1224 323.852 30.4609C324.18 29.7995 324.633 29.2891 325.211 28.9297C325.794 28.5703 326.458 28.3906 327.203 28.3906C328.354 28.3906 329.284 28.7891 329.992 29.5859C330.706 30.3828 331.062 31.4427 331.062 32.7656V32.8672C331.062 33.6901 330.904 34.4297 330.586 35.0859C330.273 35.737 329.823 36.2448 329.234 36.6094C328.651 36.974 327.979 37.1562 327.219 37.1562C326.073 37.1562 325.143 36.7578 324.43 35.9609C323.721 35.1641 323.367 34.1094 323.367 32.7969V32.6953ZM324.82 32.8672C324.82 33.8047 325.036 34.5573 325.469 35.125C325.906 35.6927 326.49 35.9766 327.219 35.9766C327.953 35.9766 328.536 35.6901 328.969 35.1172C329.401 34.5391 329.617 33.7318 329.617 32.6953C329.617 31.7682 329.396 31.0182 328.953 30.4453C328.516 29.8672 327.932 29.5781 327.203 29.5781C326.49 29.5781 325.914 29.862 325.477 30.4297C325.039 30.9974 324.82 31.8099 324.82 32.8672ZM334.242 28.5469L334.289 29.6094C334.935 28.7969 335.779 28.3906 336.82 28.3906C338.607 28.3906 339.508 29.3984 339.523 31.4141V37H338.078V31.4062C338.073 30.7969 337.932 30.3464 337.656 30.0547C337.385 29.763 336.961 29.6172 336.383 29.6172C335.914 29.6172 335.503 29.7422 335.148 29.9922C334.794 30.2422 334.518 30.5703 334.32 30.9766V37H332.875V28.5469H334.242ZM347.633 26.5V28.5469H349.211V29.6641H347.633V34.9062C347.633 35.2448 347.703 35.5 347.844 35.6719C347.984 35.8385 348.224 35.9219 348.562 35.9219C348.729 35.9219 348.958 35.8906 349.25 35.8281V37C348.87 37.1042 348.5 37.1562 348.141 37.1562C347.495 37.1562 347.008 36.9609 346.68 36.5703C346.352 36.1797 346.188 35.625 346.188 34.9062V29.6641H344.648V28.5469H346.188V26.5H347.633ZM352.352 29.5703C352.992 28.7839 353.826 28.3906 354.852 28.3906C356.638 28.3906 357.539 29.3984 357.555 31.4141V37H356.109V31.4062C356.104 30.7969 355.964 30.3464 355.688 30.0547C355.417 29.763 354.992 29.6172 354.414 29.6172C353.945 29.6172 353.534 29.7422 353.18 29.9922C352.826 30.2422 352.549 30.5703 352.352 30.9766V37H350.906V25H352.352V29.5703ZM363.227 37.1562C362.081 37.1562 361.148 36.7812 360.43 36.0312C359.711 35.276 359.352 34.2682 359.352 33.0078V32.7422C359.352 31.9036 359.51 31.1562 359.828 30.5C360.151 29.8385 360.599 29.3229 361.172 28.9531C361.75 28.5781 362.375 28.3906 363.047 28.3906C364.146 28.3906 365 28.7526 365.609 29.4766C366.219 30.2005 366.523 31.237 366.523 32.5859V33.1875H360.797C360.818 34.0208 361.06 34.6953 361.523 35.2109C361.992 35.7214 362.586 35.9766 363.305 35.9766C363.815 35.9766 364.247 35.8724 364.602 35.6641C364.956 35.4557 365.266 35.1797 365.531 34.8359L366.414 35.5234C365.706 36.612 364.643 37.1562 363.227 37.1562ZM363.047 29.5781C362.464 29.5781 361.974 29.7917 361.578 30.2188C361.182 30.6406 360.938 31.2344 360.844 32H365.078V31.8906C365.036 31.1562 364.839 30.5885 364.484 30.1875C364.13 29.7812 363.651 29.5781 363.047 29.5781ZM375.562 35.9766C376.078 35.9766 376.529 35.8203 376.914 35.5078C377.299 35.1953 377.513 34.8047 377.555 34.3359H378.922C378.896 34.8203 378.729 35.2812 378.422 35.7188C378.115 36.1562 377.703 36.5052 377.188 36.7656C376.677 37.026 376.135 37.1562 375.562 37.1562C374.411 37.1562 373.495 36.7734 372.812 36.0078C372.135 35.237 371.797 34.1849 371.797 32.8516V32.6094C371.797 31.7865 371.948 31.0547 372.25 30.4141C372.552 29.7734 372.984 29.276 373.547 28.9219C374.115 28.5677 374.784 28.3906 375.555 28.3906C376.503 28.3906 377.289 28.6745 377.914 29.2422C378.544 29.8099 378.88 30.5469 378.922 31.4531H377.555C377.513 30.9062 377.305 30.4583 376.93 30.1094C376.56 29.7552 376.102 29.5781 375.555 29.5781C374.82 29.5781 374.25 29.8438 373.844 30.375C373.443 30.901 373.242 31.6641 373.242 32.6641V32.9375C373.242 33.9115 373.443 34.6615 373.844 35.1875C374.245 35.7135 374.818 35.9766 375.562 35.9766ZM385.766 37C385.682 36.8333 385.615 36.5365 385.562 36.1094C384.891 36.8073 384.089 37.1562 383.156 37.1562C382.323 37.1562 381.638 36.9219 381.102 36.4531C380.57 35.9792 380.305 35.3802 380.305 34.6562C380.305 33.776 380.638 33.0938 381.305 32.6094C381.977 32.1198 382.919 31.875 384.133 31.875H385.539V31.2109C385.539 30.7057 385.388 30.3047 385.086 30.0078C384.784 29.7057 384.339 29.5547 383.75 29.5547C383.234 29.5547 382.802 29.6849 382.453 29.9453C382.104 30.2057 381.93 30.5208 381.93 30.8906H380.477C380.477 30.4688 380.625 30.0625 380.922 29.6719C381.224 29.276 381.63 28.9635 382.141 28.7344C382.656 28.5052 383.221 28.3906 383.836 28.3906C384.81 28.3906 385.573 28.6354 386.125 29.125C386.677 29.6094 386.964 30.2786 386.984 31.1328V35.0234C386.984 35.7995 387.083 36.4167 387.281 36.875V37H385.766ZM383.367 35.8984C383.82 35.8984 384.25 35.7812 384.656 35.5469C385.062 35.3125 385.357 35.0078 385.539 34.6328V32.8984H384.406C382.635 32.8984 381.75 33.4167 381.75 34.4531C381.75 34.9062 381.901 35.2604 382.203 35.5156C382.505 35.7708 382.893 35.8984 383.367 35.8984ZM390.617 28.5469L390.664 29.6094C391.31 28.7969 392.154 28.3906 393.195 28.3906C394.982 28.3906 395.883 29.3984 395.898 31.4141V37H394.453V31.4062C394.448 30.7969 394.307 30.3464 394.031 30.0547C393.76 29.763 393.336 29.6172 392.758 29.6172C392.289 29.6172 391.878 29.7422 391.523 29.9922C391.169 30.2422 390.893 30.5703 390.695 30.9766V37H389.25V28.5469H390.617ZM400.867 35.0391L402.961 28.5469H404.438L401.406 37H400.305L397.242 28.5469H398.719L400.867 35.0391ZM410.922 37C410.839 36.8333 410.771 36.5365 410.719 36.1094C410.047 36.8073 409.245 37.1562 408.312 37.1562C407.479 37.1562 406.794 36.9219 406.258 36.4531C405.727 35.9792 405.461 35.3802 405.461 34.6562C405.461 33.776 405.794 33.0938 406.461 32.6094C407.133 32.1198 408.076 31.875 409.289 31.875H410.695V31.2109C410.695 30.7057 410.544 30.3047 410.242 30.0078C409.94 29.7057 409.495 29.5547 408.906 29.5547C408.391 29.5547 407.958 29.6849 407.609 29.9453C407.26 30.2057 407.086 30.5208 407.086 30.8906H405.633C405.633 30.4688 405.781 30.0625 406.078 29.6719C406.38 29.276 406.786 28.9635 407.297 28.7344C407.812 28.5052 408.378 28.3906 408.992 28.3906C409.966 28.3906 410.729 28.6354 411.281 29.125C411.833 29.6094 412.12 30.2786 412.141 31.1328V35.0234C412.141 35.7995 412.24 36.4167 412.438 36.875V37H410.922ZM408.523 35.8984C408.977 35.8984 409.406 35.7812 409.812 35.5469C410.219 35.3125 410.513 35.0078 410.695 34.6328V32.8984H409.562C407.792 32.8984 406.906 33.4167 406.906 34.4531C406.906 34.9062 407.057 35.2604 407.359 35.5156C407.661 35.7708 408.049 35.8984 408.523 35.8984ZM419.328 34.7578C419.328 34.3672 419.18 34.0651 418.883 33.8516C418.591 33.6328 418.078 33.4453 417.344 33.2891C416.615 33.1328 416.034 32.9453 415.602 32.7266C415.174 32.5078 414.857 32.2474 414.648 31.9453C414.445 31.6432 414.344 31.2839 414.344 30.8672C414.344 30.1745 414.635 29.5885 415.219 29.1094C415.807 28.6302 416.557 28.3906 417.469 28.3906C418.427 28.3906 419.203 28.638 419.797 29.1328C420.396 29.6276 420.695 30.2604 420.695 31.0312H419.242C419.242 30.6354 419.073 30.2943 418.734 30.0078C418.401 29.7214 417.979 29.5781 417.469 29.5781C416.943 29.5781 416.531 29.6927 416.234 29.9219C415.938 30.151 415.789 30.4505 415.789 30.8203C415.789 31.1693 415.927 31.4323 416.203 31.6094C416.479 31.7865 416.977 31.9557 417.695 32.1172C418.419 32.2786 419.005 32.4714 419.453 32.6953C419.901 32.9193 420.232 33.1901 420.445 33.5078C420.664 33.8203 420.773 34.2031 420.773 34.6562C420.773 35.4115 420.471 36.0182 419.867 36.4766C419.263 36.9297 418.479 37.1562 417.516 37.1562C416.839 37.1562 416.24 37.0365 415.719 36.7969C415.198 36.5573 414.789 36.224 414.492 35.7969C414.201 35.3646 414.055 34.8984 414.055 34.3984H415.5C415.526 34.8828 415.719 35.2682 416.078 35.5547C416.443 35.8359 416.922 35.9766 417.516 35.9766C418.062 35.9766 418.5 35.8672 418.828 35.6484C419.161 35.4245 419.328 35.1276 419.328 34.7578ZM428.586 26.5V28.5469H430.164V29.6641H428.586V34.9062C428.586 35.2448 428.656 35.5 428.797 35.6719C428.938 35.8385 429.177 35.9219 429.516 35.9219C429.682 35.9219 429.911 35.8906 430.203 35.8281V37C429.823 37.1042 429.453 37.1562 429.094 37.1562C428.448 37.1562 427.961 36.9609 427.633 36.5703C427.305 36.1797 427.141 35.625 427.141 34.9062V29.6641H425.602V28.5469H427.141V26.5H428.586ZM431.32 32.6953C431.32 31.8672 431.482 31.1224 431.805 30.4609C432.133 29.7995 432.586 29.2891 433.164 28.9297C433.747 28.5703 434.411 28.3906 435.156 28.3906C436.307 28.3906 437.237 28.7891 437.945 29.5859C438.659 30.3828 439.016 31.4427 439.016 32.7656V32.8672C439.016 33.6901 438.857 34.4297 438.539 35.0859C438.227 35.737 437.776 36.2448 437.188 36.6094C436.604 36.974 435.932 37.1562 435.172 37.1562C434.026 37.1562 433.096 36.7578 432.383 35.9609C431.674 35.1641 431.32 34.1094 431.32 32.7969V32.6953ZM432.773 32.8672C432.773 33.8047 432.99 34.5573 433.422 35.125C433.859 35.6927 434.443 35.9766 435.172 35.9766C435.906 35.9766 436.49 35.6901 436.922 35.1172C437.354 34.5391 437.57 33.7318 437.57 32.6953C437.57 31.7682 437.349 31.0182 436.906 30.4453C436.469 29.8672 435.885 29.5781 435.156 29.5781C434.443 29.5781 433.867 29.862 433.43 30.4297C432.992 30.9974 432.773 31.8099 432.773 32.8672ZM290.312 56C290.229 55.8333 290.161 55.5365 290.109 55.1094C289.438 55.8073 288.635 56.1562 287.703 56.1562C286.87 56.1562 286.185 55.9219 285.648 55.4531C285.117 54.9792 284.852 54.3802 284.852 53.6562C284.852 52.776 285.185 52.0938 285.852 51.6094C286.523 51.1198 287.466 50.875 288.68 50.875H290.086V50.2109C290.086 49.7057 289.935 49.3047 289.633 49.0078C289.331 48.7057 288.885 48.5547 288.297 48.5547C287.781 48.5547 287.349 48.6849 287 48.9453C286.651 49.2057 286.477 49.5208 286.477 49.8906H285.023C285.023 49.4688 285.172 49.0625 285.469 48.6719C285.771 48.276 286.177 47.9635 286.688 47.7344C287.203 47.5052 287.768 47.3906 288.383 47.3906C289.357 47.3906 290.12 47.6354 290.672 48.125C291.224 48.6094 291.51 49.2786 291.531 50.1328V54.0234C291.531 54.7995 291.63 55.4167 291.828 55.875V56H290.312ZM287.914 54.8984C288.367 54.8984 288.797 54.7812 289.203 54.5469C289.609 54.3125 289.904 54.0078 290.086 53.6328V51.8984H288.953C287.182 51.8984 286.297 52.4167 286.297 53.4531C286.297 53.9062 286.448 54.2604 286.75 54.5156C287.052 54.7708 287.44 54.8984 287.914 54.8984ZM293.445 51.7031C293.445 50.4062 293.753 49.3646 294.367 48.5781C294.982 47.7865 295.786 47.3906 296.781 47.3906C297.771 47.3906 298.555 47.7292 299.133 48.4062V44H300.578V56H299.25L299.18 55.0938C298.602 55.8021 297.797 56.1562 296.766 56.1562C295.786 56.1562 294.987 55.7552 294.367 54.9531C293.753 54.151 293.445 53.1042 293.445 51.8125V51.7031ZM294.891 51.8672C294.891 52.8255 295.089 53.5755 295.484 54.1172C295.88 54.6589 296.427 54.9297 297.125 54.9297C298.042 54.9297 298.711 54.5182 299.133 53.6953V49.8125C298.701 49.0156 298.036 48.6172 297.141 48.6172C296.432 48.6172 295.88 48.8906 295.484 49.4375C295.089 49.9844 294.891 50.7943 294.891 51.8672ZM302.477 51.7031C302.477 50.4062 302.784 49.3646 303.398 48.5781C304.013 47.7865 304.818 47.3906 305.812 47.3906C306.802 47.3906 307.586 47.7292 308.164 48.4062V44H309.609V56H308.281L308.211 55.0938C307.633 55.8021 306.828 56.1562 305.797 56.1562C304.818 56.1562 304.018 55.7552 303.398 54.9531C302.784 54.151 302.477 53.1042 302.477 51.8125V51.7031ZM303.922 51.8672C303.922 52.8255 304.12 53.5755 304.516 54.1172C304.911 54.6589 305.458 54.9297 306.156 54.9297C307.073 54.9297 307.742 54.5182 308.164 53.6953V49.8125C307.732 49.0156 307.068 48.6172 306.172 48.6172C305.464 48.6172 304.911 48.8906 304.516 49.4375C304.12 49.9844 303.922 50.7943 303.922 51.8672ZM317.398 56H315.953V44H317.398V56ZM324.938 56C324.854 55.8333 324.786 55.5365 324.734 55.1094C324.062 55.8073 323.26 56.1562 322.328 56.1562C321.495 56.1562 320.81 55.9219 320.273 55.4531C319.742 54.9792 319.477 54.3802 319.477 53.6562C319.477 52.776 319.81 52.0938 320.477 51.6094C321.148 51.1198 322.091 50.875 323.305 50.875H324.711V50.2109C324.711 49.7057 324.56 49.3047 324.258 49.0078C323.956 48.7057 323.51 48.5547 322.922 48.5547C322.406 48.5547 321.974 48.6849 321.625 48.9453C321.276 49.2057 321.102 49.5208 321.102 49.8906H319.648C319.648 49.4688 319.797 49.0625 320.094 48.6719C320.396 48.276 320.802 47.9635 321.312 47.7344C321.828 47.5052 322.393 47.3906 323.008 47.3906C323.982 47.3906 324.745 47.6354 325.297 48.125C325.849 48.6094 326.135 49.2786 326.156 50.1328V54.0234C326.156 54.7995 326.255 55.4167 326.453 55.875V56H324.938ZM322.539 54.8984C322.992 54.8984 323.422 54.7812 323.828 54.5469C324.234 54.3125 324.529 54.0078 324.711 53.6328V51.8984H323.578C321.807 51.8984 320.922 52.4167 320.922 53.4531C320.922 53.9062 321.073 54.2604 321.375 54.5156C321.677 54.7708 322.065 54.8984 322.539 54.8984ZM329.789 47.5469L329.836 48.6094C330.482 47.7969 331.326 47.3906 332.367 47.3906C334.154 47.3906 335.055 48.3984 335.07 50.4141V56H333.625V50.4062C333.62 49.7969 333.479 49.3464 333.203 49.0547C332.932 48.763 332.508 48.6172 331.93 48.6172C331.461 48.6172 331.049 48.7422 330.695 48.9922C330.341 49.2422 330.065 49.5703 329.867 49.9766V56H328.422V47.5469H329.789ZM336.898 51.7031C336.898 50.4062 337.206 49.3646 337.82 48.5781C338.435 47.7865 339.24 47.3906 340.234 47.3906C341.224 47.3906 342.008 47.7292 342.586 48.4062V44H344.031V56H342.703L342.633 55.0938C342.055 55.8021 341.25 56.1562 340.219 56.1562C339.24 56.1562 338.44 55.7552 337.82 54.9531C337.206 54.151 336.898 53.1042 336.898 51.8125V51.7031ZM338.344 51.8672C338.344 52.8255 338.542 53.5755 338.938 54.1172C339.333 54.6589 339.88 54.9297 340.578 54.9297C341.495 54.9297 342.164 54.5182 342.586 53.6953V49.8125C342.154 49.0156 341.49 48.6172 340.594 48.6172C339.885 48.6172 339.333 48.8906 338.938 49.4375C338.542 49.9844 338.344 50.7943 338.344 51.8672ZM347.641 47.5469L347.68 48.4844C348.299 47.7552 349.135 47.3906 350.188 47.3906C351.37 47.3906 352.174 47.8438 352.602 48.75C352.883 48.3438 353.247 48.0156 353.695 47.7656C354.148 47.5156 354.682 47.3906 355.297 47.3906C357.151 47.3906 358.094 48.3724 358.125 50.3359V56H356.68V50.4219C356.68 49.8177 356.542 49.3672 356.266 49.0703C355.99 48.7682 355.526 48.6172 354.875 48.6172C354.339 48.6172 353.893 48.7786 353.539 49.1016C353.185 49.4193 352.979 49.849 352.922 50.3906V56H351.469V50.4609C351.469 49.2318 350.867 48.6172 349.664 48.6172C348.716 48.6172 348.068 49.0208 347.719 49.8281V56H346.273V47.5469H347.641ZM365.531 56C365.448 55.8333 365.38 55.5365 365.328 55.1094C364.656 55.8073 363.854 56.1562 362.922 56.1562C362.089 56.1562 361.404 55.9219 360.867 55.4531C360.336 54.9792 360.07 54.3802 360.07 53.6562C360.07 52.776 360.404 52.0938 361.07 51.6094C361.742 51.1198 362.685 50.875 363.898 50.875H365.305V50.2109C365.305 49.7057 365.154 49.3047 364.852 49.0078C364.549 48.7057 364.104 48.5547 363.516 48.5547C363 48.5547 362.568 48.6849 362.219 48.9453C361.87 49.2057 361.695 49.5208 361.695 49.8906H360.242C360.242 49.4688 360.391 49.0625 360.688 48.6719C360.99 48.276 361.396 47.9635 361.906 47.7344C362.422 47.5052 362.987 47.3906 363.602 47.3906C364.576 47.3906 365.339 47.6354 365.891 48.125C366.443 48.6094 366.729 49.2786 366.75 50.1328V54.0234C366.75 54.7995 366.849 55.4167 367.047 55.875V56H365.531ZM363.133 54.8984C363.586 54.8984 364.016 54.7812 364.422 54.5469C364.828 54.3125 365.122 54.0078 365.305 53.6328V51.8984H364.172C362.401 51.8984 361.516 52.4167 361.516 53.4531C361.516 53.9062 361.667 54.2604 361.969 54.5156C362.271 54.7708 362.659 54.8984 363.133 54.8984ZM373.102 48.8438C372.883 48.8073 372.646 48.7891 372.391 48.7891C371.443 48.7891 370.799 49.1927 370.461 50V56H369.016V47.5469H370.422L370.445 48.5234C370.919 47.7682 371.591 47.3906 372.461 47.3906C372.742 47.3906 372.956 47.4271 373.102 47.5V48.8438ZM376.797 52.0859L375.891 53.0312V56H374.445V44H375.891V51.2578L376.664 50.3281L379.297 47.5469H381.055L377.766 51.0781L381.438 56H379.742L376.797 52.0859ZM387.469 53.7578C387.469 53.3672 387.32 53.0651 387.023 52.8516C386.732 52.6328 386.219 52.4453 385.484 52.2891C384.755 52.1328 384.174 51.9453 383.742 51.7266C383.315 51.5078 382.997 51.2474 382.789 50.9453C382.586 50.6432 382.484 50.2839 382.484 49.8672C382.484 49.1745 382.776 48.5885 383.359 48.1094C383.948 47.6302 384.698 47.3906 385.609 47.3906C386.568 47.3906 387.344 47.638 387.938 48.1328C388.536 48.6276 388.836 49.2604 388.836 50.0312H387.383C387.383 49.6354 387.214 49.2943 386.875 49.0078C386.542 48.7214 386.12 48.5781 385.609 48.5781C385.083 48.5781 384.672 48.6927 384.375 48.9219C384.078 49.151 383.93 49.4505 383.93 49.8203C383.93 50.1693 384.068 50.4323 384.344 50.6094C384.62 50.7865 385.117 50.9557 385.836 51.1172C386.56 51.2786 387.146 51.4714 387.594 51.6953C388.042 51.9193 388.372 52.1901 388.586 52.5078C388.805 52.8203 388.914 53.2031 388.914 53.6562C388.914 54.4115 388.612 55.0182 388.008 55.4766C387.404 55.9297 386.62 56.1562 385.656 56.1562C384.979 56.1562 384.38 56.0365 383.859 55.7969C383.339 55.5573 382.93 55.224 382.633 54.7969C382.341 54.3646 382.195 53.8984 382.195 53.3984H383.641C383.667 53.8828 383.859 54.2682 384.219 54.5547C384.583 54.8359 385.062 54.9766 385.656 54.9766C386.203 54.9766 386.641 54.8672 386.969 54.6484C387.302 54.4245 387.469 54.1276 387.469 53.7578Z" fill="black"/>
+            <rect id="Natural User Interface 2" x="235" y="17" width="44" height="44" fill="url(#pn2)"/>
+            </g>
+            <defs>
+                <pattern id="pn0" patternContentUnits="objectBoundingBox" width="1" height="1">
+                <use xlink:href="#i0" transform="scale(0.0111111)"/>
+                </pattern>
+                <pattern id="pn1" patternContentUnits="objectBoundingBox" width="1" height="1">
+                <use xlink:href="#i1" transform="scale(0.0111111)"/>
+                </pattern>
+                <pattern id="pn2" patternContentUnits="objectBoundingBox" width="1" height="1">
+                <use xlink:href="#i2" transform="scale(0.0111111)"/>
+                </pattern>
+                <clipPath id="c0">
+                <rect width="448" height="80.2157" fill="white"/>
+                </clipPath>
+                <image id="i0" width="90" height="90" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAABaCAYAAAA4qEECAAAABmJLR0QA/wD/AP+gvaeTAAAB9klEQVR4nO2cS24CMRBES1mEnDzMebJAuVBCbgGL0BIiw4SPu101rid5w+r5CQwDQwPGGGOMMcYYY4wxZo4NgAnA/rSm02MqSPi/AvgAcLhYnwDeOnrdioT/NUlK2Rkk/P+TpJKdQcL/VkkK2Rkk/O+VZIst4b8BsHtAMtYOfd/NZfynJyR7x342cqxthey+gWiPY+TR42Ju/VQItwpdGbtl5AOArwJnbBsKVxwjrY6L8/We6JsqnhVbyXWW1i/FjGNEwfEmmDfC7PYQjBtidGoC08aYXFJg2CCDQwk9NzpM5KDHhoeLHFRufNjIQUWA4SMHmSEc+YKsS2Dpy+osMp59fiZfgTX2qiIHbLFXGTlgib3qyEHv2ENEDnrFHipyUB17yMhBVeyhIwfZsR35jKzYNJFfeguYOnx0FOA3wwL88a4AX7AU4EvwAnpHHiI2S+RVx2aLvMrYrJFXFds/zhbg2w0K8A00BfiWsAJ8k2MBvm23AIaNMjikwrRBJpemMG6M0ekpmDfE7HYXChtRcFxE6W+/Sq5/aDGvo1I8I7bUvI7Kl2LrY0RqXofyYBSZeR3qo34k5nX0/u5Xyl9inNkCUv4SA/oWkPKXGDm5gJS/xBDVBaT8JcYCLyDlv8HvR7/v09pC65dldX9jjDHGGGOMMcaYMo5GWlFN6GAqrAAAAABJRU5ErkJggg=="/>
+                <image id="i1" width="90" height="90" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAABaCAYAAAA4qEECAAAABmJLR0QA/wD/AP+gvaeTAAAFp0lEQVR4nO2dXWgdRRiGnzSnSWxjaBFttaA1F6kXatXUnzRpSvGiqCCxKFVatOIPLaK1/uCFN0EURFEpKvS6EPDGglCN/aMoFixS24ogVlFqTZrWNtombZU0PV5852A47rc7e87uzpzNPDAkTDJn3nnPnt1vvpndAx6Px+PxeDwej8fjKA22BQTQCNxSKh3AIqAdmA3MLf1sAMaBs8AY8HOp/AR8DXwPXMpaeD2wAHgO+AT4CyjWWP4EtgMbgCszHIeTtABrgB3ARWo3VysXgV3AaqCQycgcoRV4ERgmPXO1chR4uaQhLv1VtLFCAdgEnCJ7gyvLMPAkcj0wob/Uznl6gMPYN7iyHAaWRGgvm+y00U3AZiQCiGPAGDAIvAE8CtyJRB5zS69ZKP1+LdAFrAVeB3aX2sbpawJ4DZgZoL+/4n+dpB34BvMBDwFvA0up7aJVAHqB94l3HdiPRD9lKk120ugVSIhlMsCdwErMz5dxaAQeBL401DKMfEKCTHbO6FXA30QPahC4PUNdvchkxuRUov3NGR4nOib+DXjAkr4GJHb/I0Kj00avItrkrVQXwybNVcA26tDoFcAFdIHnkaPdJRqQyUucWalV2gm/8I0C3dbURTNAHRjdRHgINwTcaE1dNFp04ZzRm0NEjZIvk60Z3YM+4zuP26eLaky2YnQBOBQiaJ0NUYZUa7IVozeFiNlqQ5AhtZicudGt6KnOo7gRJwdRq8mZG/1SiBBbM74okjA5U6Nb0DNig1kKyTtr0d/tLou6cscOgk3eaVNU3liAnhdYaVFX7thIsMlDpJO0zxUzYvzv3Ur9ADCZgBYPcsRqGbqlFnXljiUEmzxG8OqxpwLTU8fNSv1XyBqbJwJTo29Q6g8kJSTvmBq9SKn/MSkhecfU6IVK/ZGkhNQZDcTcW25qdJtSfyJOZzlgFrAFOFcqW4DLkuxAS4tekWQndcCH/N+DD5Ls4J+ADorI4ux0ImguMWrSMM7McLrTDMwJqJ9l0tjU6HGl3tXVlDS4XKkfM2lsarT2YlrneUQLCM6aNDY1+oxSf7Vh+zwwX6lP1OhflfoOw/Z5QJu0/WLS2NRobQaodZ5Hapod12p0p2H7PHCbUp/o7LiT6Z0mbUJmgkEe3JpkR2GJf5f32CVFL8FjP43hWcH01DEJfKH8rc/wNeoZbWPQXlK4uf9Zgt/VYfK9OFsARgge+4Y0OrwGfbvBPWl06Aj3ETzmCWBeWp1+rnS6O60OHWAvwWPenmana5RO87oafhf6eFen2XELsmFmumwL20PwWH9Hsnmp8oLSeRG5HTgvPIw+zo1ZCJiNfufpMfKR0WtD/+SOYJiDTgJtH14R2SJW73yEPr5nshTSCBwMEfNElmISZj36uA5gYc7QRfjtb8uyFpQAy9FvtZ4E7rAl7F1FVBHJjdxkS1gVLCb8UXBv2ZMmWa39AaKmTs/rwezFwHH0cezDgSzlQmTJPezIdvk0spzwI/kU8uwmJ+gl/DESF4CnrKnTWU/04y96rKlT6CP62RcDuBFntxEewhWRsdxvS2AU64g2+xjwkC2ByIxPm4yUywTwmC2BpvQR/nEsl11ke29iN3ruovJ04eyRXEkv4RfIqWUPcC/pTAQKSD5ZS3UGXficOydHcR1mjz8rl+NIXL6M2jZPNiFv9HvoKyNaCJdadJH2g7pnAm8CzxNvQ+U5ZODfIsv5PwAnkTCsvA+wFdl0OA+59aMDWa3vJl7S5xLwDvAqObgfp5PwiY2tcpAc3sPeiCzwnsS+wSeQLFyeF5VpBp5GwrysDR4BXiHDfLILNAOPAJ+R7qPnJ4BPkfg59eUn15mPfJS3Ibt/ajX3NPAxsu8itS0BcXDx60FmINm0qV8Pcj0ybZ7Df3cZjCNRyBlkW/ERZDPmIeA7/NeDeDwej8fj8Xg8Ho8Z/wJD/Fexs/jO8AAAAABJRU5ErkJggg=="/>
+                <image id="i2" width="90" height="90" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAABaCAYAAAA4qEECAAAABmJLR0QA/wD/AP+gvaeTAAAE00lEQVR4nO2dy48VRRSHP4dRGHFIFAeCDySiZraGhTExgYBBiRp1IaILNwpGI/onIHGjCxeCgNGdGhOXYnyx8BFnogwvNfJYIInj6EKJ8hAZIDPXxbkkF+3T03W7q0717fqSs7rVp875pe+5Vd1VdSGRSCScucw6gDZLgXuAu4BhYDEwr/3ZKWAcOAyMAJ8BxwxirC2zgMeAUaDlYNOI4OvaPhI5rAaO4CZwlh0CVgWOvRYMAG9SXuD/2g5gTsA8omYI2EP1Il+03cC1wbKJlCHkx8yXyJ2lpLFiD1DsTh4HtgL3IiOPuW0bBtYArwO/FPDzLQ0tIzPV5AngKYqNIPqB9cCvM/jcXmkGNWA1+YJ8AAx24XcQ2DmD75UlY68Ns8gfwm0B+kr470NKjeb/IA0ZZz+OLsLHVCNCH/Kt0PpZW0Ef0aPN+CborlxozAN+U/r6usJ+omQpMlXOSv7JnOuuAJ4HxoB/gL+Q8fFz7c80Nih9TQNLSuQRPc+iD+G0knE98L1yXQv4BrhGubYf+aZkXfd06Wwi5j2yk96qtJ8DfKdc02lfoP+AblOuebd0NhGzn+yk1yjtX1DaZ9mjio/7lPZ7S2cTMcfJTvo2pf1upX2Wfar4GFba/146m4g5R3bS2mjjtNI+y/5QfAwq7SdLZ1MBvt6wTAKzHfprOfhuodfpLD/niODZR5mZWR6nPPkF95vjpJcoHPEl9IQnv90wbh0A+BP6oCe/3XDIOgDwJ/SoJ7/dMGIdgE+WkD0F1yg64nD1Mw3cWCKPWvAl9kJ/XiqDmrAWe6EfKZVBTegDDmAn9A/4+w2KjhVcWqs1qhZ6ClheMvbasYXwQr9WOuoacjnyeDOU0CNkT/8bwXykXmtUJfQB9JcDjWF+zmdVCZ3XhymxrI/OEy+LWOIuTGOGP9YkoQORhA5EEjoQSehAJKEDUVehL26NWwy8iuwmOIMsIdsPvAQstAktblwnLJ8Ar5C/TOE4sm8x0YGr0EXtBHBTwDyix5fQLWQV1NXtfoaATcCPwFmk1OxBlqSZr/0IgU+hW4igY+grqFqI4D2/o8u30EVtF7IEuGexFrjTPkK2PT8IvIMsBpoEfgZeBq7ypEEQrMV1sTHgSj8y+MdaPFfb7JpgLM91W9YBOHIUuNXlgiR0d0zh+KOZhO4eJ+3q+qyjdiShA5GEDkQSOhBJ6EAkoQPh+gBlEXJazCrkOe91yJhyEjkV5iiyn/srZHvF+coibRDrkRMHik5T/wTeAm4v4Nt6St2NeeEh9GMhitgu4O4c/9aiRSP0WEXB7QMe5v+zKmvRohHapWQUsb1cetKBtWjRCO0r2FHkNC9r0aIR+gHgpwiSi8m8MQC8iLw9tk4yBvPOzcCHRsnFZMFoejkJSpPLiQlNLCemNKmcmNOUchINvV5OouMJeu/ujuJArCyWIWvXrAWqyg67ChDqDcs+4E7kINdeIPp/NupHVmRa35Fl7ZmqhfHFBvIXhcdsF4AbqpfEH3Wt22/4EMM3i3D/UzJLO9mOuZbUpW5PITPf2rMOObLYWlBN5I3+Ug/PQuB9JDFrcTvLxf0+k7bkFuSkrzPY3sVvU1FNjmUhusZcZJvxSuAOYAFy1/s4oOpvZAfWMWRn1k7iOp45kUg0j38BQwtCh9L5N4wAAAAASUVORK5CYII="/>
+            </defs>
+        </svg>
+    </div>
+
+    <span class="hint bold-text" style="padding-top: 20px;">
+        Synchronous message passing:
+    </span>
+
+    <div id="play-speed" style="padding-top: 7px;">
+        <div id="center">
+            <button class="mp-button" on:click={oneSyncIter}> 
+                1 iter
+            </button>
+        </div>
+
+        <div id="play-pause">
+            {#if sync_on}
+                <button class="gbp-button" on:click={toggleSyncGBP}>
+                    <svg class="icon" id="pause"><use xlink:href="#pauseIcon"></use></svg>
+                </button>
+            {:else}
+                <button class="gbp-button" on:click={toggleSyncGBP}>
+                    <svg class="icon" id="play"><use xlink:href="#playIcon"></use></svg>
+                </button>
+            {/if}              
+        </div>            
+
+        <div id="speed-slider-container" class="slider-container">
+            Speed: <span class="bold-text">{speed_labels[speed+2]}</span><br>
+            <input class="full-width-slider" type="range" min="-2" max="2" bind:value={speed} step="1"/>
+            <div class="status">
+                Iteration {n_iters}  ({iters_per_sec[speed+2]} iters / s) 
+            </div>
+        </div>  
+    </div>
+
+    <!-- <div>
+        <button on:click={randomMessage}>
+            Random message
+        </button>  
+    </div> -->
+
+    <span class="hint bold-text" style="padding-top: 20px;">
+        Balance the data and smoothing factors:
+    </span>
+
+    <div id="precision-sliders">
+        <div class="slider-container">
+            Measurement std: <br>
+            <input class="full-width-slider" type="range" min="{30}" max="{200}" bind:value={meas_params["linear"]["noise_model_std"]}/>
+            <div class="status">
+                ({meas_params["linear"]["noise_model_std"]} units)
+            </div>
+        </div>  
+
+        <div class="slider-container">
+            Odometry std: <br>
+            <input class="full-width-slider" type="range" min="{5}" max="{60}" bind:value={odometry_params["linear"]["noise_model_std"]}/>
+            <div class="status">
+                ({odometry_params["linear"]["noise_model_std"]} units)
+            </div>
+        </div>                  
     </div>
 
 
-    <div class="boxon">
-
-      <div>
-        Factor Type:
-        <br />
-        <label class="radio-inline">
-          <input type="radio" bind:group={meas_model} value="linear" on:change={change_meas_model}> 
-          <span style="color: {linear_color}"> Linear </span>
-        </label>
-        <label class="radio-inline">
-          <input type="radio" bind:group={meas_model} value="nonlinear" on:change={change_meas_model}>
-          <span style="color: {nonlinear_color}"> Non-linear </span>
-
-        </label>    
-      </div>
-
-      <label class="slider">
-        <span> Odometry noise model std: {odometry_params["linear"]["noise_model_std"]} </span><br>
-        <input type="range" min="5" max="60" bind:value={odometry_params["linear"]["noise_model_std"]} style="width:200px;"/><br>
-      </label>
-
-      {#if meas_model == "linear"}
-        <label class="slider">
-          Landmark noise model std: {meas_params["linear"]["noise_model_std"]}
-          <input type="range" min="30" max="50" bind:value={meas_params["linear"]["noise_model_std"]} style="width:200px;"/>
-        </label>
-      {:else if meas_model == "nonlinear"}
-        <label class="slider">
-          Angle meas noise model std: {meas_params["nonlinear"]["angle_noise_model_std"].toFixed(2)}
-          <input type="range" min="0.4" max="0.6" step="0.01" bind:value={meas_params["nonlinear"]["angle_noise_model_std"]} style="width:200px;"/>
-        </label>
-
-        <label class="slider">
-          Dist meas noise model std: {meas_params["nonlinear"]["dist_noise_model_std"]}
-          <input type="range" min="30" max="60" bind:value={meas_params["nonlinear"]["dist_noise_model_std"]} style="width:200px;"/>
-        </label>
-
-      {/if}
-      <br />
-
+    <div id="center">
+        <button on:click={() => { show_batch = !show_batch; }}>
+            Toggle true marginals
+        </button>  
     </div>
 
-
-    <div class="boxon" style="margin-top: 5px">
-      <label class="slider">
-        <b>Iteration {n_iters}</b> &nbsp; (iters /s: {iters_per_sec})
-        <input type="range" min="1" max="20" step="0.1" bind:value={iters_per_sec} style="width:200px;"/>
-      </label>
-
-      <br>
-      <span>Displays:</span>
-      <br>
-
-      <div style="display: inline-block;">
-        <span style="color: {belief_color}"> <b>Belief:</b> </span>
-        <label class="checkbox-inline">
-          <input type="checkbox" bind:checked={show_belief_mean}/> Mean
-        </label>
-        <label class="checkbox-inline">
-          <input type="checkbox" bind:checked={show_belief_cov}/> Cov
-        </label>
-      </div>
-
-      <div style="display: inline-block;">
-        <span style="color: {map_color}"> <b>True posterior:</b> </span>
-        <label class="checkbox-inline">
-          <input type="checkbox" bind:checked={show_MAP_mean}/> Mean
-        </label>
-        <label class="checkbox-inline">
-          <input type="checkbox" bind:checked={show_MAP_cov}/> Cov
-        </label>
-      </div>
-
-      <label class="checkbox-inline" style="user-select: none; color: {gt_color}}">
-        <input type="checkbox" bind:checked={show_ground_truth}/> <span style="color: {gt_color}"> Ground Truth </span>
-      </label>
-      <br />
+    <div id="hints-panel">
+        <p>
+            <b>Hint. </b>
+            <i class="fa fa-keyboard-o"></i>
+            Use WASD to move the robot (red circle). 
+            Measurement factors (purple edges) constrain the relative position between the robot and nearby landmarks with a noisy measurement.
+            Odometry factors (black edges) constrain the relative position between sucessive robot poses.
+            The landmarks (yellow) and all historic robot poses (blue) are variable nodes in the graph. 
+        </p>
     </div>
 
+    <!-- <div>
+      Difference to MAP: {belief_MAP_diff.toFixed(2)}<br>
+      Energy: {belief_MAP_diff.toFixed(2)}<br>
+    </div> -->
 
-  </div>
-
-  <!-- <div id="playground-settings-panel">
-    Difference to MAP: {belief_MAP_diff.toFixed(2)}<br>
-    Energy: {belief_MAP_diff.toFixed(2)}<br>
-  </div> -->
-
-  <div id="demo-tip">
-    <i class="fa fa-keyboard-o"></i>
-    <div id="hint">
-      Use WASD to move the robot.                
     </div>
-  </div>
-
 </div>
 

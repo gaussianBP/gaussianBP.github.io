@@ -6,10 +6,10 @@
     let interval = 282; // svg units for one interval
     let start = 24.5; // svg units for one interval
     // Plotting marginals
-    let scale = 0.3;
+    let scale = 0.28;
     let xstart = 500;
-    let ystart = -10;
-    const frac_std = 0.7;
+    let ystart = 3;
+    const frac_std = 1.;
 
 
     import * as m from 'ml-matrix';
@@ -620,6 +620,7 @@
         /* border-bottom: 1px solid hsla(0, 0%, 0%, 0.1); */
         padding: 1em 1.5em;
         margin-bottom: 1em;
+        float: left;
     }
 
     #part2 {
@@ -638,6 +639,22 @@
         display: grid;
         margin-bottom: 0.5rem;
         min-height: 210px;
+    }
+
+    @media (min-width: 1500px) {
+        #wrapper {
+            width: 1300px;
+            display: grid;
+            margin-bottom: 0.5rem;
+            min-height: 210px;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 20px;
+            grid-column: page;
+        }
+        #caption {
+            grid-column: page;
+            width: 1350px;
+        }
     }
 
     .edge {
@@ -758,6 +775,8 @@
 
     <div id="wrapper" class="interactive-container">
 
+
+        <div>
         <span style="color: orange;">
             <span style="font-weight: bold;">Part 1:</span> Algorithm level operation    
         </span>
@@ -887,7 +906,9 @@
                 </defs>
             </svg>
         </div>
-
+        </div>
+        
+        <div>
         <span style="color: orange;">
             <span style="font-weight: bold;">Part 2:</span> Message level operation   
         </span>
@@ -1021,6 +1042,7 @@
                     on:change={handleChangeGraph} labelTitle="" selected={value}/>
             </div>
 
+        </div>
         </div>
 
     </div>

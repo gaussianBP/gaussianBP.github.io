@@ -57,6 +57,7 @@
         </ul>
         <div><a href="#related-methods">Related Methods</a></div>
         <div><a href="#discussion">Discussion</a></div>
+        <div><a href="#supp-playground">Supplementary Playground</a></div>
       </nav>
     </d-contents>
 
@@ -67,11 +68,6 @@
     </p>
 
     <h2 id="introduction">Introduction </h2>
-
-
-    <p class="note">
-      Andy - main thought at the moment - there is so much good stuff in here, but  I think we're missing  the mark at the moment with regard to giving the reader an actual  feel for  the   main  element of just how  GBP works  and  what  its character is. I would argue for bringing the GBP playground back, or at least something like that, where the reader can really experiment with click by click GBP updates, robust factors, etc.
-    </p>
 
     <p>
       The "Bitter Lesson" of machine learning (ML) research has been that "general methods that leverage computation are ultimately the most effective, and by a large margin" <d-cite key="Sutton:BitterLesson2019"></d-cite>. At the time of writing, the state-of-the-art across most ML benchmarks is dominated by GPU driven deep learning (DL).
@@ -390,10 +386,10 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
     <p>  
       The interactive <a href="#gbp_intuition">figure</a> below explores the operation of GBP for a simple grid alignment problem. We have chosen a spatial estimation problem as it is intuitive to visualize the beliefs, however GBP can just as easily be applied to any non-spatial inference problem. 
       The figure is divided into two parts.
-      The first shows the algorithm level operation of GBP: as you progress the slider, messages are passed iteratively through the graph and the beliefs converge towards the true marginals. Part 2 aims to give intuition for the message-level operation of GBP. You can send individual messages through the graph and observe how neighbouring beliefs are updated and that GBP converges to the true marginals regardless of the order in which messages are passed.
+      The first shows the algorithm level operation of GBP: as you progress the slider, messages are passed iteratively through the graph and the beliefs converge towards the true marginals. Part 2 aims to give intuition for the message level operation of GBP. You can send individual messages through the graph and observe how neighbouring beliefs are updated and that GBP converges to the true marginals regardless of the order in which messages are passed.
     </p>
 
-    <d-figure id="gbp_intuition"></d-figure>
+    <d-figure id="gbp_intuition" class="part2-fig"></d-figure>
 
     <h2 id="beyond-the-standard-algorithm">Beyond the standard algorithm </h2>
 
@@ -643,6 +639,15 @@ Andy - I am still struggling to understand what is happening in this figure... j
   
     <p class="note">
       GBP is the transformer of probabilistic inference.
+    </p>
+
+    <h2 id="supp-playground">Supplementary Playground</h2>
+
+    <p>
+      We encourage the interested reader to explore our supplementary <a href="#playground">GBP playground</a>.
+      The playground consists of 2 interative diagrams based around 2D pose graphs.
+      In the first you can construct your own pose graph, set the initialization and then choose how messages are passed through the graph.
+      The second is a simulation of a robot exploring a 2D environment with landmarks. 
     </p>
 
     <d-figure id="playground" class="subgrid"></d-figure>

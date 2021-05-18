@@ -22,6 +22,16 @@
   grid-row-gap: inherit;
 }
 
+
+@media (min-width: 1500px) {
+  .part2-fig {
+    grid-column: screen;
+    padding: 10px;
+  }
+}
+
+
+
 d-figure.wider{
   grid-column: page;
 }

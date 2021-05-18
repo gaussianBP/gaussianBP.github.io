@@ -14,7 +14,7 @@
     let svg_height = 600;
 
     // GBP parameters
-    export let prior_std = 100;
+    export let prior_std = 60;
     export let meas_params = {
         "linear" : {
             "noise_model_std": 20,
@@ -140,9 +140,9 @@
 
         for (var i=0; i<grid_size; i++) {
             for (var j=0; j<grid_size; j++) {
-                graph.add_var_node(x0 + j*inc, x0 + i*inc, prior_std, grid_size*i+j);
+                graph.add_var_node(x0 + j*inc, x0 + i*inc, prior_std);
                 if (i!=0 && j!=0) {
-                    graph.var_nodes[i*grid_size + j].prior.eta = graph.var_nodes[i*grid_size + j].prior.lam.mmul(new m.Matrix(
+                    graph.var_nodes[i*grid_size + j].prior.eta = graph.var_nodes[graph.var_nodes.length - 1].prior.lam.mmul(new m.Matrix(
                     [[x0 + j*inc], [x0 + i*inc]]));              
                 }
             }
@@ -593,10 +593,10 @@
     }
 
     .belief-mean {
-        fill: red;
+        fill: #0095DD;
     }
     .belief-cov {
-        stroke: red;
+        stroke: #0095DD;
         stroke-opacity: 0.75;
     }
     .gt-mean {
@@ -619,15 +619,6 @@
         fill: orange;
         stroke: orange;
         stroke-width: 4;
-    }
-
-    #settings-panel {
-        display: grid;
-        grid-template-rows: auto auto auto auto;
-        width: 100%;
-        font-size: 16px;
-        user-select: none;
-
     }
 
     .hint {
@@ -701,6 +692,20 @@
     .mess-bubble {
         stroke: var(--red);
         fill: var(--red);
+    }
+
+    #settings-panel {
+        display: grid;
+        grid-template-rows: 50px 30px 60px 30px 70px 50px 50px 60px auto auto;
+        line-height: 1em;
+        width: 100%;
+        font-size: 16px;
+        user-select: none;
+    }
+
+    #centerleft {
+        display: flex;
+        align-items: center;
     }
 
 </style>
@@ -852,18 +857,13 @@
 
   <div id="settings-panel">
 
-    <!-- <div>
-      <ButtonGroup options={[{ id: 0, name: "Edit" }, { id: 1, name: "Set init" }, { id: 2, name: "Run GBP" }]} labelTitle="" selected={mode1} on:change={handle_mode_change}/>
-    </div> -->
-
-
-    <div>
+    <div style="margin-top: 10px;">
       <label class="radio-inline">
-        <input type="radio" bind:group={mode} value={"edit"} on:change={handle_mode_change}> Edit 
+        <input type="radio" bind:group={mode} value={"edit"} on:change={handle_mode_change}> Edit factor graph $\rightarrow$
       </label>
       <i class="mi mi-arrow-right"><span class="u-sr-only">Arrow right</span></i>
       <label class="radio-inline">
-        <input type="radio" bind:group={mode} value={"init"} on:change={handle_mode_change}> Set init
+        <input type="radio" bind:group={mode} value={"init"} on:change={handle_mode_change}> Set priors $\rightarrow$
       </label>
       <i class="mi mi-arrow-right"><span class="u-sr-only">Arrow right</span></i>
       <label class="radio-inline">
@@ -876,30 +876,20 @@
     </span>
 
     <div>
-        <button on:click={() => set_playground("linear")}>
-            Reset playground
-        </button>
+
         <button on:click={() => set_playground("empty")}>
-            Clear playground
+            Empty
         </button>  
-        <button on:click={() => set_playground("grid")}>
-            Grid
+        <button on:click={() => set_playground("linear")}>
+            Chain
         </button>
         <button on:click={() => set_playground("loop")}>
             Loop
-        </button>    
-    </div>
-
-
-    <span class="hint bold-text">
-        Send messages through the graph:
-    </span>
-
-    <div>
-        <button on:click={randomMessage}>
-            Random message
-        </button>  
-    </div>
+        </button>   
+        <button on:click={() => set_playground("grid")}>
+            Grid
+        </button>
+     </div>
 
     <span class="hint bold-text">
         Synchronous message passing:
@@ -933,7 +923,14 @@
         </div>  
     </div>
 
-    <span class="hint bold-text">
+    <div id="centerleft" style="margin-top: 10px; margin-bottom: 10px;">
+        <span class="hint bold-text">Or send a </span>
+        <button on:click={randomMessage}>
+            Random message
+        </button>  
+    </div>
+
+    <span class="hint bold-text" style="margin-top: 20px">
         Balance the data and smoothing factors:
     </span>
 
@@ -956,28 +953,26 @@
     </div>
 
 
-    <div>
+    <div id="center">
         <button on:click={() => { show_batch = !show_batch; }}>
             Toggle true marginals
         </button>  
-        <button on:click={saveGraph}>
+        <!-- <button on:click={saveGraph}>
             Save graph
         </button>  
         <button on:click={() => load_priors("grid", grid_prior)}>
             Load graph
-        </button>  
+        </button>   -->
     </div>
 
     <div id="hints-panel">
-
         <p>
             <b>Hint. </b>
-            Build the pose graph by dragging variable nodes from the top right. 
+            EDIT MODE: Build the pose graph by dragging variable nodes from the top right. 
             Factors are created by clicking one after the other on the two variable nodes you want to connect. 
-            Drag the variable nodes to set the initial beliefs.
-            Double click on a variable node to send messages to adjacent nodes.
+            SET PRIORS MODE: Drag the variable nodes to set the initial beliefs.
+            RUN MODE: Click on a variable node to send messages to adjacent nodes or use the preset synchronous or random message schedules.
         </p>
-
     </div>
 
 

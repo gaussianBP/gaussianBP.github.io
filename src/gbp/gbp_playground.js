@@ -260,25 +260,23 @@ export class FactorGraph {
     }
   }
 
-  update_factor_noise_models_robotsim(meas_params, odometry_params, n_landmarks) {
+  update_factor_noise_models_robotsim(meas_params, odometry_params) {
     // Update lambda and compute new factor 
     for (var i = 0; i < this.factor_nodes.length; i++) {
-      var factor_node = this.factor_nodes[i];    
-
+      const factor_node = this.factor_nodes[i];    
       let params;
-      if (factor_node.adj_ids[1] < n_landmarks) { // meas factor
+      if (factor_node.note == "meas") { 
         params = meas_params;
-      } else { // odometry factor
+      } else if (factor_node.note == "odometry") {
         params = odometry_params;
       }
-
       factor_node.lambda = [1 / (params["linear"]["noise_model_std"] * params["linear"]["noise_model_std"])];
-
       factor_node.compute_factor();
     }
   }
 
-  add_var_node(x, y, prior_std, id = null, anchor_id = 0, strong_prior_std = 1) {
+  add_var_node(x, y, prior_std, id = null, note = null, strong_prior_std = 1) {
+    const anchor_id = 0;
     if (!id) {
       id = this.var_nodes.length + this.factor_nodes.length;
     }
@@ -293,11 +291,12 @@ export class FactorGraph {
     var_node.prior.eta = var_node.prior.lam.mmul(new m.Matrix([[var_node.x], [var_node.y]]));
     var_node.belief.eta = var_node.prior.eta.clone();
     var_node.belief.lam = var_node.prior.lam.clone();
+    if (note) { var_node.note = note; }
     this.var_nodes.push(var_node);
   }
 
 
-  add_factor_node(node1_id, node2_id, meas_model, meas_params, id = null) {
+  add_factor_node(node1_id, node2_id, meas_model, meas_params, id = null, note = null) {
     let node1 = this.find_node(parseInt(node1_id));
     let node2 = this.find_node(parseInt(node2_id));
     if (!id) {
@@ -307,7 +306,7 @@ export class FactorGraph {
       // Checks factor doesn't already exist and that nodes are two different var nodes
 
       let factor_node;
-      factor_node = this.add_linear_factor(node1, node2, meas_params["linear"], id);
+      factor_node = this.add_linear_factor(node1, node2, meas_params["linear"], id, note);
 
     
       factor_node.adj_var_dofs = [2, 2];
@@ -322,14 +321,14 @@ export class FactorGraph {
     }
   }
 
-  add_linear_factor(node1, node2, params, id = null) {
-
+  add_linear_factor(node1, node2, params, id = null, note = null) {
     const factor_node = new LinearFactor(4, id, [node1.id, node2.id]);
     factor_node.meas = factor_node.meas_func([node1.x, node1.y], [node2.x, node2.y]);
     const noise_gen = r.normal(0, params["noise_std"]*params["noise_std"]);
     factor_node.meas_noise = new m.Matrix([[noise_gen()], [noise_gen()]]);
     factor_node.meas.add(factor_node.meas_noise);
     factor_node.lambda = [1 / (params["noise_model_std"] * params["noise_model_std"])];
+    if (note) { factor_node.note = note; }
 
     return factor_node;
   }
@@ -339,6 +338,7 @@ export class FactorGraph {
 export class VariableNode {
   constructor(dofs, id, x = 0, y = 0) {
     this.type = 'var_node';
+    this.note = '';
     this.dofs = dofs;
     this.id = id;
     this.belief = new gauss.Gaussian(m.Matrix.zeros(dofs, 1), m.Matrix.zeros(dofs, dofs));
@@ -422,6 +422,7 @@ export class VariableNode {
 export class LinearFactor {
   constructor(dofs, id, adj_ids) {
     this.type = "linear_factor";
+    this.note = "";
     this.dofs = dofs;
     this.id = id;
     this.adj_ids = adj_ids;  //.sort((a, b) => a - b);
