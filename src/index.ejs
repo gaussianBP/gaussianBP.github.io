@@ -74,67 +74,42 @@
     </p>
 
     <p>
-      The "Bitter Lesson" of machine learning (ML) research has been that "general methofds that leverage computation are ultimately the most effective, and by a large margin" <d-cite key="Sutton:BitterLesson2019"></d-cite>. At the time of writing, the state-of-the-art across most ML benchmarks is dominated by GPU driven deep learning.
+      The "Bitter Lesson" of machine learning (ML) research has been that "general methods that leverage computation are ultimately the most effective, and by a large margin" <d-cite key="Sutton:BitterLesson2019"></d-cite>. At the time of writing, the state-of-the-art across most ML benchmarks is dominated by GPU driven deep learning (DL).
+    </p>
+
+    <p>
+      The effectiveness of the DL/GPU approach draws significantly from a close structural coupling of hardware, algorithm and underlying task. Convolutional Neural Networks (CNN; <d-cite key="LeCun:etal:IEEE1998"></d-cite>) operate by learning translation invariant spatial filters whose dot-products are taken over patches of adjacent pixels, exploiting both the fact that correlations in natural images are strongly local and that similar features appear in multiple locations. Importantly, this structure is also leveraged in the computation - sequential filter dot-products can be parallelized as a single matrix multiplication(e.g. by Fourier transform or reshaping <d-cite key="chetlur2014cudnn"></d-cite>) and carried out efficiently by GPUs. Data transfer is minimized since the filter array is transformed within the GPU.
+    </p>
+
+    <p>
+      Data transfer, not multipy-and-accumlate (MAC) operations are most often the bottleneck to processing speed, and dominate the power consumption of a typical deep learning architecture<d-cite key="Sze:Survey2017"></d-cite>d-cite>. As ML is increasingly embedded into the physical world, communication costs (and delays) within and across devices will become significant limiting factors if not implemented carefully. A promising solution is to co-develop algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
     </p>
     <p>
-      The effectiveness of the DL/GPU approach stems largely from the close structural coupling of hardware, algorithm and the underlying task. 
-      Convolutional Neural Networks (CNN; <d-cite key="LeCun:etal:IEEE1998"></d-cite>) operate by learning translation invariant spatial filters, which are multiplied over small patches of adjacent pixels, exploiting the fact that correlations in natural images are strongly local. 
-      This local structure (also present in general matrix-multiply driven DL) aligns strongly with the structure of GPUs and has meant that the scale and performance of DL has grown with developments in multicore compute.    
-    </p>
-    <p class="note">
-      Talfan - justify hardware algorithm structure. (notes in overleaf)
+      To operate effectively in the real world, ML systems of the future will also need to be highly inhomogeneous in their representation. General purpose perception systems will represent the world not just at the level of sequences of regular image arrays, but as graphs of semantic objects with continuously changing relationships, growing or contracting in size as new data is added or task demands fluctuate.
     </p>
     <p>
-      As ML is increasingly embedded into the physical world, power consumption and communication costs both within and across systems will become limiting factors. 
-      Both can be minimized by co-developing algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
-      Towards this goal, Sutter identifies the emergence of a "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous compute.
-    </p>
-    <p>
-      To operate in the real world, ML systems of the future will also need to be highly inhomogeneous in their representation. 
-      General purpose perception systems will represent the world not just at the level of sequences of regular image arrays, but as graphs of semantic objects with continuously changing relationships, growing or contracting in size as new data is added or task demands fluctuate.
-    </p>
-    <p>
-      Stated simply, so far, the inductive biases present in DL, which themselves reflect the task structure, have been well mirrored in GPU hardware. 
-      However we see a gradual shift in both hardware and the structure of tasks in AI and believe it is time to think carefully about which algorithms can occupy a similar sweet spot against the backdrop of increasingly heterogeneous compute and representations. 
+      These requirements point to a future "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous computing systems. As has been the case for algorithmic inductive biases, hand-designing these hardware will likely pose a significant challenge. Instead, we believe that what is needed is a flexible algorithmic/computational structure that can adapt to the demands of the task.
     </p>
     
     </g>
     
     <h3 id="the-need-for-probabilistic-inference">The need for probabilistic inference </h3>
-    <p class="note">
-      Talfan - Refer to work on inhomogeneous representations (GNs, Bengio NeurIPS) distributed processing (distributed backrprop). graphnets. Undirected inference: boltzmann machines, EBMs... 
-      High level diagram for different structure of problems (sequential, autoregressive, )
-    </p>
 
-    <p class="note">
-Andy - I  would be  even stronger than saying a core component; probability is the only way we know to build convergent incremental inference systems. Also probability as the glue between systems that need to inferface.
-    </p>
-
-    
     <p>
-      We believe that the a core component of future systems will be the ability to represent the world probabilistically. 
-      Systems that can take into account the relative uncertainty of new data are able to more appropriately update their existing beliefs, learn from less data (meaning less computation and lower energy costs; <span class="note">ref.</span>) and mitigate catastrophic forgetting in continually learning settings <span class="note">(ref.)</span>. 
+      Moreover, we believe that the the "glue" that will allow hetereogenous future systems to interact self-consistely will be the ability to represent the world probabilistically. Systems that can take into account the relative uncertainty of new data are able to more appropriately update their existing beliefs, learn from less data (meaning less computation and lower energy costs) and mitigate catastrophic forgetting in continually learning settings. 
     </p>
+
     <p>
       Probabilistic representations will also be important where interpretability is desired <d-cite key="Ghahramani:Nature2015"></d-cite> and essential in "Spatial AI" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> applications such as autonomous transport and robotics, which need to act safely in the physical world.
     </p>
 
-    <h3 id="gaussian-belief-propagation">Gaussian Belief Propagation </h3>
-
     <p>
-      To support this "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of highly specialized but interconnected systems, we argue for probabilistic graphical models (PGM) as the root structure. 
-      PGMs have a rich research literature in ML, but have not been successfully scaled in their general undirected (loopy) form <span class="note">(FIG: directed vs. undirected graphs)</span>. 
-      However, we believe this will change as hardware <d-cite key="Graphcore"></d-cite> and tasks evolve and deserves more attention by researchers to further accelerate this shift <d-cite key="Hooker:hardware2020"></d-cite> <span class="note">(Fig: Co-ev.)</span>.
+      To support this "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of heterogeneous but interconnected systems, we argue for probabilistic graphical models (PGM) as the root structure. Inference in PGMs has a rich research literature in ML but has not been successfully scaled for arbitrary (loopy) graphs. 
     </p>
-    <p class="note">
-      Talfan - bullet points instead of text here summarising main points:
-      Want to be able to handle arbitrarily structured PGMs.
-      Want to be able to distribute computation (asynchronous). 
-      Want it to be iterative. 
-      Want it to be probabilistic. 
-      Want convergence guarantees. 
 
-    </p>
+    <p> <span class="note">(FIG: directed vs. undirected graphs?)</span</p>  
+
+    <h3 id="gaussian-belief-propagation">Gaussian Belief Propagation </h3>
 
     <p class="note">
 Andy - takes a long time to get to the first mention of GBP.
@@ -144,7 +119,7 @@ Andy - takes a long time to get to the first mention of GBP.
     <p>
       In this article, we discuss Gaussian Belief Propagation (GBP) as a strong general purpose algorithmic and representational framework for large scale distributed inference. 
       GBP is a special case of loopy belief propagation (BP), which operates on a per node basis by purely local message passing. 
-      Inference by GBP, unlike backpropagation, does not require access to a global objective function, making it easily distributable <span class="note">(ref. biological backprop; Fig. ??)</span>. 
+      Inference by GBP, unlike backpropagation, does not require access to a global objective function, making it easily distributable <d-cite key="lillicrap2020backpropagation"></d-cite>. 
       GBP is flexible to changes in graph structure, in that nodes need only to take into account the messages they receive. GBP can also operate asynchronously, without the need for a global clock. 
       This is especially desirable in large or distributed systems where communication delays become non-negligible relative to clock-speed. 
     </p>
