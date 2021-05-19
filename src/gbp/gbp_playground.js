@@ -443,11 +443,24 @@ export class LinearFactor {
     this.incoming_id = null;
     this.messages = [];
 
+    this.last_energy = 0;
+
     this.damping = 0.;
     this.dropout = 0.;
 
     this.x = 0;
     this.y = 0;
+  }
+
+  energy() {
+    const mean0 = this.adj_beliefs[0].getMean();
+    const mean1 = this.adj_beliefs[1].getMean();
+    const stacked_means = new m.Matrix([[mean0.get(0,0)], [mean0.get(1,0)], [mean1.get(0,0)], [mean1.get(1,0)]]);
+    const pred_meas = this.jacs[0].mmul(stacked_means);
+    const residual = pred_meas.sub(this.meas);
+    const energy = 0.5 * residual.norm() * residual.norm() * this.lambda[0]
+    this.last_energy = energy;
+    return energy;
   }
 
   zero_messages() {
