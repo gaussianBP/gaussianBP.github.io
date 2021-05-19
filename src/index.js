@@ -19,12 +19,6 @@ const CoarseToFineComponent = new CoarseToFine({ // eslint-disable-line no-unuse
   target: document.querySelector('#coarse_to_fine')
 });
 
-// import CoarseToFinev2 from "./diagrams/coarse_to_fine_v2.svelte";
-// const CoarseToFinev2Component = new CoarseToFinev2({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#coarse_to_fine_v2')
-// });
-
-
 import Huber from "./diagrams/huber.svelte";
 const HuberComponent = new Huber({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#huber')

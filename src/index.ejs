@@ -74,7 +74,7 @@
     </p>
 
     <p>
-      The effectiveness of the DL/GPU approach draws significantly from a close structural coupling of hardware, algorithm and underlying task. Convolutional Neural Networks (CNN; <d-cite key="LeCun:etal:IEEE1998"></d-cite>) operate by learning translation invariant spatial filters whose dot-products are taken over patches of adjacent pixels, exploiting both the fact that correlations in natural images are strongly local and that similar features appear in multiple locations. Importantly, this structure is also leveraged in the computation - sequential filter dot-products can be parallelized as a single matrix multiplication(e.g. by Fourier transform or reshaping <d-cite key="chetlur2014cudnn"></d-cite>) and carried out efficiently by GPUs. Data transfer is minimized since the filter array is transformed within the GPU.
+      The effectiveness of the DL/GPU approach draws significantly from a close structural coupling of hardware, algorithm and underlying task. Convolutional Neural Networks (CNN) <d-cite key="LeCun:etal:IEEE1998"></d-cite> operate by learning translation invariant spatial filters whose dot-products are taken over patches of adjacent pixels, exploiting both the fact that correlations in natural images are strongly local and that similar features appear in multiple locations. Importantly, this structure is also leveraged in the computation - sequential filter dot-products can be parallelized as a single matrix multiplication (e.g. by Fourier transform or reshaping <d-cite key="chetlur2014cudnn"></d-cite>) and carried out efficiently by GPUs. Data transfer is minimized since the filter array is transformed within the GPU.
     </p>
 
     <p>
@@ -384,9 +384,10 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
       Although GBP does not in general have convergence guarantees, there some convergence conditions <d-cite key="Bickson:PhDThesis:2008, du2018convergence, su2015convergence"></d-cite> as well as methods to improve chances of convergence (see chapter 22 in <d-cite key="murphy2012machine"></d-cite>). 
     </p>
     <p>  
-      The interactive <a href="#gbp_intuition">figure</a> below explores the operation of GBP for a simple grid alignment problem. We have chosen a spatial estimation problem as it is intuitive to visualize the beliefs, however GBP can just as easily be applied to any non-spatial inference problem. 
-      The figure is divided into two parts.
-      The first shows the algorithm level operation of GBP: as you progress the slider, messages are passed iteratively through the graph and the beliefs converge towards the true marginals. Part 2 aims to give intuition for the message level operation of GBP. You can send individual messages through the graph and observe how neighbouring beliefs are updated and that GBP converges to the true marginals regardless of the order in which messages are passed.
+      The interactive <a href="#gbp_intuition">figure</a> below aims to build intuition for GBP by exploring the effect of individual messages.
+      For easy visualization and interpretation of the beliefs, we examine 3 spatial estimation problems with increasing loopiness: a chain, a loop and a grid.
+      Click on a variable node to send messages to its adjacent variables and observe how neighbouring beliefs are updated.
+      You will see that GBP converges to the true marginals regardless of the order in which messages are passed.
     </p>
 
     <d-figure id="gbp_intuition"></d-figure>
@@ -659,18 +660,9 @@ Andy - I am still struggling to understand what is happening in this figure... j
   <d-appendix>
     <h3>Acknowledgments</h3>
     <p>
-      Raluca Scona, Riku Murai, Edgar Sucar, Seth Nabarro.
+      We are grateful to many researchers with whom we have discussed some of the ideas in this paper, especially from the Dyson Robotics Lab and Robot Vision Group at Imperial College London.
+      We would particularly like to thank Raluca Scona, Riku Murai, Edgar Sucar, Seth Nabarro, Tristan Laidlow and Stefan Leutenegger.
     </p>
-
-    <h3>Author Contributions</h3>
-    <p>
-      <b>Research:</b> 
-    </p>
-
-    <p>
-      <b>Writing & Diagrams:</b> 
-    </p>
-
 
     <d-footnote-list></d-footnote-list>
     <d-citation-list></d-citation-list>

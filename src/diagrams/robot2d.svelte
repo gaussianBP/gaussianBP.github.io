@@ -8,6 +8,8 @@
     let graph;
     $: var_nodes = [];
     $: factor_nodes = [];
+    const damping = 0.7;  // Only for grid
+    const dropout = 0.;  // Only for grid
 
     let svg_width = 600;
     let svg_height = 600;
@@ -27,6 +29,8 @@
         "noise_std": 2,
         }
     };
+    let meas_lam = 1 / (meas_params["linear"]["noise_model_std"] * meas_params["linear"]["noise_model_std"]);
+    let odometry_lam = 1 / (odometry_params["linear"]["noise_model_std"] * odometry_params["linear"]["noise_model_std"]);
 
     // UI
     let n_iters = 0; 
@@ -79,6 +83,8 @@
 
     $: {
         if (graph) {  // Update data factors when meas_params is changed
+            meas_params["linear"]["noise_model_std"] = 1 / Math.sqrt(meas_lam);
+            odometry_params["linear"]["noise_model_std"] = 1 / Math.sqrt(odometry_lam);
             graph.update_factor_noise_models_robotsim(meas_params, odometry_params);
             graph.compute_MAP();
             dist_to_MAP = graph.compare_to_MAP();
@@ -118,6 +124,10 @@
         } else {
             create_playground();
         }
+        for (var i=0; i<graph.factor_nodes.length; i++) {
+            graph.factor_nodes[i].damping = damping;
+            graph.factor_nodes[i].dropout = dropout;
+        }
         graph.update_beliefs();
         graph.compute_MAP();
         dist_to_MAP = graph.compare_to_MAP();
@@ -138,6 +148,10 @@
                     }
                 }
             }
+        }
+        for (var i=0; i<graph.factor_nodes.length; i++) {
+            graph.factor_nodes[i].damping = damping;
+            graph.factor_nodes[i].dropout = dropout;
         }
     }
 
@@ -173,6 +187,12 @@
             add_meas_factors(graph.var_nodes.length - 1); 
             graph.update_beliefs();
             graph.compute_MAP();
+        }
+        if (graph) {
+            for (var i=0; i<graph.factor_nodes.length; i++) {
+                graph.factor_nodes[i].damping = damping;
+                graph.factor_nodes[i].dropout = dropout;
+            }
         }
     }
 
@@ -269,6 +289,13 @@
         width: 1025px;
     }
 
+    @media (max-width: 1180px) {
+        #wrapper {
+            grid-template-rows: auto auto;  
+            width: 600px;
+        }
+    }
+
     #svg {
         background-color: #FCF7DE;
         border: 1px solid var(--gray);
@@ -288,7 +315,7 @@
         margin-right: 5px;
         border-radius: var(--border-radius);
         border: 1px solid green; /* Green border */
-        background-color:  rgba(0, 0, 0, 0.1);
+        background-color: var(--gray-bg);
     }
 
     .belief-mean {
@@ -358,7 +385,6 @@
         float: left;
         outline: none;
         border: none;
-        background-color: white;
     }
 
     #speed-slider-container {
@@ -413,6 +439,10 @@
         width: 100%;
         font-size: 16px;
         user-select: none;
+    }
+
+    .dark-button {
+        background-color: rgba(0, 0, 0, 0.1);
     }
 
 </style>
@@ -521,7 +551,6 @@
     <div>
         <svg width="448" height="81" viewBox="0 0 448 81" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
             <g id="Frame 3" clip-path="url(#c0)">
-            <rect width="448" height="80.2157" fill="white"/>
             <g id="buttons">
             <rect class="clickable" on:click={() => set_playground("empty")} id="Delete" x="141" y="0.215698" width="41.7647" height="41.7647" fill="url(#pn0)"/>
             <rect class="clickable" on:click={set_playground} id="Reset" x="22.196" width="41.7647" height="41.7647" fill="url(#pn1)"/>
@@ -557,7 +586,7 @@
 
     <div id="play-speed" style="padding-top: 7px;">
         <div id="center">
-            <button class="mp-button" on:click={oneSyncIter}> 
+            <button class="mp-button dark-button" on:click={oneSyncIter}> 
                 1 iter
             </button>
         </div>
@@ -595,25 +624,25 @@
 
     <div id="precision-sliders">
         <div class="slider-container">
-            Measurement std: <br>
-            <input class="full-width-slider" type="range" min="{30}" max="{200}" bind:value={meas_params["linear"]["noise_model_std"]}/>
+            Measurement precision: <br>
+            <input class="full-width-slider" type="range" min="{1 / (60*60)}" max="{1 / (20*20)}" step="{1 / (60*60)}" bind:value={meas_lam}/>
             <div class="status">
-                ({meas_params["linear"]["noise_model_std"]} units)
+                ({(meas_lam * 3600).toFixed(0)} units)
             </div>
         </div>  
 
         <div class="slider-container">
-            Odometry std: <br>
-            <input class="full-width-slider" type="range" min="{5}" max="{60}" bind:value={odometry_params["linear"]["noise_model_std"]}/>
+            Odometry precision: <br>
+            <input class="full-width-slider" type="range" min="{1 / (60*60)}" max="{1 / (5*5)}" step="{1 / (60*60)}" bind:value={odometry_lam}/>
             <div class="status">
-                ({odometry_params["linear"]["noise_model_std"]} units)
+                ({(odometry_lam * 3600).toFixed(0)} units)
             </div>
         </div>                  
     </div>
 
 
-    <div id="center">
-        <button on:click={() => { show_batch = !show_batch; }}>
+    <div id="center" style="margin-bottom: 10px;">
+        <button class="dark-button" on:click={() => { show_batch = !show_batch; }}>
             Toggle true marginals
         </button>  
     </div>

@@ -17,10 +17,12 @@
     export let prior_std = 60;
     export let meas_params = {
         "linear" : {
-            "noise_model_std": 20,
+            "noise_model_std": 30,
             "noise_std": 2,
         }
     };
+    let prior_lam = 1 / (prior_std*prior_std);
+    let meas_lam = 1 / (meas_params["linear"]["noise_model_std"]*meas_params["linear"]["noise_model_std"]);
 
     // Local graph variables
     let graph;
@@ -95,6 +97,7 @@
 
     $: {
         if (graph) {  // Update prior factors when prior_std is changed
+            prior_std = 1 / Math.sqrt(prior_lam);
             graph.update_priors(prior_std, true);
             graph.update_ellipses();  
             graph.compute_MAP();
@@ -104,6 +107,7 @@
 
     $: {
         if (graph) {  // Update data factors when meas_params is changed
+            meas_params["linear"]["noise_model_std"] = 1 / Math.sqrt(meas_lam);
             graph.update_factor_noise_models(meas_params);
             graph.compute_MAP();
             dist_to_MAP = graph.compare_to_MAP();
@@ -557,11 +561,18 @@
         user-select: none;
         grid-column: page;  /* start and end the grid on the page */
         max-width: calc(100vw - 2em);
-        grid-template-columns: auto 400px;
+        grid-template-columns: 600px 400px;
         grid-template-rows: auto;  
         grid-auto-flow: column;
         grid-column-gap: 25px;
         width: 1025px;
+    }
+
+    @media (max-width: 1180px) {
+        #wrapper {
+            grid-template-rows: auto auto;  
+            width: 600px;
+        }
     }
 
     #svg {
@@ -662,13 +673,12 @@
       margin-right: 5px;
       border-radius: var(--border-radius);
       border: 1px solid green; /* Green border */
-      background-color:  rgba(0, 0, 0, 0.1);
+      background-color: var(--gray-bg);
     }
     .gbp-button {
         float: left;
         outline: none;
         border: none;
-        background-color: white;
     }
 
     #speed-slider-container {
@@ -706,6 +716,10 @@
     #centerleft {
         display: flex;
         align-items: center;
+    }
+
+    .dark-button {
+        background-color:  rgba(0, 0, 0, 0.1);
     }
 
 </style>
@@ -859,11 +873,11 @@
 
     <div style="margin-top: 10px;">
       <label class="radio-inline">
-        <input type="radio" bind:group={mode} value={"edit"} on:change={handle_mode_change}> Edit factor graph $\rightarrow$
+        <input type="radio" bind:group={mode} value={"edit"} on:change={handle_mode_change}> Edit factor graph &#10230;
       </label>
       <i class="mi mi-arrow-right"><span class="u-sr-only">Arrow right</span></i>
       <label class="radio-inline">
-        <input type="radio" bind:group={mode} value={"init"} on:change={handle_mode_change}> Set priors $\rightarrow$
+        <input type="radio" bind:group={mode} value={"init"} on:change={handle_mode_change}> Set priors &#10230;
       </label>
       <i class="mi mi-arrow-right"><span class="u-sr-only">Arrow right</span></i>
       <label class="radio-inline">
@@ -877,16 +891,16 @@
 
     <div>
 
-        <button on:click={() => set_playground("empty")}>
+        <button class="dark-button" on:click={() => set_playground("empty")}>
             Empty
         </button>  
-        <button on:click={() => set_playground("linear")}>
+        <button class="dark-button" on:click={() => set_playground("linear")}>
             Chain
         </button>
-        <button on:click={() => set_playground("loop")}>
+        <button class="dark-button" on:click={() => set_playground("loop")}>
             Loop
         </button>   
-        <button on:click={() => set_playground("grid")}>
+        <button class="dark-button" on:click={() => set_playground("grid")}>
             Grid
         </button>
      </div>
@@ -897,7 +911,7 @@
 
     <div id="play-speed">
         <div id="center">
-            <button class="mp-button" on:click={oneSyncIter}> 
+            <button class="mp-button dark-button" on:click={oneSyncIter}> 
                 1 iter
             </button>
         </div>
@@ -925,7 +939,7 @@
 
     <div id="centerleft" style="margin-top: 10px; margin-bottom: 10px;">
         <span class="hint bold-text">Or send a </span>
-        <button on:click={randomMessage}>
+        <button class="dark-button" on:click={randomMessage}>
             Random message
         </button>  
     </div>
@@ -937,24 +951,24 @@
     <div id="precision-sliders">
         <div class="slider-container">
             Prior std: <br>
-            <input class="full-width-slider" type="range" min="{30}" max="{200}" bind:value={prior_std}/>
+            <input class="full-width-slider" type="range" min="{1/(100*100)}" max="{1/(20*20)}" step="{1/(100*100)}" bind:value={prior_lam}/>
             <div class="status">
-                ({prior_std} units)
+                ({(prior_lam * 10000).toFixed(0)} units)
             </div>
         </div>  
 
         <div class="slider-container">
             Measurement std: <br>
-            <input class="full-width-slider" type="range" min="{5}" max="{60}" bind:value={meas_params["linear"]["noise_model_std"]}/>
+            <input class="full-width-slider" type="range" min="{1/(100*100)}" max="{1/(20*20)}" step="{1/(100*100)}" bind:value={meas_lam}/>
             <div class="status">
-                ({meas_params["linear"]["noise_model_std"]} units)
+                ({(meas_lam * 10000).toFixed(0)} units)
             </div>
         </div>                  
     </div>
 
 
-    <div id="center">
-        <button on:click={() => { show_batch = !show_batch; }}>
+    <div id="center" style="margin-bottom: 10px;">
+        <button class="dark-button" on:click={() => { show_batch = !show_batch; }}>
             Toggle true marginals
         </button>  
         <!-- <button on:click={saveGraph}>
