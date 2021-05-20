@@ -9,6 +9,7 @@
   </style>
 
   <script src="https://distill.pub/template.v2.js"></script>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
   <!-- <script src="dependencies/twgl.min.js"></script> -->
 </head>
 
@@ -17,8 +18,7 @@
 
   <d-front-matter>
     <script type="text/json">
-      <%= JSON.stringify(require("./frontmatter.json  <script src="https://d3js.org/d3.v5.min.js"></script>
-"), null, 4) %>
+      <%= JSON.stringify(require("./frontmatter.json"), null, 4) %>
     </script>
   </d-front-matter>
 
@@ -67,6 +67,10 @@
       Begin with abstract like overview of article, so we mention GBP early on.
     </p>
 
+    <p>
+
+    </p>
+
     <h2 id="introduction">Introduction </h2>
 
     <p>
@@ -74,8 +78,10 @@
     </p>
 
     <p>
-      The effectiveness of the DL/GPU approach draws significantly from a close structural coupling of hardware, algorithm and underlying task. Convolutional Neural Networks (CNN) <d-cite key="LeCun:etal:IEEE1998"></d-cite> operate by learning translation invariant spatial filters whose dot-products are taken over patches of adjacent pixels, exploiting both the fact that correlations in natural images are strongly local and that similar features appear in multiple locations. Importantly, this structure is also leveraged in the computation - sequential filter dot-products can be parallelized as a single matrix multiplication (e.g. by Fourier transform or reshaping <d-cite key="chetlur2014cudnn"></d-cite>) and carried out efficiently by GPUs. Data transfer is minimized since the filter array is transformed within the GPU.
+      The effectiveness of the DL/GPU approach draws significantly from a close structural coupling of hardware, algorithm and underlying task. Convolutional Neural Networks (CNN) <d-cite key="LeCun:etal:IEEE1998"></d-cite> operate by learning translation invariant spatial filters whose dot-products are taken over patches of adjacent pixels, exploiting both the fact that correlations in natural images are strongly local and that similar features appear in multiple locations. Importantly, this structure is also leveraged in the computation - sequential filter dot-products can be parallelized as a single matrix multiplication (e.g. by Fourier transform or reshaping <d-cite key="chetlur2014cudnn"></d-cite>) and carried out efficiently by GPUs. 
     </p>
+
+    <h3 id="mirroring">Mirroring inductive biases in hardware</h3>
 
     <p>
       Data transfer, not multipy-and-accumlate (MAC) operations are most often the bottleneck to processing speed, and dominate the power consumption of a typical deep learning architecture<d-cite key="Sze:Survey2017"></d-cite>. As ML is increasingly embedded into the physical world, communication costs (and delays) within and across devices will become significant limiting factors if not implemented carefully. A promising solution is to co-develop algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
@@ -103,12 +109,13 @@
       To support this "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of heterogeneous but interconnected systems, we argue for probabilistic graphical models (PGM) as the root structure. Inference in PGMs has a rich research literature in ML but has not been successfully scaled for arbitrary (loopy) graphs. 
     </p>
 
-    <p> <span class="note">(FIG: directed vs. undirected graphs?)</span</p>  
-
     <h3 id="gaussian-belief-propagation">Gaussian Belief Propagation </h3>
 
     <p class="note">
 Andy - takes a long time to get to the first mention of GBP.
+      GIve caveat as to why people arent using it as BP vs GBP.
+      Reference stuff in the intro more.
+      GBP has desirable properties wrt vision of distributed systems we presented above.
     </p>
 
       
