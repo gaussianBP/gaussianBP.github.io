@@ -457,9 +457,10 @@ TODO
     let show_energy_ix = 0;
 
 	let imgs = [
-		{ id: 2, text: "Glasses - 150x150", src: "./images/glasses1.png"},
-		{ id: 3, text: "Glasses - 300x300", src: "./images/glasses2.png"},
-		{ id: 4, text: "Parrots - 600x600", src: "./images/parrots_600.jpg"},
+		{ id: 2, text: "Glasses S&P noise - 150x150", src: "./images/glasses1.png"},
+		{ id: 3, text: "Glasses S&P noise - 300x300", src: "./images/glasses2.png"},
+		{ id: 4, text: "Parrots S&P noise - 600x600", src: "./images/parrots_sp.jpg"},
+		{ id: 4, text: "Parrots Gaussian noise - 600x600", src: "./images/parrots_gauss_less.jpg"},
 		{ id: 7, text: "Growing squares - 300x300", src: "./images/blobs.png"},
 		{ id: 6, text: "Chess board - 100x100", src: "./images/chequers.png"},
 		{ id: 5, text: "Boundary - 20x20", src: "./images/twoteams.png"},
@@ -1140,7 +1141,7 @@ TODO
         GBP for image denoising <d-cite key="Scona:github2021"></d-cite>. 
         You can choose either all-to-all message passing or an attention-driven schedule around the mouse. 
         Choosing a squared loss function results in a blurred denoising while the robust Huber loss gives a sharper denoising.
-        You can select from a number of preloaded images or use a live feed from your webcam. 
+        You can select from a number of preloaded images with salt and pepper (S&P) or Gaussian noise or use a live feed from your webcam. 
     </figcaption>
 
 </figure>
