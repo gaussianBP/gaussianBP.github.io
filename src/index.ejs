@@ -9,7 +9,6 @@
   </style>
 
   <script src="https://distill.pub/template.v2.js"></script>
-  <script src="https://d3js.org/d3.v5.min.js"></script>
   <!-- <script src="dependencies/twgl.min.js"></script> -->
 </head>
 
@@ -18,7 +17,8 @@
 
   <d-front-matter>
     <script type="text/json">
-      <%= JSON.stringify(require("./frontmatter.json"), null, 4) %>
+      <%= JSON.stringify(require("./frontmatter.json  <script src="https://d3js.org/d3.v5.min.js"></script>
+"), null, 4) %>
     </script>
   </d-front-matter>
 
@@ -78,7 +78,7 @@
     </p>
 
     <p>
-      Data transfer, not multipy-and-accumlate (MAC) operations are most often the bottleneck to processing speed, and dominate the power consumption of a typical deep learning architecture<d-cite key="Sze:Survey2017"></d-cite>d-cite>. As ML is increasingly embedded into the physical world, communication costs (and delays) within and across devices will become significant limiting factors if not implemented carefully. A promising solution is to co-develop algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
+      Data transfer, not multipy-and-accumlate (MAC) operations are most often the bottleneck to processing speed, and dominate the power consumption of a typical deep learning architecture<d-cite key="Sze:Survey2017"></d-cite>. As ML is increasingly embedded into the physical world, communication costs (and delays) within and across devices will become significant limiting factors if not implemented carefully. A promising solution is to co-develop algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
     </p>
     <p>
       To operate effectively in the real world, ML systems of the future will also need to be highly inhomogeneous in their representation. General purpose perception systems will represent the world not just at the level of sequences of regular image arrays, but as graphs of semantic objects with continuously changing relationships, growing or contracting in size as new data is added or task demands fluctuate.
@@ -508,7 +508,7 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
 
     <p>
       It turns out that choosing the message schedule is an easy way to speed up convergence and there are a number of different approaches. Simply swapping synchronous updates for random message passing tends to improve convergence, while a fixed "round-robin" schedule can do even better <d-cite key="koller2009probabilistic"></d-cite>.
-      Better yet, if each message requires some unit of computation (and therefore energy), it's possible to prioritise sending messages that we think will contribute most to the overall convergence of the system.
+      Better yet, if each message requires some unit of computation (and therefore energy), it's possible to prioritise sending messages that we think will contribute most to the overall convergence of the system (there is evidence that the brain may apply a similar economical principle<d-cite key="Evans:Burgess:NIPS2019"></d-cite>).
       This is the idea behind residual belief propagation (RBP) <d-cite key="Elidan:etal:UAI2006"></d-cite> and similar variants <d-cite key="Sutton:McCallum:UAI2007, Ranganathan:etal:IJCAI2007"></d-cite>, which form a message queue according to the norm of the difference from the previous message.
     </p>
 
@@ -549,11 +549,6 @@ Andy - stronger - GBP is special; GBP with robust factors and linearisation is m
     </p>
 
     <d-figure id="attentiongl" class="subgrid"></d-figure>
-
-    <p>
-      <span class="note">Talfan - not sure if / where this best fits in:</span>
-      There is some evidence that the brain may apply a similar economical principle to RBP <d-cite key="Evans:Burgess:NIPS2019"></d-cite>. 
-    </p>
 
     <h3 id="multiscale-learning">Multiscale Learning</h3>
 
