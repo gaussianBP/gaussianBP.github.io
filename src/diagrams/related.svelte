@@ -149,12 +149,10 @@
     </div>
 
     <figcaption id="caption">
-            Gaussian inference methods. Hover over the circles to show comments. 
+            Hover over the circles to show comments. 
             <span style="color: #058219;">Green methods are local</span>, by which we mean that they can be implemented as a distributed message passing algorithm in which all nodes compute messages on every iteration and each node communicates only with a small local neighbourhood.
             That does not mean to say that the other methods are entirely centralised; many of the methods are somewhat parallel or have modified versions that are more strongly parallel (e.g. parallel conjugate gradient).  
-            <br>
             The <span style="color: #E56717; font-weight: 900;">KL</span> symbol indicates a variational inference method, i.e. approximate inference via solving an optimization problem. 
-            <br>
             Note that the figure is not a comprehensive list - for example we have excluded sampling based inference methods. 
             [References: Expectation propagation <d-cite key="minka2013ep"></d-cite>, Barfoot 2020 <d-cite key="barfoot2020fundamental"></d-cite>]
         <!-- There are some methods in between that can recover specific blocks of $A^{-1}$ <d-cite key="kaess2009covariance"></d-cite> -->

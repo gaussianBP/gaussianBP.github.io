@@ -66,7 +66,7 @@
     <p>
       In this article, we present a visual introduction to Gaussian Belief Propagation (GBP), a probabilistic and iterative approximate inference algorithm.
       GBP operates by local message passing, naturally exploiting the structure of the task, and can scale more favourably than algorithms that require access to global information. 
-      Although GBP was first studied in the 80s, we believe that as hardware evolves and our world models becomes more inhomogeneous, now is the right time to revisit GBP which we argue has the right computational properties to act as the glue in future AI systems.
+      Although GBP was first studied in the 80s, we believe that as hardware is becoming more parallel and distributed and our world models are becoming more inhomogeneous, now is the right time to revisit GBP which we argue has the right computational properties to act as the glue in future machine learning systems.
     </p>
 
     <h2 id="introduction">Introduction </h2>
@@ -76,7 +76,7 @@
     </p>
 
     <p>
-      The effectiveness of the DL/GPU approach draws significantly from a close structural coupling of hardware, algorithm and underlying task. Convolutional Neural Networks (CNN) <d-cite key="LeCun:etal:IEEE1998"></d-cite> learn translation invariant functions by applying spatial filters over patches of adjacent pixels, exploiting both the fact that correlations in natural images are strongly local and that similar features appear in multiple locations. Importantly, this structure is also leveraged in the computation - sequential filter dot-products can be parallelized as a single matrix multiplication (e.g. by Fourier transform or reshaping <d-cite key="chetlur2014cudnn"></d-cite>) and carried out efficiently by GPUs. 
+      The effectiveness of the DL/GPU approach draws significantly from a close structural coupling of hardware, algorithm and underlying task. Convolutional Neural Networks (CNN) <d-cite key="LeCun:etal:IEEE1998"></d-cite> learn translation invariant functions by applying spatial filters over patches of adjacent pixels, exploiting both the fact that correlations in natural images are strongly local and that similar features appear in multiple locations. Importantly, this structure is also leveraged in the computation - the filter dot-products can be parallelized and carried out efficiently by GPUs <d-footnote>The sequential filter dot-products can be implemented as a single matrix multiplication (e.g. by Fourier transform or reshaping <d-cite key="chetlur2014cudnn"></d-cite>) which is carried out efficiently in parallel on a GPU. Data transfer is minimized since the filter array is transformed within the GPU.</d-footnote>. 
     </p>
 
     <h3 id="mirroring">Mirroring inductive biases in hardware</h3>
@@ -84,6 +84,7 @@
     <p class="note">
       This still needs work - is hard to understand intro. Needs more signposting like...
       As we seek to replicate the success of the DL/GPU approach, we take stock of the current trends in hardware and representation.
+      Don't make out like we are proposing something better than DL / GPU, we are simply taking ideas from it.
     </p>
 
     <p>
@@ -117,7 +118,6 @@
     <p class="note">
       Andy - takes a long time to get to the first mention of GBP.
       Andy - stronger - GBP is special; GBP with robust factors and linearisation is much more general than most people would think.
-      Explicitly cite my CVPR work...
     </p>
 
     <p>
@@ -141,13 +141,14 @@
         </li>
         <ul>
           <li>
-            It is trivially distributed and can leverage any extra avaliable compute.
+            GBP can be trivially distributed and leverage any extra avaliable compute whether multicore or distributed. On new multicore graph processors <d-cite key="Lacey:IPUBenchmarks2019, gui2019survey"></d-cite> GBP has been shown to achieve rapid performance <d-cite key="Ortiz:etal:CVPR2020"></d-cite>, while GBP is well-suited to edge / federated computing in distributed systems.
           </li>
           <li>
-            Naturally exploits structure in the problem as communication is only between conditionally dependent nodes. 
+            GBP naturally exploits any structure in the problem as communication is only between conditionally dependent nodes. 
+            <!-- For comparison, many other methods assume a fixed structure for efficiency -->
           </li>
           <li>
-            Can operate in an "attention-driven" fashion in which computation is focused on regions relevant to the current task to enable "just in time" convergence <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>. This is also attractive from an energy consumption perspective.
+            GBP can operate in an "attention-driven" fashion in which computation is focused on regions relevant to the current task to enable "just in time" convergence <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>. This is also attractive from an energy consumption perspective.
           </li>
 
         </ul>
@@ -195,10 +196,6 @@
 
     <h3 id="factor-graphs">Factor Graphs </h3>
 
-    <p class="note">
-      We think it is a strong modelling choice to use factor graphs as the master representation (ref Dellaert).
-    </p>
-
     <p>
       The <a href="https://en.wikipedia.org/wiki/Hammersley%E2%80%93Clifford_theorem" target="_blank">Hammersley-Clifford theorem</a> tells us that any positive joint distribution $p(X)$ can be represented as a product of factors $f_i$, one per clique, where a clique is a subset of variables $X_i$ in which each variable is connected to all others: 
     </p>
@@ -211,7 +208,7 @@
     <p>
       <!-- A node, edge and triangle are examples of 1-, 2- and 3-cliques, respectively.  -->
       Factorized representations can be very convenient as they expose structure in a model.
-      The desire to visualize this structure motivates <b>factor graphs</b> - a useful visual representation that explicitly displays the factorization of a distribution.
+      The desire to visualize this structure motivates <b>factor graphs</b> - both a useful visual representation that explicitly displays the factorization of a distribution and a strong master representation for thinking about problems <d-cite key="dellaert2017factor"></d-cite>.
     </p>
     <p>
       A factor graph is a type of graphical model with circles for variable nodes, squares for factors, and edges connecting each factor to the variables it depends on.
@@ -602,8 +599,8 @@
       This is the idea behind coarse-to-fine optimisation which is broadly used in many grid-based problems where it is simple to build a coarser graph <d-cite key="felzenszwalb2006efficient"></d-cite>. 
     </p>
 
-    <p>
-      <span class="note">Redo figure, just as a plot and then redo text. Ref RCN somewhere here?</span>
+    <p class="note">
+      Redo figure, just as a plot and then redo text. Ref RCN somewhere here?
       In the interactive figure below, we explore coarse-to-fine GBP for aligning a source signal of 54 points with a target signal that is a translated and stretched version of the source signal.
       The task is to estimate the offset along the $x$ direction that maps each source point onto the target line by minimising the residuals (shown in red).
       This is representative of many computer vision tasks such as image stitching, optical flow and stereo disparity estimation.
@@ -621,12 +618,14 @@
     <h2 id="related-methods">Related Methods</h2>
 
     <p>
-      Solving practical non-linear problems with GBP is done by successively solving linearized Gaussian versions of the underlying problem. 
-      This general pattern of successively solving linearized problems underpins many different non-linear inference methods and there are efficeint libraries <d-cite key="CeresManual, Dellaert:TechReport2012"></d-cite> for non-linear inference which use trust region methods like Gauss-Newton or line search methods to guide the repeated linear steps.
+      Solving real non-linear problems with GBP is done by iteratively solving linearized Gaussian versions of the true non-linear problem. 
+      This general pattern of successively solving linearized problems underpins many different non-linear inference methods.
+      There are efficeint libraries <d-cite key="CeresManual, Dellaert:TechReport2012"></d-cite> for non-linear inference which use trust region methods like Gauss-Newton or line search to guide the repeated linear steps.
     </p>
     <p>
-      GBP is just one of many possible algorithms that can be used for solving the linearized Gaussian model.
-      To place GBP amongst other related methods, in the <a href="#related">figure</a> below we present an overview of many of the methods for MAP and marginal inference in Gaussian models. 
+      GBP is just one of many possible algorithms that can be used to solve the linearized Gaussian model.
+      To place GBP amongst other related methods, we present an overview of methods for MAP and marginal inference for Gaussian models in the <a href="#related">figure</a> below. 
+      As a reminder, inference in Gaussian models is equivalent to solving the linear system $\Lambda \mu = \eta$, for $\mu$ in MAP inference and for $\mu$ and the diagonal elements of $\Lambda^{-1}$ in marginal inference.
       You can hover over the circles in the figure to explore how GBP relates to other methods. 
     </p>
 
