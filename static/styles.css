@@ -36,6 +36,17 @@ d-figure.wider{
   grid-column: page;
 }
 
+.teaser {
+  float: right;
+  position: relative;
+  left: 9em;
+  margin-left: -9em;
+  width: 450px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 1em;
+}
+
 .right-d-figure {
   float: right;
   position: relative;

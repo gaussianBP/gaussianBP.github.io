@@ -14,10 +14,15 @@ import * as _unused from "raw-loader!./index.ejs";
 //   target: document.querySelector('#surface_fitting')
 // });
 
-// import CoarseToFine from "./diagrams/coarse_to_fine.svelte";
+// import CoarseToFine from "./diagrams/coarse_to_fine_v2.svelte";
 // const CoarseToFineComponent = new CoarseToFine({ // eslint-disable-line no-unused-vars
 //   target: document.querySelector('#coarse_to_fine')
 // });
+
+import Teaser from "./diagrams/teaser.svelte";
+const TeaserComponent = new Teaser({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#teaser')
+});
 
 import Huber from "./diagrams/huber.svelte";
 const HuberComponent = new Huber({ // eslint-disable-line no-unused-vars

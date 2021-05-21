@@ -16,6 +16,7 @@
 
 <body>
 
+
   <d-front-matter>
     <script type="text/json">
       <%= JSON.stringify(require("./frontmatter.json"), null, 4) %>
@@ -26,7 +27,6 @@
     <h1>A visual introduction to Gaussian Belief Propagation</h1>
     <p>A Framework for Distributed Inference with Emerging Hardware. </p>
   </d-title>
-
 
 
   <d-article>
@@ -56,19 +56,22 @@
           <li><a href="#multiscale-learning">Multiscale Learning</a></li>
         </ul>
         <div><a href="#related-methods">Related Methods</a></div>
-        <div><a href="#discussion">Discussion</a></div>
+        <div><a href="#conclusions">Conclusions</a></div>
         <div><a href="#supp-playground">Supplementary Playground</a></div>
       </nav>
     </d-contents>
 
     <g>
 
-    <p>
-      In this article, we present a visual introduction to Gaussian Belief Propagation (GBP), a probabilistic and iterative approximate inference algorithm.
-      GBP operates by local message passing, naturally exploiting the structure of the task, and can scale more favourably than algorithms that require access to global information. 
-      Although GBP was first studied in the 80s, we believe that as hardware is becoming more parallel and distributed and our world models are becoming more inhomogeneous, now is the right time to revisit GBP which we argue has the right computational properties to act as the glue in future machine learning systems.
-    </p>
+      <d-figure id="teaser" class="teaser"></d-figure>
 
+      <p>
+        In this article, we present a visual introduction to Gaussian Belief Propagation (GBP), a probabilistic and iterative approximate inference algorithm.
+        GBP operates by local message passing, naturally exploiting the structure of the task, and can scale more favourably than algorithms that require access to global information. 
+        Although GBP was first studied in the 80s, we believe that as hardware is becoming more parallel and distributed and our world models are becoming more inhomogeneous, now is the right time to revisit GBP which we argue has the right computational properties to act as the glue in future machine learning systems.
+      </p>
+    </g>
+    
     <h2 id="introduction">Introduction </h2>
 
     <p>
@@ -96,9 +99,7 @@
     <p>
       These requirements point to a future "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous computing systems. As has been the case for algorithmic inductive biases, hand-designing these hardware will likely pose a significant challenge. Instead, we believe that what is needed is a flexible algorithmic/computational structure that can adapt to the demands of the task.
     </p>
-    
-    </g>
-    
+        
     <h3 id="the-need-for-probabilistic-inference">The need for probabilistic inference </h3>
 
     <p>
@@ -134,6 +135,7 @@
       The key properties of GBP are that it is:
     </p>
 
+    <div class="box">
     <p>
       <ol>
         <li>
@@ -158,7 +160,7 @@
         </li>
         
         <li>
-          <b>Iterative </b> - the underlying problem can be arbitrarily edited while inference is continually underway in the background. 
+          <b>Iterative and convergent </b> - the underlying problem can be arbitrarily edited while inference is continually underway in the background. 
         </li>
         <li>
           <b>Asynchronous</b> - convergence can be reached via asynchronous updates. This is important in distributed systems without a global clock or where communication delays are non-negligible <span class="note">(Edge computing ref)</span>.
@@ -166,6 +168,7 @@
 
       </ol>
     </p>
+    </div>  
 
     <p>
       In the remainder of the article, we first introduce the GBP algorithm and show that it is intimately linked to solving a linear system of equations $Ax = b$. 
@@ -615,6 +618,7 @@
       You can experiment with the <a href="#coarse_to_fine">figure</a> below to see how coarse-to-fine GBP finds to a better final solution and converges faster.
     </p>
 
+    <!-- <d-figure id="coarse_to_fine"></d-figure> -->
     
     <p>
       Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build coarsened representations the same problem. 
@@ -657,7 +661,7 @@
       </p>
     -->
 
-    <h2 id="discussion">Discussion</h2>
+    <h2 id="conclusions">Conclusions</h2>
   
     <p>
       We envisage that ML systems of the future will be large scale, heterogeneous and distributed and as such will require flexible and scalable probabilistic inference algorithms.
