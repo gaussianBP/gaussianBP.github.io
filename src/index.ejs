@@ -269,6 +269,14 @@
         ~.
       </d-math>
     </p>
+
+    <p>
+      For energy based models, finding the most likely variable configuration is equivalent to minimizing the negative log probability or the sum of factor energies:
+      <d-math block="">
+        X_{\text{MAP}} = \text{arg min}_X - \log p(X) = \text{arg min}_X \sum_i E_i(X_i)
+        ~.
+      </d-math>
+    </p>
     </g>
     
     <h3 id="the-belief-propagation-algorithm">The Belief Propagation Algorithm</h2>
@@ -620,13 +628,14 @@
     <p>
       Solving real non-linear problems with GBP is done by iteratively solving linearized Gaussian versions of the true non-linear problem. 
       This general pattern of successively solving linearized problems underpins many different non-linear inference methods.
-      There are efficeint libraries <d-cite key="CeresManual, Dellaert:TechReport2012"></d-cite> for non-linear inference which use trust region methods like Gauss-Newton or line search to guide the repeated linear steps.
+      There are efficeint libraries <d-cite key="CeresManual, Dellaert:TechReport2012"></d-cite> for non-linear inference which use trust region methods like Gauss-Newton or line search to guide the repeated linear steps <d-footnote>Trust region methods approximate the energy using a model within a trust region. For example, the Gauss-Newton method uses a quadratic model meaning the factors are approximated as Gaussians as in GBP. Line search methods choose a descent direction and then step size at each iteration. In trust region methods, the most expensive step is solving the linear system, while for line search methods choosing the direction is the most expensive part.</d-footnote>.
     </p>
     <p>
       GBP is just one of many possible algorithms that can be used to solve the linearized Gaussian model.
       To place GBP amongst other related methods, we present an overview of methods for MAP and marginal inference for Gaussian models in the <a href="#related">figure</a> below. 
       As a reminder, inference in Gaussian models is equivalent to solving the linear system $\Lambda \mu = \eta$, for $\mu$ in MAP inference and for $\mu$ and the diagonal elements of $\Lambda^{-1}$ in marginal inference.
       You can hover over the circles in the figure to explore how GBP relates to other methods. 
+      <span class="note">Include sampling based methods? rejection sampling, monte carlo (Gibbs sampling, metropolis hastings), particle filters</span>
     </p>
 
     <d-figure id="related" class="wider"></d-figure>
@@ -642,21 +651,11 @@
       For these reasons GBP stands out as the extreme case that maximizes parallelism and minimizes communication - two principles that are at the core of scalable and low-power computation.
     </p>
 
-
-
-
     <!--
-
-    <p>
-      Disregarding the uncertainty calculation, GBP is solving a non-linear least squares problem to minimize the sum of the factor energies. 
-      There are a host of non-linear least squares solvers that can be divided into line search methods and trust region methods.
-      Line search methods choose a descent direction and then step size at each iteration.
-      Trust region methods approximate the energy using a model within a trust region - in the Gauss-Newton algorithm the model is a quadratic function meaning the factors are approximated as Gaussians as in GBP.
-      In trust region methods, the fundamental step involves solving efficient linear solvers that leverage sparsity structure in the symmetric and positive definite information matrix.
-    </p>    
-    <p>
-    Approximate inference algorithms: rejection sampling, monte carlo (Gibbs sampling, metropolis hastings), particle filters, 
-    </p> -->
+      <p>
+        Approximate inference algorithms: rejection sampling, monte carlo (Gibbs sampling, metropolis hastings), particle filters, 
+      </p>
+    -->
 
     <h2 id="discussion">Discussion</h2>
   
