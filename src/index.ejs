@@ -66,14 +66,16 @@
       <d-figure id="teaser" class="teaser"></d-figure>
 
       <p>
-        In this article, we present a visual introduction to Gaussian Belief Propagation (GBP), a probabilistic and iterative approximate inference algorithm.
-        GBP operates by local message passing, naturally exploiting the structure of the task, and can scale more favourably than algorithms that require access to global information. 
-        Although GBP was first studied in the 80s, we believe that as hardware is becoming more parallel and distributed and our world models are becoming more inhomogeneous, now is the right time to revisit GBP which we argue has the right computational properties to act as the glue in future machine learning systems.
+        In this article, we present a visual introduction to Gaussian Belief Propagation (GBP), an algorithm for inference on general probabilistic factor graphs. GBP operates via local storage and message passing on the factor graph and has the remarkable property of robust convergence even with arbitrary distributed message patterns.
+Although GBP was first studied in the 80s, we believe that as hardware is becoming more parallel and distributed and our world models are becoming more inhomogeneous, now is the right time to revisit GBP which we argue has the right computational properties to act as the glue in future machine learning systems.
       </p>
     </g>
     
     <h2 id="introduction">Introduction </h2>
 
+    <!-- Andy:  There's a copy of the previous introduction before my recent edits in oldintro.ejs  -->
+
+    
     <p>
       The "Bitter Lesson" of machine learning (ML) research has been that "general methods that leverage computation are ultimately the most effective, and by a large margin" <d-cite key="Sutton:BitterLesson2019"></d-cite>. At the time of writing, the state-of-the-art across most ML benchmarks is dominated by GPU driven deep learning (DL).
     </p>

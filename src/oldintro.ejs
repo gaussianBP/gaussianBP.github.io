@@ -1,0 +1,101 @@
+    
+    <p>
+      The "Bitter Lesson" of machine learning (ML) research has been that "general methods that leverage computation are ultimately the most effective, and by a large margin" <d-cite key="Sutton:BitterLesson2019"></d-cite>. At the time of writing, the state-of-the-art across most ML benchmarks is dominated by GPU driven deep learning (DL).
+    </p>
+
+    <p>
+      The effectiveness of the DL/GPU approach draws significantly from a close structural coupling of hardware, algorithm and underlying task. Convolutional Neural Networks (CNN) <d-cite key="LeCun:etal:IEEE1998"></d-cite> learn translation invariant functions by applying spatial filters over patches of adjacent pixels, exploiting both the fact that correlations in natural images are strongly local and that similar features appear in multiple locations. Importantly, this structure is also leveraged in the computation - the filter dot-products can be parallelized and carried out efficiently by GPUs <d-footnote>The sequential filter dot-products can be implemented as a single matrix multiplication (e.g. by Fourier transform or reshaping <d-cite key="chetlur2014cudnn"></d-cite>) which is carried out efficiently in parallel on a GPU. Data transfer is minimized since the filter array is transformed within the GPU.</d-footnote>. 
+    </p>
+
+    <h3 id="mirroring">Mirroring inductive biases in hardware</h3>
+
+    <p class="note">
+      This still needs work - is hard to understand intro. Needs more signposting like...
+      As we seek to replicate the success of the DL/GPU approach, we take stock of the current trends in hardware and representation.
+      Don't make out like we are proposing something better than DL / GPU, we are simply taking ideas from it.
+    </p>
+
+    <p>
+      Data transfer, not multipy-and-accumlate (MAC) operations are most often the bottleneck to processing speed, and dominate the power consumption of a typical deep learning model <d-cite key="Sze:Survey2017"></d-cite>. As ML is increasingly embedded into the physical world, communication costs (and delays) within and across devices will become significant limiting factors if not implemented carefully. A promising solution is to co-develop algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
+    </p>
+    <p>
+      To operate effectively in the real world, ML systems of the future will also need to be highly heterogeneous in their representation. General purpose perception systems will represent the world not just at the level of sequences of regular image arrays, but as graphs of semantic objects with continuously changing relationships, growing or contracting in size as new data is added or task demands fluctuate.
+    </p>
+    <p>
+      These requirements point to a future "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous computing systems. As has been the case for algorithmic inductive biases, hand-designing these hardware will likely pose a significant challenge. Instead, we believe that what is needed is a flexible algorithmic/computational structure that can adapt to the demands of the task.
+    </p>
+        
+    <h3 id="the-need-for-probabilistic-inference">The need for probabilistic inference </h3>
+
+    <p>
+      Moreover, we believe that the the "glue" that will allow heterogeneous future systems to interact self-consistely will be the ability to represent the world probabilistically. Systems that can take into account the relative uncertainty of new data are able to more appropriately update their existing beliefs, learn from less data (meaning less computation and lower energy costs) and mitigate catastrophic forgetting in continual learning settings <span class="note">(needs refs)</span>. 
+    </p>
+
+    <p>
+      Probabilistic representations will also be important where interpretability is desired <d-cite key="Ghahramani:Nature2015"></d-cite> and essential in "Spatial AI" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> applications such as autonomous transport and robotics, which need to act safely in the physical world.
+    </p>
+
+    <p>
+      To support this "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of heterogeneous but interconnected systems, we argue for probabilistic graphical models (PGM) as the root structure. Inference in PGMs has a rich research literature in ML but has not been successfully scaled for arbitrary (loopy) graphs. 
+    </p>
+
+    <h3 id="gaussian-belief-propagation">Gaussian Belief Propagation </h3>
+
+    <p class="note">
+      Andy - takes a long time to get to the first mention of GBP.
+      Andy - stronger - GBP is special; GBP with robust factors and linearisation is much more general than most people would think.
+    </p>
+
+    <p>
+      Belief propagation (BP) <d-cite key="Pearl:book1988, kschischang2001factor"></d-cite> is a probabilistic inference algorithm that operates by local message passing on factor graphs.
+      BP has been applied with great success to error-correcting codes <d-cite key="mceliece1998turbo"></d-cite> however perhaps due to its lack of convergence guarantees has not been applied more broadly in other domains.
+      Gaussian belief propagation is a special case of BP with more extensive mathematical guarantees and strong empirical performance <span class="note">(refs for both)</span>.
+      BP has seen a recent resurgence <d-cite key="george2017generative, satorras2021neural, kuck2020belief, Ortiz:etal:CVPR2020, opipari2021differentiable"></d-cite> since its initial development by Pearl in the 80s <d-cite key="Pearl:book1988"></d-cite>.
+      Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, BP applies probabilistic message passing updates with iterative convergent behaviour. 
+    </p>
+
+    <p>
+      In this article, we discuss Gaussian Belief Propagation as a strong general purpose algorithmic and representational framework for large scale distributed inference. 
+      GBP has desirable properties with respect to the vision of distributed future systems that we presented above.
+      The key properties of GBP are that it is:
+    </p>
+
+    <div class="box">
+    <p>
+      <ol>
+        <li>
+          <b>Local</b> - updates are based on local message passing in factor graphs.
+        </li>
+        <ul>
+          <li>
+            GBP can be trivially distributed and leverage any extra avaliable compute whether multicore or distributed. On new multicore graph processors <d-cite key="Lacey:IPUBenchmarks2019, gui2019survey"></d-cite> GBP has been shown to achieve rapid performance <d-cite key="Ortiz:etal:CVPR2020"></d-cite>, while GBP is well-suited to edge / federated computing in distributed systems.
+          </li>
+          <li>
+            GBP naturally exploits any structure in the problem as communication is only between conditionally dependent nodes. 
+            <!-- For comparison, many other methods assume a fixed structure for efficiency -->
+          </li>
+          <li>
+            GBP can operate in an "attention-driven" fashion in which computation is focused on regions relevant to the current task to enable "just in time" convergence <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>. This is also attractive from an energy consumption perspective.
+          </li>
+
+        </ul>
+
+        <li>
+          <b>Probabilistic</b> - it estimates uncertainties.
+        </li>
+        
+        <li>
+          <b>Iterative and convergent </b> - the underlying problem can be arbitrarily edited while inference is continually underway in the background. 
+        </li>
+        <li>
+          <b>Asynchronous</b> - convergence can be reached via asynchronous updates. This is important in distributed systems without a global clock or where communication delays are non-negligible <span class="note">(Edge computing ref)</span>.
+        </li>
+
+      </ol>
+    </p>
+    </div>  
+
+    <p>
+      In the remainder of the article, we first introduce the GBP algorithm and show that it is intimately linked to solving a linear system of equations $Ax = b$. 
+      We then explore 4 key practical details for applying GBP to real problems: extending GBP to handle <a href="#non-linear-factors">non-linear factors</a> and <a href="#robust-loss-functions">robust loss functions</a>, using <a href="#local-updates-and-scheduling">local message schedules</a> and lastly how <a href="#multiscale-learning">hierarchical structure</a> can help convergence. 
+    </p>
