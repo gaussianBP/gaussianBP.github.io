@@ -1,7 +1,7 @@
 src/diagrams_unused
 *.py
 
-static/images/unused
+misc
 
 # Logs
 logs

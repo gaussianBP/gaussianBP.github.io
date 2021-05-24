@@ -1,4 +1,5 @@
 <script>
+    import * as d3 from 'd3';
 
     function gen_path(fn, map_x, map_y) {
         const ys = xs.map(x => fn(x));

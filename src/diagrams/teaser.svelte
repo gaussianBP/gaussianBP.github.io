@@ -289,23 +289,13 @@
         fill: var(--red);
     }
 
-    #slider {
-        width: 100%;
-        color: red;
-    }
-
-    #slider-container {
-        height: 20px;
-        margin-top: -8px;
-    }
-
     #text {
         text-align: center;
         font-size: 12px;
         color: rgba(0, 0, 0, 0.6);
         font-family: monospace;
         text-decoration: none;
-        line-height: 1.0em;
+        /* line-height: 1.0em; */
         /* background-color: yellow; */
     }
 
@@ -452,10 +442,6 @@
             </div>     
             <div>
                 <div id="text">Messages sent: {n_mess}</div>
-                <div id="slider-container">
-                    <progress id="slider" value={n_mess/200}></progress>
-                    <!-- <input id="slider" type="range" min="0" max="199" bind:value={n_mess} step="1"/> -->
-                </div>
             </div>
         </div>
 
