@@ -3,22 +3,6 @@ import * as _unused from "raw-loader!./index.ejs";
 // TODO: disable before publishing
 
 
-// import Spring from "./diagrams/spring.svelte";
-// const SpringComponent = new Spring({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#spring')
-// });
-
-
-// import SurfaceFitting from "./diagrams/surface_fitting.svelte";
-// const SurfaceFittingComponent = new SurfaceFitting({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#surface_fitting')
-// });
-
-// import CoarseToFine from "./diagrams/coarse_to_fine_v2.svelte";
-// const CoarseToFineComponent = new CoarseToFine({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#coarse_to_fine')
-// });
-
 import Teaser from "./diagrams/teaser.svelte";
 const TeaserComponent = new Teaser({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#teaser')
@@ -54,11 +38,6 @@ const FactorGraphComponent = new FactorGraph({ // eslint-disable-line no-unused-
   target: document.querySelector('#factor_graph')
 });
 
-// import MessagePassing from "./diagrams/message_passing.svelte";
-// const MessagePassingComponent = new MessagePassing({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#message_passing')
-// });
-
 import GBPIntuition from "./diagrams/gbp_intuition.svelte";
 const GBPIntuitionComponent = new GBPIntuition({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#gbp_intuition')
@@ -89,28 +68,7 @@ const FactorLinearisationComponent = new FactorLinearisation({ // eslint-disable
   target: document.querySelector('#factor_linearisation')
 });
 
-// import MargCond from "./diagrams/marg_cond.svelte";
-// const MargCondComponent = new MargCond({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#marg_cond')
-// });
-
-// import CustomPlayground from "./diagrams/pose_graph2d.svelte";
-// const PlaygroundTesaerComponent = new CustomPlayground({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#custom_playground')
-// });
-
 import GBP1d from "./diagrams/gbp1d.svelte";
 const GBP1dComponent = new GBP1d({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#gbp1d')
 });
-
-
-// import RobotNonlinearSim from "./diagrams/gbp2d_nonlinear.svelte";
-// const RobotNonlinearSimComponent = new RobotNonlinearSim({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#RobotNonlinearSim')
-// });
-
-// import RobotRoomSim from "./diagrams/gbp2d_room.svelte";
-// const RobotRoomSimComponent = new RobotRoomSim({ // eslint-disable-line no-unused-vars
-//   target: document.querySelector('#RobotRoomSim')
-// });
