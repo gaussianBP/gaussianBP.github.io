@@ -1,6 +1,5 @@
 {
-	"title": "Gaussian Belief propagation for Spatial AI",
-	"description": "A visual introduction to Gaussian Belief Propagation for realtime computer vision.",
+	"title": "A visual introduction to Gaussian Belief Propagation",
 	"password": "",
 	"authors": [
 		{
@@ -12,8 +11,10 @@
 		{
 			"author": "Talfan Evans",
 			"authorURL": "http://www.talfanevans.co.uk/mainpage.html",
-			"affiliation": "Imperial College London / DeepMind",
-			"affiliationURL": "https://www.imperial.ac.uk/dyson-robotics-lab/"
+			"affiliations": [
+				{"name": "Imperial College London", "url": "https://www.imperial.ac.uk/dyson-robotics-lab/"},
+				{"name": "DeepMind", "url": "https://deepmind.com/"}
+			]
 		},
 		{
 			"author": "Andrew J. Davison",

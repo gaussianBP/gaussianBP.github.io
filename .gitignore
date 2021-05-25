@@ -1,7 +1,8 @@
+# My gitignores
 src/diagrams_unused
+src/gbp_unused
 *.py
-
-static/images/unused
+misc
 
 # Logs
 logs

@@ -9,8 +9,6 @@
   </style>
 
   <script src="https://distill.pub/template.v2.js"></script>
-  <script src="https://d3js.org/d3.v5.min.js"></script>
-  <!-- <script src="dependencies/twgl.min.js"></script> -->
 </head>
 
 
@@ -25,7 +23,7 @@
 
   <d-title>
     <h1>A visual introduction to Gaussian Belief Propagation</h1>
-    <p>A Framework for Distributed Inference with Emerging Hardware. </p>
+    <p>A Framework for Distributed Inference with Emerging Hardware.</p>
   </d-title>
 
 
@@ -657,18 +655,17 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
       This is the idea behind coarse-to-fine optimisation which is broadly used in many grid-based problems where it is simple to build a coarser graph <d-cite key="felzenszwalb2006efficient"></d-cite>. 
     </p>
 
-    <p class="note">
+    <!-- <p class="note">
       Redo figure, just as a plot and then redo text. Ref RCN somewhere here?
       In the interactive figure below, we explore coarse-to-fine GBP for aligning a source signal of 54 points with a target signal that is a translated and stretched version of the source signal.
       The task is to estimate the offset along the $x$ direction that maps each source point onto the target line by minimising the residuals (shown in red).
       This is representative of many computer vision tasks such as image stitching, optical flow and stereo disparity estimation.
       You can experiment with the <a href="#coarse_to_fine">figure</a> below to see how coarse-to-fine GBP finds to a better final solution and converges faster.
-    </p>
-
+    </p> -->
     <!-- <d-figure id="coarse_to_fine"></d-figure> -->
     
     <p>
-      Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build coarsened representations the same problem. 
+      Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build coarsened representations of the same problem. 
       In general, most problems are more unstructured and it is not clear how to build a coarsened or abstracted representation of the original problem.
       An alternative approach, is to introduce long range connections into the original graph which represent more global features and act as shortcuts for propagating global information.
       This is tackled in <span class="note">(fix ref)<d-cite key="Ortiz:planes2021"></d-cite></span> which adds nodes for planes on top of a point-based SLAM factor graph, allowing global information to propagate more quickly through these higher-level nodes.
@@ -722,10 +719,10 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
       Some directions we are most excited about are improving theoretical guarantees of GBP, using learned factors <d-cite key="czarnowski2020deepfactors, mukadam2018continuous, opipari2021differentiable"></d-cite>, introducing discrete variables, combining GBP with GNNs <d-cite key="satorras2021neural, kuck2020belief"></d-cite>, using GBP for distributed learning in overparameterized networks and lastly unifying iterative inference with test-time self-supervised learning.
     </p>
 
-    <p class="note">
+    <!-- <p class="note">
       As computer vision researchers, we would like to end by drawing a speculative comparison between Gaussian belief propagation and transformers, once again drawing on Sutton's "bitter lesson" <d-cite key="Sutton:BitterLesson2019"></d-cite>. 
       In vision, transformers have recently demonstrated state-of-the-art performance without the inductive biases of CNNs by leveraging massive datasets and training times. In probabilistic inference, much like CNNs, most inference methods achieve fast performance by handcrating the algorithm to exploit specific structure in a problem. This handcrating however means these methods are not scalable and, unlike GBP and transformers, are not general enough to leverage all available compute. We hope therefore, that in the same way that transformers have been scaled to achieve SOTA performance, GBP has the right properties to be arbitrarily scaled and act as a computational glue for future heterogeneous ML systems.
-    </p>
+    </p> -->
 
     <h2 id="supp-playground">Supplementary Playground</h2>
 
