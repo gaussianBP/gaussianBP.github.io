@@ -124,9 +124,6 @@ Computation and storage will be increasingly local.
     
       Data transfer, not multipy-and-accumlate (MAC) operations are most often the bottleneck to processing speed, and dominate the power consumption of a typical deep learning model <d-cite key="Sze:Survey2017"></d-cite>. As ML is increasingly embedded into the physical world, communication costs (and delays) within and across devices will become significant limiting factors if not implemented carefully. A promising solution is to co-develop algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
     </p>
-
-
-
     
     <p>
 3   we need distributed, convergent estimation
@@ -181,7 +178,7 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
         </li>
         <ul>
           <li>
-            GBP can be trivially distributed and leverage any extra avaliable compute whether multicore or distributed. On new multicore graph processors <d-cite key="Lacey:IPUBenchmarks2019, gui2019survey"></d-cite> GBP has been shown to achieve rapid performance <d-cite key="Ortiz:etal:CVPR2020"></d-cite>, while GBP is well-suited to edge / federated computing in distributed systems.
+            GBP can be trivially distributed and leverage any extra available compute whether multicore or distributed. On new multicore graph processors <d-cite key="Lacey:IPUBenchmarks2019, gui2019survey"></d-cite> GBP has been shown to achieve rapid performance <d-cite key="Ortiz:etal:CVPR2020"></d-cite>, while GBP is well-suited to edge / federated computing in distributed systems.
           </li>
           <li>
             GBP naturally exploits any structure in the problem as communication is only between conditionally dependent nodes. 
@@ -227,10 +224,10 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
       The sum rule is $p(X) = \sum_Y p(X, Y)$ and the product rule is $p(X, Y) = p(Y \rvert X) p(X)$. 
       </d-footnote>
       to form the posterior distribution $p(X \rvert D) = \frac{p(X, D)}{p(D)}$.
-      The posterior distribution summarises our belief about $X$ after seeing $D$ and can be used for Bayesian decision making or other downstream tasks. 
+      The posterior distribution summarizes our belief about $X$ after seeing $D$ and can be used for Bayesian decision making or other downstream tasks. 
     </p>
     <p>
-      From the posterior, we can compute things like (i) the most likely configuration of all the variables $X_{\text{MAP}} = \text{arg max}_X p(X \rvert D)$ or (ii) the marginal posteriors $p(x_i \rvert D) = \sum_{X \setminus x_i} p(X \rvert D)$ which summarise our belief about each individual variable after seeing $D$. 
+      From the posterior, we can compute things like (i) the most likely configuration of all the variables $X_{\text{MAP}} = \text{arg max}_X p(X \rvert D)$ or (ii) the marginal posteriors $p(x_i \rvert D) = \sum_{X \setminus x_i} p(X \rvert D)$ which summarize our belief about each individual variable after seeing $D$. 
       These two calculations are known as <b>MAP inference</b> and <b>marginal inference</b> respectively.
       An important difference to note is that MAP inference produces a point estimate while marginal inference retains information about uncertainty.
     </p>
@@ -346,11 +343,11 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
 
       <g>
       <d-figure id="mp_videos" class="right-d-figure">
-        <video style="width: 49.5%;" loop controls muted>
+        <video style="width: 48%;" loop controls muted>
           <source src="diagrams/tree_bp.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        <video style="width: 49.5%;" loop controls muted>
+        <video style="width: 48%;" loop controls muted>
           <source src="diagrams/loopy_bp.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
@@ -381,7 +378,7 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
     
       <p>
         So far, although we have outlined the BP equations, we have not specified the form of the factors, messages or beliefs. 
-        In the remainder of the techical introduction, we focus on Gaussian belief propagation which is a special form of continous BP for Gaussian models. 
+        In the remainder of the technical introduction, we focus on Gaussian belief propagation which is a special form of continous BP for Gaussian models. 
       </p>
 
       <h3 id="gaussian-models">Gaussian Models</h2>
@@ -445,7 +442,7 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
         </p>
   
         <p>
-          We can therefore summarise inference in Gaussian models as solving the linear system of equations $Ax=b \Leftrightarrow
+          We can therefore summarize inference in Gaussian models as solving the linear system of equations $Ax=b \Leftrightarrow
            \Lambda \mu = \eta$. 
           <!-- The precision matrix $\Lambda$ is a real, square, symmetric, positive definite matrix with known sparsity structure. -->
           <b>MAP inference</b> solves for $\mu$ while <b>marginal inference</b> solves for both  $\mu$ and the block diagonal elements of $\Lambda^{-1}$.
@@ -457,7 +454,7 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
         <!-- 
         <p>
           Directly solving the linear system for $x_{\text{\tiny MAP}}$ by inverting $\Lambda$ gives the uncertainty which is the marginal variances or the diagonal elements of the joint covariance matrix $\Sigma = \Lambda^{-1}$. 
-          For large systems, this inversion can be very expensive and Gaussian Belief Propagation is an iterative methods that estimates the full marginal distributions, giving both the MAP estimate (the marginal means) and the uncertainty (the marginal variances). We discuss related linear solvers and non-linear least squares optimisation methods <a href="#related-methods">later on</a>.    
+          For large systems, this inversion can be very expensive and Gaussian Belief Propagation is an iterative methods that estimates the full marginal distributions, giving both the MAP estimate (the marginal means) and the uncertainty (the marginal variances). We discuss related linear solvers and non-linear least squares optimization methods <a href="#related-methods">later on</a>.    
         </p> -->
 
 
@@ -486,7 +483,6 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
 
     <p>
       We have introduced Gaussian Belief Propagation in its basic form as a probabilistic inference algorithm for Gaussian estimation problems. However, to solve real practical problems with GBP, we often need a number of extra details and tricks which we discuss in this section.
-
     </p>
 
     <h3 id="non-linear-factors">Non-linear factors</h3>
@@ -589,7 +585,7 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
 
     <p>
       It turns out that choosing the message schedule is an easy way to speed up convergence and there are a number of different approaches. Simply swapping synchronous updates for random message passing tends to improve convergence, while a fixed "round-robin" schedule can do even better <d-cite key="koller2009probabilistic"></d-cite>.
-      Better yet, if each message requires some unit of computation (and therefore energy), it's possible to prioritise sending messages that we think will contribute most to the overall convergence of the system (there is evidence that the brain may apply a similar economical principle<d-cite key="Evans:Burgess:NIPS2019"></d-cite>).
+      Better yet, if each message requires some unit of computation (and therefore energy), it's possible to prioritize sending messages that we think will contribute most to the overall convergence of the system (there is evidence that the brain may apply a similar economical principle<d-cite key="Evans:Burgess:NIPS2019"></d-cite>).
       This is the idea behind residual belief propagation (RBP) <d-cite key="Elidan:etal:UAI2006"></d-cite> and similar variants <d-cite key="Sutton:McCallum:UAI2007, Ranganathan:etal:IJCAI2007"></d-cite>, which form a message queue according to the norm of the difference from the previous message.
     </p>
 
@@ -637,15 +633,15 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
       As we have discussed being a local algorithm gives GBP many nice properties, however its locality also has some drawbacks.
       Propagating information from one node to another takes the same number of iterations as the number of hops between the nodes. 
       For nearby nodes in a local region, information can be communicated in a small number of iterations and consensus can be reached quickly, while for distant nodes, a global consensus can take many more iterations to be established. 
-      This is an inherent property of local algorithms and can be summarised as low frequency errors decay more slowly than the high frequency errors.
+      This is an inherent property of local algorithms and can be summarized as low frequency errors decay more slowly than the high frequency errors.
     </p>
 
     <p>
       Regular grid structured graphs appear a lot in computer vision (e.g. image segmentation) and in discretized boundary value problems (e.g. solving for the temperature profile along a rod).
       Accelerating convergence in such grid graphs has been well-studied in the field of Multigrid methods <d-cite key="briggs2000multigrid"></d-cite>.
       One simple approach is to coarsen the grid which transforms low frequency errors into higher frequency errors that decay faster. 
-      After convergence in the coarsened grid, the solution is used to initialise inference in the original grid which now has smaller low frequency errors. 
-      This is the idea behind coarse-to-fine optimisation which is broadly used in many grid-based problems where it is simple to build a coarser graph <d-cite key="felzenszwalb2006efficient"></d-cite>. 
+      After convergence in the coarsened grid, the solution is used to initialize inference in the original grid which now has smaller low frequency errors. 
+      This is the idea behind coarse-to-fine optimization which is broadly used in many grid-based problems where it is simple to build a coarser graph <d-cite key="felzenszwalb2006efficient"></d-cite>. 
     </p>
 
     <!-- <p class="note">

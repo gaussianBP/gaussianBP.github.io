@@ -9,6 +9,19 @@
     import MultiButtonGroup from '../utils/MultiButtonGroup.svelte'
     import * as gbp from "../gbp/gbp_playground.js";
 
+    const eq1 = `
+        \\tilde{m}_{t} = m_{t}^\\beta \\tilde{m}_{t-1}^{(1 - \\beta)}
+    `
+    const eq2 = `
+        \\log \\tilde{m}_{t} = \\beta \\, \\log m_{t} + (1 - \\beta) \\, \\log \\tilde{m}_{t-1}
+    `
+    const eq3 = `
+        \\tilde{\\eta}_{t} = \\beta \\, \\eta_{t} + (1 - \\beta) \\, \\tilde{\\eta}_{t-1} 
+        \\;\\;\\; \\text{and} \\;\\;\\;
+        \\tilde{\\Lambda}_{t} = \\beta \, \\Lambda_{t} + (1 - \\beta) \, \\tilde{\\Lambda}_{t-1} 
+    `
+
+
     let value = 2;
 
     // svg
@@ -616,10 +629,33 @@
     </div>
 
     <figcaption id="caption">
-        All problems are anchored by a variable node in the top left with a strong prior that sets the absolute position - this is necessary as all other factors only constrain relative position.
-        All factors are binary constraints (i.e. they connect two variable nodes) and we do not draw the factor nodes but instead draw an edge connecting the two variable nodes whose colour represents the factor energy.
         Send messages by clicking on a variable node or by pressing the random or synchronous message buttons at the top.
         Choose from 3 different graphs with increasing "loopiness": chain, loop and grid.
+        All problems are anchored by a variable node in the top left with a strong prior that sets the absolute position - this is necessary as all other factors only constrain relative position.
+        All factors are binary constraints (i.e. they connect two variable nodes) and we do not draw the factor nodes but instead draw an edge connecting the two variable nodes whose colour represents the factor energy.
+        We employ message damping for the grid 
+        <d-footnote>
+          Message damping is commonly used to speed up and improve chances of convergence in very loopy graphs, such as the grid problem. 
+          Message damping both empirically <d-cite key="Murphy:etal:1999"></d-cite> and theoretically <d-cite key="su2015convergence"></d-cite> improves convergence without affecting the fixed points of GBP <d-cite key="Murphy:etal:1999"></d-cite>.
+          The idea behind message damping is to use momentum to reduce chances of oscillation by replacing the message at time $t$ with a combination of the message at time $t$ and time $t-1$:
+          <d-math block="">
+            {eq1}
+            ~,
+          </d-math>
+          which is a weighted sum in log-space:
+          <d-math block="">
+            {eq2}
+            ~.
+          </d-math>
+
+          Standard BP is recovered when the damping parameter $\beta = 1$ and $\beta = 0$ corresponds to not updating the message and sending the message from the previous iteration.
+          Message damping can be applied to both the variable-to-factor messages and factor-to-variable messages, however we find that applying it just to factor-to-variable messages is sufficient.
+          For GBP, message damping corresponds to damping the information vector and precision matrix as a weighted sum: 
+          <d-math block="">
+            {eq3}
+            ~.
+          </d-math>
+        </d-footnote>.
     </figcaption>
 
 </figure>

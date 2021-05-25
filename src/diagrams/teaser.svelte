@@ -30,7 +30,7 @@
     let graph;
     $: var_nodes = [];
     $: factor_nodes = [];
-    const damping = 0.7;  // Only for grid
+    const damping = 0.0;  // Only for grid
     const dropout = 0.;  // Only for grid
 
     // Message passing animation

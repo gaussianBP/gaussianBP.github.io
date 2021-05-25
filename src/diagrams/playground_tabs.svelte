@@ -17,6 +17,12 @@
         grid-column: page;
     } */
 
+    @media (max-width: 1180px) {
+        #wrapper {
+            width: 600px;
+        }
+    }
+
 </style>
 
 <figure class="subgrid">

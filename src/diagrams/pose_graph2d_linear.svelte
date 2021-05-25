@@ -331,7 +331,7 @@
 
         // Open trash can lid if hovering over it
         node_onhover = null;
-        node_onhover = e.path.find((element) => element.classList == "node_g");
+        node_onhover = e.composedPath().find((element) => element.classList == "node_g");
         if (node_onhover && moving_node && node_mousedown.type == "var_node") {
             if (node_onhover.id == "trash") {
                 can_open = true;
@@ -364,7 +364,7 @@
             let drop = false;
 
             node_onhover = null;
-            node_onhover = e.path.find((element) => element.classList == "node_g");
+            node_onhover = e.composedPath().find((element) => element.classList == "node_g");
             if (moving_node && node_mousedown.type == "var_node") {
                 if (node_onhover) {
                     if (node_onhover.id == "trash") {
@@ -945,12 +945,12 @@
     </div>
 
     <span class="hint bold-text" style="margin-top: 20px">
-        Balance the data and smoothing factors:
+        Balance the prior and measurement factors:
     </span>
 
     <div id="precision-sliders">
         <div class="slider-container">
-            Prior std: <br>
+            Prior precision: <br>
             <input class="full-width-slider" type="range" min="{1/(100*100)}" max="{1/(20*20)}" step="{1/(100*100)}" bind:value={prior_lam}/>
             <div class="status">
                 ({(prior_lam * 10000).toFixed(0)} units)
@@ -958,7 +958,7 @@
         </div>  
 
         <div class="slider-container">
-            Measurement std: <br>
+            Measurement precision: <br>
             <input class="full-width-slider" type="range" min="{1/(100*100)}" max="{1/(20*20)}" step="{1/(100*100)}" bind:value={meas_lam}/>
             <div class="status">
                 ({(meas_lam * 10000).toFixed(0)} units)
@@ -983,7 +983,7 @@
         <p>
             <b>Hint. </b>
             EDIT MODE: Build the pose graph by dragging variable nodes from the top right. 
-            Factors are created by clicking one after the other on the two variable nodes you want to connect. 
+            Factors are created by clicking, one after the other, on the two variable nodes you want to connect. 
             SET PRIORS MODE: Drag the variable nodes to set the initial beliefs.
             RUN MODE: Click on a variable node to send messages to adjacent nodes or use the preset synchronous or random message schedules.
         </p>

@@ -413,8 +413,8 @@
 
     </div>
 
-    <figcaption style="text-align: center;">
+    <figcaption style="text-align: left;">
         Move the two sliders to change the Gaussian noise model.
-        Note units of the covariance values are distance$^2$ and radians$^2$.
+        Units of the covariance values are distance$^2$ and radians$^2$.
     </figcaption>
 </figure>
