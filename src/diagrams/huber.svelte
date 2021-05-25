@@ -178,7 +178,7 @@
         </svg>
     </div>
 
-    <figcaption style="text-align: center;">
+    <figcaption style="text-align: left;">
         Move your mouse over the figure to set the residual and observe how the rescaled Gaussian changes. 
         The Huber loss transitions at the blue dots.
     </figcaption>

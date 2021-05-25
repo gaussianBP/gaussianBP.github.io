@@ -619,7 +619,7 @@
     </div> -->
 
     <span class="hint bold-text" style="padding-top: 20px;">
-        Balance the data and smoothing factors:
+        Balance the measurement and odometry factors:
     </span>
 
     <div id="precision-sliders">

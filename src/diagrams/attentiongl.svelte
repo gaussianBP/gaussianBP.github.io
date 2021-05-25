@@ -915,7 +915,7 @@ TODO
         line-height: 1em;
         display: grid;
         grid-template-columns: auto;
-        grid-template-rows: 25px 80px 105px 23px 60px 20px 140px;
+        grid-template-rows: 30px 80px 105px 23px 60px 20px 140px;
         grid-row-end: auto;
         row-gap: 10px;
     }
@@ -1006,6 +1006,11 @@ TODO
         display: none;
     }
 
+    #img-choice {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+    }
+
 </style>
 
 <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
@@ -1028,8 +1033,8 @@ TODO
 
         <div id="control-panel">
 
-            <div>
-                <span class="hint bold-text" style="margin-right: 8px">Choose the image: </span>
+            <div id="img-choice">
+                <span class="hint bold-text" style="margin-right: 8px; display: flex; align-items: center;">Choose the image: </span>
             	<select bind:value={selected_img} on:change={reset}>
                     {#each imgs as im}
                         <option value={im}>

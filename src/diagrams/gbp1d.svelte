@@ -443,7 +443,7 @@
 
     #panel2 {
         display: grid;
-        grid-template-columns: auto 1.25fr 1fr;
+        grid-template-columns: auto 1.4fr 1fr;
         column-gap: 10px;
         /* background-color: paleturquoise; */
         width: 100%;
@@ -846,7 +846,7 @@
     <figcaption id="caption">
         1D line fitting. 
         Create data factors by clicking on the canvas and experiment with different message passing schedules. 
-        Use the synchronous, random and sweep schedules or create your own by clicking on variable nodes to send messages.
+        Use the synchronous, random and sweep schedules or click on a variable node to send messages to its neighbours.
         Note the variable nodes start at the bottom of the canvas before they have received any messages.
     </figcaption>
 
