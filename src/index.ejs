@@ -73,10 +73,19 @@ Although GBP was first studied in the 80s, we believe that as hardware is becomi
 
     <!-- Andy:  There's a copy of the previous introduction before my recent edits in oldintro.ejs  -->
 
+
+
+   *** strong coupling of algorithm, architecture and task ***
+    semantics, objects, abstractions of different levels
+    naturally exploits the structure of a problem
+
+
+    
     <p>
- Bayesian probabilistic theory is ubiquitous in rigorously formulated approaches
-to robotics, computer vision and Spatial AI <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> <d-cite key="Ghahramani:Nature2015"></d-cite>.
- A probabilistic model relates a set of unknown variables of interest to observable, known or assumed quantities, and most generally takes the form of a graph whose connections encode those relationships.
+      Bayesian probabilistic theory is ubiquitous in rigorously formulated approaches
+to reasoning from uncertain data in science, and in artificial intelligence is the foundation of practical "Spatial AI" systems for 
+ robotics and 3D computer vision <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> <d-cite key="Ghahramani:Nature2015"></d-cite>. 
+ A probabilistic model relates unknown variables of interest to observable, known or assumed quantities, and most generally takes the form of a graph whose connections encode those relationships.
  In particular, the elegant <b>factor graph</b> formulation
   connects variables via factors which
  represent independent observations ***citeDellaertKaess***.
@@ -92,11 +101,9 @@ Inference on a factor graph is the process of determining the most probable valu
 which represent challenging practical problems
       such as incremental 3D computer vision 
       remains computationally challenging.
-      
-
-      <!--
-probability: interpretable; interfaceable
--->
+      This is especially true as the ambition of such systems
+      increases towards representations which have multiple,
+      heterogeneous levels of abstraction such as objects or other concepts.
     </p>
 
 
@@ -113,47 +120,60 @@ inference, we should recall the "Bitter Lesson" of machine learning
 How do we anticipate the computational resources available for factor
 graph inference in Spatial AI to scale in the coming years?
 Most generally, we forsee 
-a future "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous computing systems.
-Computation and storage will be increasingly local.
-
-*** whether across multiple devices, or within single chips
+a future "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite>
+of parallel, heterogeneous, distributed and asynchronous computing
+systems which communicate in a peer-to-peer manner.
+This will be at several levels: across networks of multiple smart
+devices operating in the same environment; across the many sensors,
+actuators and processors within individual embodied devices such as
+robots; and even within single processor chips themselves, where the
+trend towards many-core designs with distributed on-core memory and
+ad-hoc communication is rapidly emerging with the key aim of
+increasing performance while reducing power usage by minimising the 
+      "bits x millimetres" <d-cite key="Sze:Survey2017"></d-cite>.
+of data movement during computation.
     </p>
-
-
-<p>
     
-      Data transfer, not multipy-and-accumlate (MAC) operations are most often the bottleneck to processing speed, and dominate the power consumption of a typical deep learning model <d-cite key="Sze:Survey2017"></d-cite>. As ML is increasingly embedded into the physical world, communication costs (and delays) within and across devices will become significant limiting factors if not implemented carefully. A promising solution is to co-develop algorithms and hardware that minimize "bits x millimetres" <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, by storing data nearer to the location at which it's operated on <d-cite key="Sze:Survey2017"></d-cite>.
+    <p>
+      If we imagine probabilistic problems spread in
+      complex, multi-scale, dynamic inter-connected webs across such
+      processing resources, we need inference methods which can
+      operate with distributed, local processing and storage, and
+      message passing communication. Most importantly, there may be no
+      device which has any overall view or coordination of the whole
+      model.
+      (Even if this were possible, for example via a monolithic
+      cloud-based processor, it may not be desirable, for instance
+      for communication bandwidth or privacy reasons.)
     </p>
-    
-    <p>
-3   we need distributed, convergent estimation
-  that can handle changing, dynamic factor graphs
-  with purely local storage and communication, and no `overall view'
-
-
-      but as graphs of semantic objects with continuously changing relationships, growing or contracting in size as new data is added or task demands fluctuate.
-
-Inference in PGMs has a rich research literature in ML but has not been successfully scaled for arbitrary (loopy) graphs. 
-    </p>
 
 
 
     <p>
-4      - BP has been long known, but loopy BP considered a `flaky' algorithm
-
-      Belief propagation (BP) <d-cite key="Pearl:book1988, kschischang2001factor"></d-cite> is a probabilistic inference algorithm that operates by local message passing on factor graphs.
-
-      BP has been applied with great success to error-correcting codes <d-cite key="mceliece1998turbo"></d-cite> however perhaps due to its lack of convergence guarantees has not been applied more broadly in other domains.
-</p>
+Fortunately a well-known algorithm for factor graph inference exists
+which has these properties: Loopy Belief Propagation <d-cite key="Pearl:book1988, kschischang2001factor"></d-cite>.
+     BP, invented in the 1980s, has been applied with great success in certain problem domains
+such as error-correcting
+codes <d-cite key="mceliece1998turbo"></d-cite>.
+However, is not been applied very broadly, and certainly not
+substantially in areas such as Spatial AI. One issue is that loopy
+belief propagation in the general case lacks convergence guarantees,
+and has often been considered a "flaky" algorithm. But also, it is an
+algorithm whose computational properties have not fitted the dominant
+processing paradigns of recent decades, CPUs and GPUs, Specifically,
+there are highly effective algorithms for factor graph
+inference problems which take advantage of global problem structure
+and sparsity to operate much more rapidly and robustly than loopy BP
+on a CPU with unified memory.
+ </p>
 
     <p>
-5      - GBP shockingly underused, despite the ubiquity of Gaussian-based estimation
-  in almost all practical robotics, vision, AI.
-</p>
-
-
-    <p>
-6      
+We believe that it is the right time to re-evaluate the properties of
+loopy BP, given emerging computing hardware and rising ambition in
+Spatial AI, but in particular we are interested in the special case of
+Gaussian Belief Propagation (GBP). The lack of understanding and use
+of GBP is rather mysterious, given the ubiquity of Gaussian-based
+estimation in probabilistic computing.
 Gaussian belief propagation is a special case of BP with more extensive mathematical guarantees and strong empirical performance <span class="note">(refs for both)</span>.
       BP has seen a recent resurgence <d-cite key="george2017generative, satorras2021neural, kuck2020belief, Ortiz:etal:CVPR2020, opipari2021differentiable"></d-cite> since its initial development by Pearl in the 80s <d-cite key="Pearl:book1988"></d-cite>.
       Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, GBP applies probabilistic message passing updates with iterative convergent behaviour. 
