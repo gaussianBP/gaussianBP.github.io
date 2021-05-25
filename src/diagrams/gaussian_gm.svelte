@@ -1,8 +1,3 @@
-<!-- 
-TODO
-- labels for state of problem
- -->
-
 <script>
   import { onMount } from 'svelte';
   import { onInterval } from '../utils/util.js';
@@ -540,23 +535,23 @@ TODO
 
         <g id="matrices">
           <g id="eta mat">
-            <rect id="Rectangle 19" x="484.5" y="43.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 20" x="484.5" y="69.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 21" x="484.5" y="95.5" width="26" height="26" stroke="black"/>
+            <rect id="Rectangle 19" x="484.5" y="43.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 20" x="484.5" y="69.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 21" x="484.5" y="95.5" width="26" height="26" stroke="black" fill="white"/>
             <text class="matrix_text" x="{eta_mat.x0 + 0.5*side}" y={eta_mat.y0 + 0.5*side + 3.3}> {round(eta.get(0, 0))}</text>
             <text class="matrix_text" x="{eta_mat.x0 + 0.5*side}" y={eta_mat.y0 + 1.5*side + 3.3}> {round(eta.get(1, 0))}</text>
             <text class="matrix_text" x="{eta_mat.x0 + 0.5*side}" y={eta_mat.y0 + 2.5*side + 3.3}> {round(eta.get(2, 0))}</text>
           </g>
           <g id="lambda mat">
-            <rect id="Rectangle 28" x="395.5" y="43.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 29" x="395.5" y="69.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 30" x="395.5" y="95.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 31" x="421.5" y="43.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 32" x="421.5" y="69.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 33" x="421.5" y="95.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 34" x="447.5" y="43.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 35" x="447.5" y="69.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 36" x="447.5" y="95.5" width="26" height="26" stroke="black"/>
+            <rect id="Rectangle 28" x="395.5" y="43.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 29" x="395.5" y="69.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 30" x="395.5" y="95.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 31" x="421.5" y="43.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 32" x="421.5" y="69.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 33" x="421.5" y="95.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 34" x="447.5" y="43.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 35" x="447.5" y="69.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 36" x="447.5" y="95.5" width="26" height="26" stroke="black" fill="white"/>
             <text class="matrix_text" x="{lam_mat.x0 + 0.5*side}" y={lam_mat.y0 + 0.5*side + 3.3}> {round(lambda.get(0, 0))}</text>
             <text class="matrix_text" x="{lam_mat.x0 + 1.5*side}" y={lam_mat.y0 + 0.5*side + 3.3}> {round(lambda.get(0, 1))}</text>
             <text class="matrix_text" x="{lam_mat.x0 + 2.5*side}" y={lam_mat.y0 + 0.5*side + 3.3}> {round(lambda.get(0, 2))}</text>
@@ -568,15 +563,15 @@ TODO
             <text class="matrix_text" x="{lam_mat.x0 + 2.5*side}" y={lam_mat.y0 + 2.5*side + 3.3}> {round(lambda.get(2, 2))}</text>
           </g>
           <g id="sigma mat">
-            <rect id="Rectangle 40" x="395.5" y="135.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 41" x="395.5" y="161.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 42" x="395.5" y="187.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 43" x="421.5" y="135.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 44" x="421.5" y="161.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 45" x="421.5" y="187.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 46" x="447.5" y="135.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 47" x="447.5" y="161.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 48" x="447.5" y="187.5" width="26" height="26" stroke="black"/>
+            <rect id="Rectangle 40" x="395.5" y="135.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 41" x="395.5" y="161.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 42" x="395.5" y="187.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 43" x="421.5" y="135.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 44" x="421.5" y="161.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 45" x="421.5" y="187.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 46" x="447.5" y="135.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 47" x="447.5" y="161.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 48" x="447.5" y="187.5" width="26" height="26" stroke="black" fill="white"/>
             <text class="matrix_text" x="{sigma_mat.x0 + 0.5*side}" y={sigma_mat.y0 + 0.5*side + 3.3}> {disp_num(sigma.get(0, 0))}</text>
             <text class="matrix_text" x="{sigma_mat.x0 + 1.5*side}" y={sigma_mat.y0 + 0.5*side + 3.3}> {disp_num(sigma.get(0, 1))}</text>
             <text class="matrix_text" x="{sigma_mat.x0 + 2.5*side}" y={sigma_mat.y0 + 0.5*side + 3.3}> {disp_num(sigma.get(0, 2))}</text>
@@ -588,9 +583,9 @@ TODO
             <text class="matrix_text" x="{sigma_mat.x0 + 2.5*side}" y={sigma_mat.y0 + 2.5*side + 3.3}> {disp_num(sigma.get(2, 2))}</text>
           </g>
           <g id="mu mat">
-            <rect id="Rectangle 22" x="484.5" y="135.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 23" x="484.5" y="161.5" width="26" height="26" stroke="black"/>
-            <rect id="Rectangle 24" x="484.5" y="187.5" width="26" height="26" stroke="black"/>
+            <rect id="Rectangle 22" x="484.5" y="135.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 23" x="484.5" y="161.5" width="26" height="26" stroke="black" fill="white"/>
+            <rect id="Rectangle 24" x="484.5" y="187.5" width="26" height="26" stroke="black" fill="white"/>
             <text class="matrix_text" x="{mu_mat.x0 + 0.5*side}" y={mu_mat.y0 + 0.5*side + 3.3}> {round(mu.get(0, 0))}</text>
             <text class="matrix_text" x="{mu_mat.x0 + 0.5*side}" y={mu_mat.y0 + 1.5*side + 3.3}> {round(mu.get(1, 0))}</text>
             <text class="matrix_text" x="{mu_mat.x0 + 0.5*side}" y={mu_mat.y0 + 2.5*side + 3.3}> {round(mu.get(2, 0))}</text>

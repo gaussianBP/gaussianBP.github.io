@@ -123,7 +123,7 @@
 
         <svg on:mousemove={mousemove_handler} width="357" height="483" viewBox="0 0 357 483" fill="none" xmlns="http://www.w3.org/2000/svg">
 
-            <rect width="357" height="483" fill="white"/>
+            <rect x="21.4" y="2" width="334.8" height="437" fill="white"/>
             <g id="axis2">
             <g id="Vector">
             <path d="M188.821 440.44V443.94Z" fill="black"/>

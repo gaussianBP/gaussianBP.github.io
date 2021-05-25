@@ -320,7 +320,7 @@
         <svg id="svg" width="690" height="690" viewBox="-53 -32 690 690" xmlns="http://www.w3.org/2000/svg">
 
             <defs>
-                <radialGradient id="belief_covariance_gradient">
+                <radialGradient id="belief_c_gradient">
                     <stop offset="0.35" stop-color="#0095DD" stop-opacity="0.5" />
                     <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
                 </radialGradient>
@@ -332,7 +332,7 @@
 
             <ellipse class="gt-cov" fill="url(#gt_cov_gradient)" cx={-24} cy={-5} rx={25} ry={25}/>
             <circle class="gt-mean" cx={-24} cy={-5} r={6}/>
-            <ellipse class="belief-cov" fill="url(#belief_covariance_gradient)" cx={-24} cy={52} rx={25} ry={25}/>
+            <ellipse class="belief-cov" fill="url(#belief_c_gradient)" cx={-24} cy={52} rx={25} ry={25}/>
             <circle class="belief-mean" cx={-24} cy={52} r={6}/>
             <text fill="black" font-size="20px" x={6} y={59}>Belief</text>
             <text fill="black" font-size="20px" x={6} y={3}>True marginal</text>
@@ -381,7 +381,7 @@
                 {/if}
 
                 {#if moving_beliefs.map(x => x.id).includes(n.id)}
-                    <ellipse class="belief-cov" fill="url(#belief_covariance_gradient)"
+                    <ellipse class="belief-cov" fill="url(#belief_c_gradient)"
                         cx={linear_progress(moving_beliefs.find(x => x.id == n.id).x, $move_belief_progress)} 
                         cy={linear_progress(moving_beliefs.find(x => x.id == n.id).y, $move_belief_progress)} 
                         rx={linear_progress(moving_beliefs.find(x => x.id == n.id).r, $move_belief_progress)} 
@@ -392,7 +392,7 @@
                 {:else}
                     <g class="node_g" id={n.id} draggable="true">
                         <ellipse  class="belief-cov" id={"node_belief_cov_"+n.id} 
-                            fill="url(#belief_covariance_gradient)"
+                            fill="url(#belief_c_gradient)"
                             cx={n.belief_ellipse.cx} cy={n.belief_ellipse.cy} rx={n.belief_ellipse.rx} ry={n.belief_ellipse.ry}
                             transform="rotate({n.belief_ellipse.angle}, {n.belief_ellipse.cx}, {n.belief_ellipse.cy})"/>
                         <circle class:belief-mean={highlight_id != n.id} class:highlight-mean={highlight_id == n.id} id={"node_belief_mean_"+n.id} 

@@ -737,8 +737,8 @@
       on:click={click_handler}>
 
         <defs>
-            <radialGradient id="belief_covariance_gradient">
-                <stop offset="0.35" stop-color="red" stop-opacity="0.5" />
+            <radialGradient id="belief_grad">
+                <stop offset="0.35" stop-color="#0095DD" stop-opacity="0.5" />
                 <stop offset="1" stop-color="#D3D3D3" stop-opacity="0.25" />
             </radialGradient>
             <radialGradient id="gt_cov_gradient">
@@ -830,7 +830,7 @@
                     <circle class="belief-mean" r={mean_radius}
                         cx={linear_progress(moving_beliefs.find(x => x.id == n.id).x, $move_belief_progress)}
                         cy={linear_progress(moving_beliefs.find(x => x.id == n.id).y, $move_belief_progress)}/>
-                    <ellipse class="belief-cov" fill="url(#belief_covariance_gradient)"
+                    <ellipse class="belief-cov" fill="url(#belief_grad)"
                         cx={linear_progress(moving_beliefs.find(x => x.id == n.id).x, $move_belief_progress)} 
                         cy={linear_progress(moving_beliefs.find(x => x.id == n.id).y, $move_belief_progress)} 
                         rx={linear_progress(moving_beliefs.find(x => x.id == n.id).r, $move_belief_progress)} 
@@ -840,7 +840,7 @@
                         <circle class:belief-mean={highlight_id != n.id} class:highlight-mean={highlight_id == n.id} id={"node_belief_mean_"+n.id} 
                             cx={n.belief_ellipse.cx} cy={n.belief_ellipse.cy} r={mean_radius}/>
                         <ellipse  class="belief-cov" id={"node_belief_cov_"+n.id} 
-                            fill="url(#belief_covariance_gradient)"
+                            fill="url(#belief_grad)"
                             cx={n.belief_ellipse.cx} cy={n.belief_ellipse.cy} rx={n.belief_ellipse.rx} ry={n.belief_ellipse.ry}
                             transform="rotate({n.belief_ellipse.angle}, {n.belief_ellipse.cx}, {n.belief_ellipse.cy})"/>
                     </g>

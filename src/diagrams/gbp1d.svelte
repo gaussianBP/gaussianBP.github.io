@@ -599,6 +599,11 @@
         width: 100%
     }
 
+    #buttons-svg {
+        width: 100%;
+        height: auto;
+    }
+
 </style>
 
 <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
@@ -685,7 +690,7 @@
                 Click on the canvas to add data factors. <br> Click on a variable node to send messages to its neighbours.
             </div>
 
-            <svg width="335" height="86" viewBox="0 0 335 86" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <svg id="buttons-svg" width="335" height="86" viewBox="0 0 335 86" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                 <g id="buttons">
                     <rect id="Delete" class="clickable" on:click={clearMeasurements} x="141" y="1" width="41.7647" height="41.7647" fill="url(#p0)"/>
                     <rect id="Reset" class="clickable" on:click={newRandMeasurements} x="22.1961" y="0.784302" width="41.7647" height="41.7647" fill="url(#p1)"/>

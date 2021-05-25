@@ -3,6 +3,7 @@ src/diagrams_unused
 src/gbp_unused
 *.py
 misc
+.DS_Store
 
 # Logs
 logs
