@@ -74,36 +74,29 @@ Although GBP was first studied in the 80s, we believe that as hardware is becomi
     <!-- Andy:  There's a copy of the previous introduction before my recent edits in oldintro.ejs  -->
 
     <p>
- 1
  Bayesian probabilistic theory is ubiquitous in rigorously formulated approaches
 to robotics, computer vision and Spatial AI <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> <d-cite key="Ghahramani:Nature2015"></d-cite>.
- A probabilistic model relates a set of unknown variables of interest to observable, known or assumed quantities, and inference is the process of determining the most probable values of those variables or their full marginal distributions.
- The <b>factor graph</b> formulation is a powerful
- probabilistic graphical model where
- variables are connected in a bipartite manner to factors which
- represent independent observations, and has proven to be very broadly
- useful ***citeDellaertKaess***.
+ A probabilistic model relates a set of unknown variables of interest to observable, known or assumed quantities, and most generally takes the form of a graph whose connections encode those relationships.
+ In particular, the elegant <b>factor graph</b> formulation
+  connects variables via factors which
+ represent independent observations ***citeDellaertKaess***.
+Inference on a factor graph is the process of determining the most probable values of the variables, or their full marginal distributions, given the observations.
 </p>
 
     <p>
       Many algorithms for inference on factor graphs have been
       proposed, and these have computational characteristics which
-      take advantage of the structure of particular problems. However,
+      take advantage of problem structure. However,
       efficient inference on the large, changing and highly
       inter-connected graphs
-which represent the true structure of challenging practical problems
+which represent challenging practical problems
       such as incremental 3D computer vision 
-      remains computationally challenging. The best real-time systems
-      currently resort to approximations of the true probabilistic
-      problem structure to remain tractable, and therefore lose in accuracy.
+      remains computationally challenging.
       
 
       <!--
 probability: interpretable; interfaceable
-      - already ubiquitous in Spatial AI
-      Probabilistic representations will also be important where interpretability is desired and essential in "Spatial AI" applications such as autonomous transport and robotics, which need to act safely in the physical world.
-      -->
-
+-->
     </p>
 
 
@@ -119,11 +112,11 @@ inference, we should recall the "Bitter Lesson" of machine learning
     <p>
 How do we anticipate the computational resources available for factor
 graph inference in Spatial AI to scale in the coming years?
+Most generally, we forsee 
+a future "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous computing systems.
+Computation and storage will be increasingly local.
 
-
-*** working from here ***
-
-These requirements point to a future "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous computing systems. As has been the case for algorithmic inductive biases, hand-designing these hardware will likely pose a significant challenge. Instead, we believe that what is needed is a flexible algorithmic/computational structure that can adapt to the demands of the task.
+*** whether across multiple devices, or within single chips
     </p>
 
 
