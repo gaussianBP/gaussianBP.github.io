@@ -34,6 +34,12 @@ export class FactorGraph {
     }
   }
 
+  compute_factors() {
+    for(var c=0; c<this.factors.length; c++) {
+      this.factors[c].compute_factor();
+    }
+  }
+
   count_meas() {
     let n_meas = 0;
     for(var c=0; c<this.factors.length; c++) {
@@ -203,42 +209,69 @@ export class LinearFactor {
 
     this.messages = [new gauss.Gaussian(m.Matrix.zeros(1, 1), m.Matrix.zeros(1, 1)),
                      new gauss.Gaussian(m.Matrix.zeros(1, 1), m.Matrix.zeros(1, 1))];
+
+    this.huber = false;
+    this.robust_threshold = 0.8;
+    this.robust = false;
+
+    this.dropout = 0;
+    this.damping = 0;
   }
 
   compute_factor() {
     this.factor.eta = m.Matrix.zeros(this.dofs, 1);
     this.factor.lam = m.Matrix.zeros(this.dofs, this.dofs);
+
     for (var i=0; i<this.jacs.length; i++) {
-      this.factor.eta.add(this.jacs[i].transpose().mul(this.lambdas[i] * this.meas[i]));
-      this.factor.lam.add(this.jacs[i].transpose().mmul(this.jacs[i]).mul(this.lambdas[i]));
+      let lam = this.lambdas[i]
+      if (this.huber && this.adj_beliefs[0].lam.get(0, 0)!=0 && this.adj_beliefs[1].lam.get(0, 0)!=0 ) {
+        const means = this.adj_beliefs.map(x => x.getMean().get(0,0));
+        const stacked_means = new m.Matrix([[means[0]], [means[1]]]);
+        const res = Math.abs(this.jacs[i].mmul(stacked_means).get(0,0) - this.meas[i]);
+        const thresh = this.robust_threshold / Math.sqrt(lam)
+        if (Math.abs(res) > thresh) {
+          lam = 2 * this.robust_threshold * Math.sqrt(lam) / res - this.robust_threshold*this.robust_threshold / (res * res);
+          // console.log("robust factor between", this.adj_var_ids[0], this.adj_var_ids[1]);
+          this.robust = true;
+        } else {
+          this.robust = false;
+        }
+      }
+      // console.log(this.adj_var_ids[0], this.adj_var_ids[1], i, lam);
+      this.factor.eta.add(this.jacs[i].transpose().mul(lam * this.meas[i]));
+      this.factor.lam.add(this.jacs[i].transpose().mmul(this.jacs[i]).mul(lam));
     }
   }
 
   // Only for bipartite factors where the adjacent vars have 1 dof
   send_mess(ix) {
-    if (ix) {
-      const mess1 = new gauss.Gaussian([[0]], [[0]]);
-      if (!(this.adj_beliefs[0].lam.get(0, 0)==0 && this.lambdas.length==1)) {  // If message has absolute information
-        mess1.eta = new m.Matrix([[this.factor.eta.get(1, 0) - 
-          this.factor.lam.get(1, 0) * (this.factor.eta.get(0, 0) + this.adj_beliefs[0].eta.get(0, 0) - this.messages[0].eta.get(0, 0)) / 
-          (this.factor.lam.get(0, 0) + this.adj_beliefs[0].lam.get(0, 0) - this.messages[0].lam.get(0, 0))]]);
-        mess1.lam = new m.Matrix([[this.factor.lam.get(1, 1) - 
-          this.factor.lam.get(1, 0) * this.factor.lam.get(0, 1) / 
-          (this.factor.lam.get(0, 0) + this.adj_beliefs[0].lam.get(0, 0) - this.messages[0].lam.get(0, 0))]]);
+    if (Math.random() >  this.dropout) {  // Send previous message
+
+      if (ix) {
+        const mess1 = new gauss.Gaussian([[0]], [[0]]);
+        if (!(this.adj_beliefs[0].lam.get(0, 0)==0 && this.lambdas.length==1)) {  // If message has absolute information
+          mess1.eta = new m.Matrix([[this.factor.eta.get(1, 0) - 
+            this.factor.lam.get(1, 0) * (this.factor.eta.get(0, 0) + this.adj_beliefs[0].eta.get(0, 0) - this.messages[0].eta.get(0, 0)) / 
+            (this.factor.lam.get(0, 0) + this.adj_beliefs[0].lam.get(0, 0) - this.messages[0].lam.get(0, 0))]]);
+          mess1.lam = new m.Matrix([[this.factor.lam.get(1, 1) - 
+            this.factor.lam.get(1, 0) * this.factor.lam.get(0, 1) / 
+            (this.factor.lam.get(0, 0) + this.adj_beliefs[0].lam.get(0, 0) - this.messages[0].lam.get(0, 0))]]);
+        }
+        this.messages[1] = mess1;
+      } else {
+        const mess0 = new gauss.Gaussian([[0]], [[0]]);
+        if (!(this.adj_beliefs[1].lam.get(0, 0)==0 && this.lambdas.length==1)) {  // If message has absolute information
+          mess0.eta = new m.Matrix([[this.factor.eta.get(0, 0) - 
+              this.factor.lam.get(0, 1) * (this.factor.eta.get(1, 0) + this.adj_beliefs[1].eta.get(0, 0) - this.messages[1].eta.get(0, 0)) / 
+              (this.factor.lam.get(1, 1) + this.adj_beliefs[1].lam.get(0, 0) - this.messages[1].lam.get(0, 0))]]);
+          mess0.lam = new m.Matrix([[this.factor.lam.get(0, 0) - 
+              this.factor.lam.get(0, 1) * this.factor.lam.get(1, 0) / 
+              (this.factor.lam.get(1, 1) + this.adj_beliefs[1].lam.get(0, 0) - this.messages[1].lam.get(0, 0))]]);
+        }
+        this.messages[0] = mess0;
       }
-      this.messages[1] = mess1;
-    } else {
-      const mess0 = new gauss.Gaussian([[0]], [[0]]);
-      if (!(this.adj_beliefs[1].lam.get(0, 0)==0 && this.lambdas.length==1)) {  // If message has absolute information
-        mess0.eta = new m.Matrix([[this.factor.eta.get(0, 0) - 
-            this.factor.lam.get(0, 1) * (this.factor.eta.get(1, 0) + this.adj_beliefs[1].eta.get(0, 0) - this.messages[1].eta.get(0, 0)) / 
-            (this.factor.lam.get(1, 1) + this.adj_beliefs[1].lam.get(0, 0) - this.messages[1].lam.get(0, 0))]]);
-        mess0.lam = new m.Matrix([[this.factor.lam.get(0, 0) - 
-            this.factor.lam.get(0, 1) * this.factor.lam.get(1, 0) / 
-            (this.factor.lam.get(1, 1) + this.adj_beliefs[1].lam.get(0, 0) - this.messages[1].lam.get(0, 0))]]);
-      }
-      this.messages[0] = mess0;
     }
+
   }
 
   send_both_mess(){
@@ -252,7 +285,7 @@ export class LinearFactor {
 }
 
 
-export function create1Dgraph(n_var_nodes, smoothness_std) {
+export function create1Dgraph(n_var_nodes, smoothness_std, huber = false, dropout = 0.0, damping = 0.0) {
 
   const graph = new FactorGraph()
 
@@ -266,6 +299,9 @@ export function create1Dgraph(n_var_nodes, smoothness_std) {
   const smoothness_jac = new m.Matrix([[-1, 1]]);
   for(var i=0; i<(n_var_nodes-1); i++) {
     const new_factor = new LinearFactor(2, [i, i+1], );
+    new_factor.huber = huber;
+    new_factor.dropout = dropout;
+    new_factor.damping = damping;
     new_factor.jacs.push(smoothness_jac);
     new_factor.meas.push(0.);
     new_factor.lambdas.push(1 / Math.pow(smoothness_std, 2));

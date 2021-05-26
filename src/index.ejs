@@ -586,10 +586,19 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
       The <a href="#huber">figure</a> on the right displays how the rescaled Gaussian factor is computed.
       Our interpretation is that robust factors play a similar role to non-linearities in neural networks, activating or deactivating messages in the graph.
       Indeed recent works have shown the importance of robust factors with GBP - they are crucial to identify outlying correspondences in bundle adjustment <d-cite key="Ortiz:etal:CVPR2020"></d-cite> and outlying semantic predictions in incremental scene abstraction <span class="note">(fix ref)</span><d-cite key="Ortiz:planes2021"></d-cite>.  
-      Robustness to outliers is crucial for many other applications, and we will explore its importance for image denoising in a later <a href="#attentiongl">interactive figure</a>.
+    </p>
+    </g>
+
+    <p>
+      The interactive <a href="#gbp1d_robust">figure</a> below gives intuition for the effect of robust factors for the task of 1D line fitting.
+      The variables we are estimating are the $y$ values at fixed intervals along the $x$ axis and the blue circles and lines show the mean and standard deviation of the beliefs. 
+      The red squares are measurements that produce data factors in the graph and there are also smoothness factors between all adjacent variable nodes encouraging the $y$ values to be close.
+      You can add your own data factors by clicking on the canvas and a diagram of the factor graph is in the bottom right of the <a href="#gbp1d">figure</a>.
+      Press play to run synchronous GBP and observe that a Huber loss can disregard outliers and retain step discontinuities in the data unlike the standard squared loss<d-footnote>We will see that robust loss functions are crucial for sharp image denoising in a <a href="#attentiongl">later figure</a>.
+      </d-footnote>.
     </p>
 
-    </g>
+    <d-figure id="gbp1d_robust" class="subgrid"></d-figure>
 
     <h3 id="local-updates-and-scheduling">Local updates and Scheduling</h3>
     
@@ -605,13 +614,7 @@ Gaussian belief propagation is a special case of BP with more extensive mathemat
     </p>
 
     <p>
-      In the <a href="#gbp1d">figure</a> below, we explore different message schedules for 1D line fitting / surface estimation.
-      The blue circles and lines show the mean and standard deviation of the belief estimates of the surface height at fixed intervals along the horizontal direction. 
-      The red squares are surface measurements that produce data factors in the graph and there are also smoothness factors between all adjacent variable nodes encouraging the surface estimates to be close.
-      You can add your own data factors by clicking on the canvas and a diagram of the factor graph is in the bottom right of the <a href="#gbp1d">figure</a>.
-    </p>
-
-    <p>
+      In the <a href="#gbp1d">figure</a> below, we explore message scheduling using the 1D line fitting task once again.
       The underlying factor graph is a chain (no loops) and so will converge after one sweep of messages from left to right and back again.
       You can send messages through the graph using the preset schedules (synchronous, random or sweep) or create your own schedule by clicking on a variable node to send messages outwards.
     </p>

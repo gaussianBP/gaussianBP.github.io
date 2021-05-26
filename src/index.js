@@ -72,3 +72,8 @@ import GBP1d from "./diagrams/gbp1d.svelte";
 const GBP1dComponent = new GBP1d({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#gbp1d')
 });
+
+import GBP1dRobust from "./diagrams/gbp1d_robust.svelte";
+const GBP1dRobustComponent = new GBP1dRobust({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#gbp1d_robust')
+});
