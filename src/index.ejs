@@ -114,8 +114,8 @@ inference, we should recall the "Bitter Lesson" of machine learning
     <p>
 How do we anticipate the computational resources available for factor
 graph inference in Spatial AI to scale in the coming years?
-Most generally, we forsee 
-a future "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite>
+Most generally, we forsee a gradual long-term trend towards
+a "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite>
 of parallel, heterogeneous, distributed and asynchronous computing
 systems which communicate in a peer-to-peer manner.
 This will be at several levels: across networks of multiple smart
@@ -125,7 +125,8 @@ robots; and even within single processor chips themselves, where the
 trend towards many-core designs with distributed on-core memory and
 ad-hoc communication is rapidly emerging with the key aim of
 increasing performance while reducing power usage by minimising the 
-      "bits x millimetres" <d-cite key="Sze:Survey2017"></d-cite>.
+"bits x millimetres" <d-cite key="Sze:Survey2017"></d-cite>
+***also cite Graphcore***
 of data movement during computation.
     </p>
     
@@ -138,7 +139,7 @@ of data movement during computation.
       device which has any overall view or coordination of the whole
       model.
       (Even if this were possible, for example via a monolithic
-      cloud-based processor, it may not be desirable, for instance
+      cloud-based processor, it may not be desirable,
       for communication bandwidth or privacy reasons.)
     </p>
 
@@ -147,7 +148,9 @@ of data movement during computation.
     <p>
 Fortunately a well-known algorithm for factor graph inference exists
 which has these properties: Loopy Belief Propagation <d-cite key="Pearl:book1988, kschischang2001factor"></d-cite>.
-     BP, invented in the 1980s, has been applied with great success in certain problem domains
+Belief Progagation (BP) was invented in the 1980s, and is the general procedure for calculating marginals in factor graphs via local probabilistic message passing from node to node.
+It is straightforward to show that BP guarantees optimal marginal computation with one sequence of forward-backward message passing in linear or tree-structured graphs***cite Bishop book**. However, it was also shown that the same local operations have empirically useful properties when applied iteratively to general "loopy" graphs with cycles. Loopy Belief Propagation
+has been applied with great success in certain problem domains
 such as error-correcting
 codes <d-cite key="mceliece1998turbo"></d-cite>.
 However, is not been applied very broadly, and certainly not
@@ -164,24 +167,28 @@ on a CPU with unified memory.
 
     <p>
 We believe that it is the right time to re-evaluate the properties of
-loopy BP, given emerging computing hardware and rising ambition in
-Spatial AI, but in particular we are interested in the special case of
-Gaussian Belief Propagation (GBP). The lack of understanding and use
+loopy BP, given both the rise of graph-like computing hardware and rising ambition in
+Spatial AI, but we focus on the special case of
+Gaussian Belief Propagation (GBP). In GBP, all factors have the form of a Gaussian function of their connected variables, and we also deduce Gaussian-distributed marginals. This means that all messages between nodes also have the form of usually low-dimensional Gaussians, which can be represented by small vectors and matrices. We will show later that GBP can cope with non-linear Gaussian factors, and also robustified Gaussian likelihoods, and with these additions it becomes very broadly applicable to practical problems.
+    </p>
+    <p>
+The lack of understanding and use
 of GBP is rather mysterious, given the ubiquity of Gaussian-based
 estimation in probabilistic computing.
-Gaussian belief propagation is a special case of BP with more extensive mathematical guarantees and strong empirical performance <span class="note">(refs for both)</span>.
-      BP has seen a recent resurgence <d-cite key="george2017generative, satorras2021neural, kuck2020belief, Ortiz:etal:CVPR2020, opipari2021differentiable"></d-cite> since its initial development by Pearl in the 80s <d-cite key="Pearl:book1988"></d-cite>.
+The standard libraries for geometric estimation in computer vision and robotics
+***cite ceres, GTSAM, g20, etc?*** are uniquedly focused on it.
+Gaussian Belief Propagation has both more extensive mathematical guarantees and stronger empirical performance <span class="note">(refs for both)</span> than general GBP.
+      GBP has seen a recent resurgence <d-cite key="george2017generative, satorras2021neural, kuck2020belief, Ortiz:etal:CVPR2020, opipari2021differentiable"></d-cite> since its initial development by Pearl in the 80s <d-cite key="Pearl:book1988"></d-cite>.
       Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, GBP applies probabilistic message passing updates with iterative convergent behaviour. 
     </p>
-- with linearisation, robust factors, is very broadly applicable.
+
     <p>
 
 
     
     <p>
       In this article, we give an introduction to Gaussian Belief Propagation as a strong general purpose algorithmic and representational framework for large scale distributed inference.
-      *** examples 1D, 2D, improc
-      GBP has desirable properties with respect to the vision of distributed future systems that we presented above.
+We give a range of examples across 1D and 2D geometric and image processing in the form of interactive simulations which allow the reader to experiment with and understand its properties.
       The key properties of GBP are that it is:
     </p>
 
