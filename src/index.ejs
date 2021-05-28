@@ -70,7 +70,7 @@
       Bayesian probability theory is ubiquitous in rigorous approaches to reasoning from uncertain data in science, and is the foundation of practical systems in machine learning and robotics <d-cite key="Davison:ARXIV2018"></d-cite><d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> <d-cite key="Ghahramani:Nature2015"></d-cite>. 
       A probabilistic model relates unknown variables of interest to observable, known or assumed quantities, and most generally takes the form of a graph whose connections encode those relationships.
       In particular, the elegant <b>factor graph</b> formulation connects variables via factors which represent independent relationships <d-cite key="dellaert2017factor"></d-cite>.
-      Inference on a factor graph is the process forming the posterior distribution to determine the most probable values of the variables, or their full marginal distributions, given the observations.
+      Inference on a factor graph is the process of forming the posterior distribution to determine the most probable values of the variables, or their full marginal distributions, given the observations.
     </p>
 
     <p>
@@ -113,7 +113,7 @@
       Fortunately, a well-known algorithm for factor graph inference exists which has these properties: Loopy Belief Propagation <d-cite key="Pearl:book1988, kschischang2001factor, Murphy:etal:1999"></d-cite>.
       Belief Progagation (BP) was invented in the 1980s, and is an algorithm for calculating marginals via local probabilistic message passing between nodes in a factor graph.
       BP guarantees exact marginal computation with one sequence of forward-backward message passing in tree-structured graphs <d-cite key="Bishop:Book2006"></d-cite>. 
-      It was also shown that the same local operations have empirically useful properties when applied iteratively to general "loopy" graphs with cycles <d-cite key="Murphy:etal:1999"></d-cite>. 
+      It was also shown that the same local operations have convergent properties when applied iteratively to general "loopy" graphs with cycles <d-cite key="Murphy:etal:1999"></d-cite>. 
       Loopy Belief Propagation has been used with great success in certain domains such as error-correcting codes <d-cite key="mceliece1998turbo"></d-cite> however beyond these has not been broadly applied <d-footnote>Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, loopy BP applies probabilistic message passing updates with iterative convergent behaviour. </d-footnote>.
       <!-- and certainly not substantially in areas such as Spatial AI <d-cite key="davison2018futuremapping"></d-cite>.  -->
     </p>
