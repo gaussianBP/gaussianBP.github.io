@@ -154,7 +154,6 @@
             const rect = e.currentTarget.getBoundingClientRect();
             const x = width * (e.clientX - rect.x) / rect.width;
             const y = height * (e.clientY - rect.y) / rect.height;
-            console.log(x, y);
             visible_alert = false;
             if (x > nodes_x_offset && x < width - nodes_x_offset && y > 0 && y < height) {
                 var ix = (x - nodes_x_offset) / node_x_spacing;
