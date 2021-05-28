@@ -79,11 +79,11 @@ Although GBP was first studied in the 80s, we believe that as hardware is becomi
     <p>
       Bayesian probabilistic theory is ubiquitous in rigorously formulated approaches
 to reasoning from uncertain data in science, and in artificial intelligence is the foundation of practical "Spatial AI" systems for 
- robotics and 3D computer vision <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> <d-cite key="Ghahramani:Nature2015"></d-cite>. 
+ robotics and 3D computer vision <d-cite key="Davison:ARXIV2018"></d-cite><d-cite key="Davison:Ortiz:ARXIV2019"></d-cite> <d-cite key="Ghahramani:Nature2015"></d-cite>. 
  A probabilistic model relates unknown variables of interest to observable, known or assumed quantities, and most generally takes the form of a graph whose connections encode those relationships.
  In particular, the elegant <b>factor graph</b> formulation
   connects variables via factors which
- represent independent observations ***citeDellaertKaess***.
+ represent independent observations ***citeDellaertNewReviewPaper***.
 Inference on a factor graph is the process of determining the most probable values of the variables, or their full marginal distributions, given the observations.
 </p>
 
@@ -169,7 +169,7 @@ on a CPU with unified memory.
 We believe that it is the right time to re-evaluate the properties of
 loopy BP, given both the rise of graph-like computing hardware and rising ambition in
 Spatial AI, but we focus on the special case of
-Gaussian Belief Propagation (GBP). In GBP, all factors have the form of a Gaussian function of their connected variables, and we also deduce Gaussian-distributed marginals. This means that all messages between nodes also have the form of usually low-dimensional Gaussians, which can be represented by small vectors and matrices. We will show later that GBP can cope with non-linear Gaussian factors, and also robustified Gaussian likelihoods, and with these additions it becomes very broadly applicable to practical problems.
+Gaussian Belief Propagation (GBP) <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>. In GBP, all factors have the form of a Gaussian function of their connected variables, and we also deduce Gaussian-distributed marginals. This means that all messages between nodes also have the form of usually low-dimensional Gaussians, which can be represented by small vectors and matrices. We will show later that GBP can cope with non-linear Gaussian factors, and also robustified Gaussian likelihoods, and with these additions it becomes very broadly applicable to practical problems.
     </p>
     <p>
 The lack of understanding and use
