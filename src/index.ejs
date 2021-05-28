@@ -627,16 +627,33 @@
       One simple approach is to coarsen the grid which transforms low frequency errors into higher frequency errors that decay faster. 
       After convergence in the coarsened grid, the solution is used to initialize inference in the original grid which now has smaller low frequency errors. 
       This is the idea behind coarse-to-fine optimization which is broadly used in many grid-based problems where it is simple to build a coarser graph <d-cite key="felzenszwalb2006efficient"></d-cite>. 
+      Lvel
     </p>
 
-    <!-- <p class="note">
-      Redo figure, just as a plot and then redo text. Ref RCN somewhere here?
-      In the interactive figure below, we explore coarse-to-fine GBP for aligning a source signal of 54 points with a target signal that is a translated and stretched version of the source signal.
-      The task is to estimate the offset along the $x$ direction that maps each source point onto the target line by minimising the residuals (shown in red).
-      This is representative of many computer vision tasks such as image stitching, optical flow and stereo disparity estimation.
-      You can experiment with the <a href="#coarse_to_fine">figure</a> below to see how coarse-to-fine GBP finds to a better final solution and converges faster.
-    </p> -->
-    <!-- <d-figure id="coarse_to_fine"></d-figure> -->
+    <g>
+
+    <d-figure class="right-d-figure">
+      <video style="width: 100%;" loop controls muted>
+        <source src="diagrams/tree_bp.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      <figcaption style="text-align: center">
+        Stereo disparity estimation energy curves. Using a stereo pair from <d-cite key="scharstein2002taxonomy"></d-cite>.
+        <br/><br/> 
+        <a target="_"
+          href="https://colab.research.google.com/drive/1YNEv3w4ySKIDEKgjFcoUZP8YoUezmnlv#scrollTo=etl3Irlbu1t8"
+          class="colab-root">
+          Reproduce in a <span class="colab-span" style="background-image: url(./images/colab.svg);">Notebook</span>
+        </a>
+      </figcaption>
+    </d-figure>
+
+    <p>
+      <span class="note">Ref RCN somewhere here?</span>
+      In experiments, we explored coarse-to-fine GBP for stereo disparity estimation of rectified images using a photometric loss.
+      This task is very similar to image stitching and optical flow estimation.
+      The <a href="#coarse_to_fine">figure</a> on the right compares the energy in the graph with coarse-to-fine GBP and GBP immediately at the finest level.
+    </p>
     
     <p>
       Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build coarsened representations of the same problem. 
@@ -644,7 +661,8 @@
       An alternative approach, is to introduce long range connections into the original graph which represent more global features and act as shortcuts for propagating global information.
       This is tackled in <span class="note">(fix ref)<d-cite key="Ortiz:planes2021"></d-cite></span> which adds nodes for planes on top of a point-based SLAM factor graph, allowing global information to propagate more quickly through these higher-level nodes.
     </p>
-  
+    </g>
+
     <h2 id="related-methods">Related Methods</h2>
 
     <p>
