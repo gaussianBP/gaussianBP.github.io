@@ -777,7 +777,7 @@
                 </div>            
 
                 <div style="padding-left: 20px;">
-                    <span class="hint bold-text" style="padding-left: 7px; padding-bottom: 10px;">Loss function: </span>
+                    <span class="hint bold-text" style="padding-left: 7px; padding-bottom: 10px;">Energy function: </span>
                     <ButtonGroup options={[{ id: 0, name: 'Squared' }, { id: 1, name: 'Huber' }]} labelTitle="" selected={robust} on:change={handleChangeRobust}/>
                 </div>
 

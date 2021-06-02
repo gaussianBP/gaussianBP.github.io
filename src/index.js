@@ -8,6 +8,11 @@ const TeaserComponent = new Teaser({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#teaser')
 });
 
+import KeyProperties from "./diagrams/key_properties.svelte";
+const KeyPropertiesComponent = new KeyProperties({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#key_properties')
+});
+
 import Huber from "./diagrams/huber.svelte";
 const HuberComponent = new Huber({ // eslint-disable-line no-unused-vars
   target: document.querySelector('#huber')

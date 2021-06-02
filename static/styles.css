@@ -123,14 +123,6 @@ a.colab-root:hover {
   font-weight: bold;
 }
 
-.box {
-  border: 5px solid var(--blue);
-  border-radius: 15px;
-  background-color: var(--gray-bg);
-  margin-bottom: 12px;
-  padding-top: 8px;
-}
-
 .statement {
   text-align: center;
   font-weight: bold;

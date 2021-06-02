@@ -30,7 +30,7 @@
         color: black;
         background-color: Transparent;
         border-radius: 4px;
-        width: fit-content;
+        width: 100px;
     }
 
 	button.selected {

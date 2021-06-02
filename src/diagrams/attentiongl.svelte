@@ -1080,7 +1080,7 @@ TODO
                     </div>  
                 </div>
                 <div>
-                    <span class="hint bold-text">Loss function: </span><br>
+                    <span class="hint bold-text">Energy function: </span><br>
                     <ButtonGroup options={[{ id: 0, name: 'Squared' }, { id: 1, name: 'Huber' }]} labelTitle="" selected={robust} on:change={handleChangeRobust}/>
                 </div>
             </div>
