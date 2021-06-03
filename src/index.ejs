@@ -70,14 +70,14 @@
 
       Bayesian probability theory is ubiquitous in rigorous approaches to reasoning from uncertain data in science, and is the foundation of practical systems in machine learning and robotics <d-cite key="Ghahramani:Nature2015, davison2018futuremapping"></d-cite>. 
       A probabilistic model relates unknown variables of interest to observable, known or assumed quantities, and most generally takes the form of a graph whose connections encode those relationships.
-      In particular, the elegant <b>factor graph</b> formulation connects variables via factors which represent independent relationships <d-cite key="dellaert2017factor, dellaert4factor"></d-cite>.
-      Inference on a factor graph is the process of forming the posterior distribution to determine the most probable values of the variables, or their full marginal distributions, given the observations.
+      <!-- In particular, the elegant <b>factor graph</b> formulation connects variables via factors which represent independent relationships <d-cite key="dellaert2017factor, dellaert4factor"></d-cite>. -->
+      Inference is the process of forming the posterior distribution to determine the most probable values of the variables, or their full marginal distributions, given the observations.
     </p>
 
     <p>
       <!-- <span class="note">Prior SOTA</span> -->
       There are various possible algorithms for probabilistic inference, many of which take advantage of specific problem structure for fast performance.
-      Efficient inference on large, dynamic and highly inter-connected graphs however remains computationally challenging and is already a limiting factor in real embodied systems.
+      Efficient inference on models represented by large, dynamic and highly inter-connected graphs however remains computationally challenging and is already a limiting factor in real embodied systems.
       Inference on such graphs will only become more important as general purpose perception systems strive towards more heterogeneous and dynamic representations containing abstractions such as objects or other concepts with continually changing relationships <d-cite key="bengio2017consciousness, davison2018futuremapping"></d-cite>
       <d-footnote>
         In AI, there has been a recent trend towards sparse representations and graphs which are the natural data structure for sparse high dimensional data.
@@ -172,11 +172,25 @@
       <d-footnote>
       The sum rule is $p(X) = \sum_Y p(X, Y)$ and the product rule is $p(X, Y) = p(Y \rvert X) p(X)$. 
       </d-footnote>
-      to form the posterior distribution $p(X \rvert D) = \frac{p(X, D)}{p(D)}$.
+      to form the posterior distribution:
+      <d-math block="">
+        p(X \rvert D) = \frac{p(X, D)}{p(D)} 
+        ~.
+      </d-math>
       The posterior distribution summarizes our belief about $X$ after seeing $D$ and can be used for Bayesian decision making or other downstream tasks. 
     </p>
     <p>
-      From the posterior, we can compute things like (i) the most likely configuration of all the variables $X_{\text{MAP}} = \text{arg max}_X p(X \rvert D)$ or (ii) the marginal posteriors $p(x_i \rvert D) = \sum_{X \setminus x_i} p(X \rvert D)$ which summarize our belief about each individual variable after seeing $D$. 
+      From the posterior, we can compute things like:
+    </p>
+      <ol> 
+        <li>
+          the most likely configuration of all the variables $X_{\text{MAP}} = \text{arg max}_X p(X \rvert D)$, or
+        </li>
+        <li>
+          the marginal posteriors $p(x_i \rvert D) = \sum_{X \setminus x_i} p(X \rvert D)$ which summarize our belief about each individual variable after seeing $D$. 
+        </li>
+      </ol>
+    <p>
       These two calculations are known as <b>MAP inference</b> and <b>marginal inference</b> respectively.
       An important difference to note is that MAP inference produces a point estimate while marginal inference retains information about uncertainty.
     </p>
@@ -577,7 +591,7 @@
       In the <a href="#attentiongl">figure</a> below we explore attention-driven message passing for image denoising <d-footnote>As there are no long-range connections in the image denoising graph, local message passing can produce the true local marginals as the effect of more distant parts of the graph is negligible.</d-footnote>. 
       Image denoising is the 2D equivalent of the surface estimation problem from the previous <a href="#gbp1d">figure</a>. 
       The only difference is that previously although variable nodes were at discrete locations the data factors were at any location, while now the data factors are at the same discrete locations as the variable nodes with one per node.
-      The figure also revisits the use of robust energy functions with GBP via covariance rescaling which is crucial for sharp denoising. 
+      We also revisit the use of robust energy functions with GBP via covariance rescaling which is crucial for sharp denoising. 
     </p>
 
     <d-figure id="attentiongl" class="subgrid"></d-figure>
@@ -643,7 +657,7 @@
     </p>
     <p>
       GBP is just one of many possible algorithms that can be used to solve the linearized Gaussian model.
-      To place GBP amongst other methods, we present an overview of a number of related methods for MAP and marginal inference for Gaussian models in the <a href="#related">figure</a> below. 
+      To place GBP amongst other methods, we present an overview of a number of related methods for MAP and marginal inference for Gaussian models in the <a href="#related">table</a> below. 
       As a reminder, inference in Gaussian models is equivalent to solving the linear system $\Lambda \mu = \eta$, for $\mu$ in MAP inference and for $\mu$ and the diagonal elements of $\Lambda^{-1}$ in marginal inference.
       You can hover over the circles in the figure to explore how GBP relates to other methods. 
     </p>
@@ -681,9 +695,9 @@
       Some directions we are most excited about are improving theoretical guarantees, using learned factors <d-cite key="czarnowski2020deepfactors, mukadam2018continuous, opipari2021differentiable"></d-cite>, introducing discrete variables, combining GBP with GNNs <d-cite key="satorras2021neural, kuck2020belief"></d-cite>, using GBP for distributed learning in overparameterized networks and lastly unifying iterative inference with test-time self-supervised learning.
     </p>
 
-    <p class="note">
+    <!-- <p class="note">
       Concluding remark? Return to bitter lesson, or sparsity or web of inter-connected devices?
-    </p>
+    </p> -->
 
     <!-- <p class="note">
       As computer vision researchers, we would like to end by drawing a speculative comparison between Gaussian belief propagation and transformers, once again drawing on Sutton's "bitter lesson" <d-cite key="Sutton:BitterLesson2019"></d-cite>. 
