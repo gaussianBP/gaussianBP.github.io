@@ -13,9 +13,9 @@ const KeyPropertiesComponent = new KeyProperties({ // eslint-disable-line no-unu
   target: document.querySelector('#key_properties')
 });
 
-import Huber from "./diagrams/huber.svelte";
-const HuberComponent = new Huber({ // eslint-disable-line no-unused-vars
-  target: document.querySelector('#huber')
+import Scaling from "./diagrams/scaling.svelte";
+const ScalingComponent = new Scaling({ // eslint-disable-line no-unused-vars
+  target: document.querySelector('#scaling')
 });
 
 import Related from "./diagrams/related.svelte";

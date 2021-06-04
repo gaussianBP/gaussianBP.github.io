@@ -36,8 +36,8 @@
         <div><a href="#technical-introduction">Technical Introduction</a></div>
         <div><a href="#beyond-the-standard-algorithm">Beyond the standard algorithm</a></div>
         <ul>
-          <li><a href="#non-linear-factors">Non-linear factors</a></li>
-          <li><a href="#robust-energy-functions">Robust Energy Functions</li>
+          <li><a href="#non-linear-relationships">Non-linear relationships</a></li>
+          <li><a href="#non-gaussian-data-distributions">Non-Gaussian Data Distributions</li>
           <li><a href="#local-updates-and-scheduling">Local updates and Scheduling</a></li>
           <li><a href="#multiscale-learning">Multiscale Learning</a></li>
         </ul>
@@ -52,7 +52,7 @@
       <d-figure id="teaser" class="teaser"></d-figure>
 
       <p>
-        In this article, we present a visual introduction to Gaussian Belief Propagation (GBP), an approximate probabilistic inference algorithm that operates by passing messages between the nodes of arbitrarily structured factor graphs. A special case of loopy belief propagation, GBP updates rely only on local information and will converge independently of the message schedule. Our key argument is that GBP has the right computational properties to act as a scalable distributed probabilistic inference framework for future machine learning systems.
+        In this article, we present a visual introduction to Gaussian Belief Propagation (GBP), an approximate probabilistic inference algorithm that operates by passing messages between the nodes of arbitrarily structured factor graphs. A special case of loopy belief propagation, GBP updates rely only on local information and will converge independently of the message schedule. Our key argument is that, given recent trends in computing hardware, GBP has the right computational properties to act as a scalable distributed probabilistic inference framework for future machine learning systems.
       </p>
     </g>
     
@@ -61,44 +61,32 @@
     <h4>Bayesian Probabilistic Inference </h4>
 
     <p>
-      <!-- <span class="note">What is the problem? Probabilistic inference</span> -->
-      <!-- probabilistic framework tells us how to represent and manipulate uncertainty. -->
-      <!-- Inference is transforming prior distirbutions into posterior distributions -->
-      <!-- Dominant paradigm for representing models has been graphical models -->
-
-      Bayesian probability theory is the fundamental framework for dealing with uncertain data, and is the foundation of practical systems in machine learning and robotics <d-cite key="Ghahramani:Nature2015, davison2018futuremapping"></d-cite>. 
-      A probabilistic model relates unknown variables of interest to known, observed quantities and most generally takes the form of a graph whose connections encode those relationships.
+      Bayesian probability theory is the fundamental framework for dealing with uncertain data, and is at the core of practical systems in machine learning and robotics <d-cite key="Ghahramani:Nature2015, davison2018futuremapping"></d-cite>. 
+      A probabilistic model relates unknown variables of interest to observable, known or assumed quantities and most generally takes the form of a graph whose connections encode those relationships.
       <!-- In particular, the elegant <b>factor graph</b> formulation connects variables via factors which represent independent relationships <d-cite key="dellaert2017factor, dellaert4factor"></d-cite>. -->
-      Inference is the process of determining the properties of interest that concern the unknown variables, given the observations.
+      Inference is the process of forming the posterior distribution to determine properties of the unknown variables, given the observations, such as their most probable values or their full marginal distributions.
     </p>
 
     <p>
-      <!-- <span class="note">Prior SOTA</span> -->
       There are various possible algorithms for probabilistic inference, many of which take advantage of specific problem structure for fast performance.
-      Efficient inference on models represented by large, dynamic and highly inter-connected graphs however remains computationally challenging and is already a limiting factor in high-dimensional embodied systems.
-      Inference on such graphs will only become more important as general purpose perception systems strive towards more heterogeneous and dynamic representations containing abstractions (such as objects/concepts) with continually changing relationships <d-cite key="bengio2017consciousness, davison2018futuremapping"></d-cite>
+      Efficient inference on models represented by large, dynamic and highly inter-connected graphs however remains computationally challenging and is already a limiting factor in real embodied systems.
+      Inference on such graphs will only become more important as general purpose perception systems strive towards more heterogeneous and dynamic representations containing abstractions (such as objects or concepts) with continually changing relationships <d-cite key="bengio2017consciousness, davison2018futuremapping"></d-cite>
       <d-footnote>
-        In AI, there has been a recent trend towards sparse representations and graphs which are the natural data structure for sparse high dimensional data.
+        In AI, there has been a recent trend towards sparse representations and graphs which are well-suited for representing sparse high dimensional data.
         Part of this trend has been driven by the fact that graphs are a natural representation in certain domains <d-cite key="bengio2017consciousness"></d-cite>, and evidence of this is the rise of graph neural networks and graph-based probabilistic inference frameworks <d-cite key="dellaert2017factor, davison2018futuremapping"></d-cite>.
         Another trend is driven by the idea that massive sparsity is required to scale AI compute and evidence of this is the scaling of neural networks with gated computation <d-cite key="shazeer2017outrageously, fedus2021switch"></d-cite> and the development of novel AI processors specifically for high performance on sparse representations <d-cite key="Lacey:IPUBenchmarks2019"></d-cite>.
         We believe that inference on large scale and dynamic probabilistic graphs will be an important part of this trend towards sparse computing to scale AI compute. 
       </d-footnote>.
-      <!-- Many algorithms for inference on factor graphs have been proposed, and many have computational characteristics which take advantage of problem structure.  -->
-      <!-- Efficient inference on large, dynamic and highly inter-connected graphs which represent challenging practical problems such as incremental 3D computer vision remains computationally challenging. -->
-      <!-- This is especially true as the ambition of such systems increases towards representations which have multiple, heterogeneous levels of abstraction such as objects or other concepts. -->
-      <!-- General purpose perception systems will represent the world not just at the level of sequences of regular image arrays, but as graphs of semantic objects with continuously changing relationships -->
     </p>
 
     <h4>The Bitter Lesson </h4>
 
     <p>
-      <!-- <span class="note">Motivation and impact. Bitter lesson</span> -->
       As we search for the best algorithms for probabilistic inference, we should recall the "Bitter Lesson" of machine learning (ML) research: <i>"general methods that leverage computation are ultimately the most effective, and by a large margin"</i> <d-cite key="Sutton:BitterLesson2019"></d-cite>. 
       A reminder of this is the success of CNN-driven deep learning, which is well suited to GPUs, the most powerful widely-available processors in recent years.
     </p>
 
     <p>
-      <!-- How do we anticipate the computational resources available for factor graph inference in Spatial AI to scale in the coming years? -->
       Looking to the future, we anticipate a long-term trend towards a "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous computing systems which communicate in a peer-to-peer manner.
       This will be at several levels: across networks of multiple smart devices operating in the same environment; across the many sensors, actuators and processors within individual embodied devices; and even within single processor chips themselves
       <d-footnote>For single processor chips, a trend towards multicore designs with distributed on-core memory and ad-hoc communication is rapidly emerging <d-cite key="Lacey:IPUBenchmarks2019, gui2019survey"></d-cite>. This design has the key aim of increasing performance while reducing power usage by minimizing the "bits x millimetres" of data movement during computation <d-cite key="Sze:Survey2017"></d-cite>.</d-footnote>.
@@ -112,20 +100,19 @@
     <h4>Gaussian Belief Propagation </h4>
 
     <p>
-      <!-- Could introduce factor graphs only here. -->
-      <!--  -->
-      Fortunately, a well-known algorithm for factor graph inference exists which has these properties: Loopy Belief Propagation <d-cite key="Pearl:book1988, kschischang2001factor, Murphy:etal:1999"></d-cite>.
-      Belief Progagation (BP) was invented in the 1980s <d-cite key="Pearl:book1988"></d-cite>, and is an algorithm for calculating the marginals of a joint distribution via local message passing between nodes in a factor graph.
-      BP guarantees exact marginal computation with one sequence of forward-backward message passing in tree-structured graphs <d-cite key="Bishop:Book2006"></d-cite>, but empirically produces good results when applied to "loopy" graphs with cycles <d-cite key="Murphy:etal:1999"></d-cite>. 
-      Although Loopy BP has been succesful in a few applications such as error-correcint codes <d-cite key="mceliece1998turbo"></d-cite>, it has not as of yet been applied to broader machine learnting problems. Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, loopy BP applies probabilistic message passing updates with iterative convergent behaviour.
-      <!-- and certainly not substantially in areas such as Spatial AI <d-cite key="davison2018futuremapping"></d-cite>.  -->
+      Fortunately, a well-known inference algorithm exists which has these properties: Loopy Belief Propagation <d-cite key="Pearl:book1988, kschischang2001factor, Murphy:etal:1999"></d-cite>.
+      Belief Progagation (BP) was invented in the 1980s <d-cite key="Pearl:book1988"></d-cite>, and is an algorithm for calculating the marginals of a joint distribution via local message passing between nodes in a factor graph. Factor graphs are a type of bipartite graphical model that connects variables via factors which represent independent relationships <d-cite key="dellaert2017factor, dellaert4factor"></d-cite>.
     </p>
     
     <p>
+      BP guarantees exact marginal computation with one sequence of forward-backward message passing in tree-structured graphs <d-cite key="Bishop:Book2006"></d-cite>, but empirically produces good results when applied to "loopy" graphs with cycles <d-cite key="Murphy:etal:1999"></d-cite>. 
+      Although Loopy BP has been successful in a few applications such as error-correcting codes <d-cite key="mceliece1998turbo"></d-cite>, it has not as of yet been applied to broader machine learning problems. Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, loopy BP applies probabilistic message passing updates with iterative convergent behaviour.
+    </p>
+
+    <p>
       One issue that has precluded the use of general Loopy BP is that it lacks convergence guarantees.
-      <!-- , and has often been considered a "flaky" algorithm.  -->
       However, a second and perhaps more relevant issue given modern hardware trends, is that its computational properties have not fitted the dominant processing paradigms of recent decades, CPUs and GPUs. 
-      Consequently, other factor graph inference algorithms (such as variational inference) have been preferred which take advantage of global problem structure to operate much more rapidly and robustly than loopy BP on a CPU.
+      Consequently, other factor graph inference algorithms have been preferred which take advantage of global problem structure to operate much more rapidly and robustly than loopy BP on a CPU.
     </p>
 
     <p>
@@ -152,7 +139,7 @@
 
     <p>
       In the remainder of the article, we first introduce the GBP algorithm and show that it is intimately linked to solving a linear system of equations $Ax = b$. 
-      We then explore 4 key practical details for applying GBP to real problems: extending GBP to handle <a href="#non-linear-factors">non-linear factors</a> and <a href="#robust-energy-functions">robust energy functions</a>, using <a href="#local-updates-and-scheduling">local message schedules</a> and lastly how <a href="#multiscale-learning">hierarchical structure</a> can help convergence. 
+      We then explore 4 key practical details for applying GBP to real problems: extending GBP to handle <a href="#non-linear-relationships">non-linear relationships</a> and <a href="#non-gaussian-data-distributions">robust non-Gaussian data distributions</a>, using <a href="#local-updates-and-scheduling">local message schedules</a> and lastly how <a href="#multiscale-learning">hierarchical structure</a> can help convergence. 
 
     </p>
 
@@ -161,21 +148,21 @@
     <h3 id="probabilistic-inference">Probabilistic Inference </h3>
 
     <p>
-      Inference is the problem of estimating statistical properties of unknown and possibly stochastic variables $X$ from known or observed quantities $D$ (the data).
+      Inference is the problem of estimating statistical properties of unknown variables $X$ from known or observed quantities $D$ (the data).
       For example, one might be interested in inferring tomorrow's weather (X) from historic data (D), or the 3D structure of an environment (X) from a video sequence (D).
     </p>
     <p>
-      Bayesian inference proceeds by first defining a probabilistic model $p(X, D)$ that describes the relationships between data and variables, then using the sum and product rules of probability
+      Bayesian inference proceeds by first defining a probabilistic model $p(X, D)$ that describes the relationships between data and variables, and then using the sum and product rules of probability
       <d-footnote>
       The sum rule is $p(X) = \sum_Y p(X, Y)$ and the product rule is $p(X, Y) = p(Y \rvert X) p(X)$. 
       </d-footnote>
-      to form the posterior distribution $p(X \rvert D) = \frac{p(X, D)}{p(D)}$, which summarizes our belief about $X$ after seeing $D$ and can be used for decision making or other downstream tasks. 
+      to form the posterior distribution $p(X \rvert D) = \frac{p(X, D)}{p(D)}$. The posterior summarizes our belief about $X$ after seeing $D$ and can be used for decision making or other downstream tasks. 
     </p>
     <p> Given the posterior, we can compute various properties of $X$, for example:
     </p>
       <ol> 
         <li>
-          Tthe most likely configuration of variables $X_{\text{MAP}} = \text{arg max}_X p(X \rvert D)$, or
+          The most likely configuration of the variables $X_{\text{MAP}} = \text{arg max}_X p(X \rvert D)$, or
         </li>
         <li>
           The marginal posteriors $p(x_i \rvert D) = \sum_{X \setminus x_i} p(X \rvert D)$, which summarize our belief about each individual variable given $D$. 
@@ -223,7 +210,7 @@
       </d-footnote>. 
     </p>
     <p>
-      Factor graphs can also be viewed as constraint graphs or energy based models <d-cite key="lecun2006:EBM"></d-cite> where each factor $f_i$ captures an energy $E_i \geq 0$ associated with a subset of the variables $X_i$ 
+      Factor graphs can also be presented as energy based models <d-cite key="lecun2006:EBM"></d-cite> where each factor $f_i$ defines an energy $E_i \geq 0$ associated with a subset of the variables $X_i$ 
       <d-footnote>
         This formalism is closely related to the Boltzmann distribution in statistical physics which gives the probability of a state $i$ as a function of the energy of the state and the temperature of the system:
         <d-math block="">
@@ -275,41 +262,25 @@
     <h3 id="the-belief-propagation-algorithm">The Belief Propagation Algorithm</h2>
 
       <p>
-        <!-- To recap, in probabilistic inference we would like to find the marginal posterior distribution for each variable. -->
-        Belief propagation (BP) is an algorithm for marginal inference - it computes the marginal posterior distribution for each variable, but does not produce the joint distributions between pairs of variables.
+        Belief propagation (BP) is an algorithm for marginal inference, i.e. it computes the marginal posterior distribution for each variable from the set of factors that make up the joint posterior.
+        BP is intimately linked to factor graphs by the following property: <b>BP can be implemented as iterative message passing on the posterior factor graph</b>. 
         The algorithm operates by iteratively updating a node's locally stored belief by sending and receiving messages from neighbouring nodes. Each iteration consists of 3 phases: 
       </p>
+
       <d-figure id="phases"></d-figure>
 
-      <g>
-
       <p>
-        Factor to variable messages express a belief over the receiving node's variables, marginalized over the broadcasting nodes' variables. Variable to factor messages aggregate the messages (which express beliefs over that node's variables) from all factor nodes other than the factor node to which it is currently broadcasting.
+        Factor-to-variable messages express a belief over the receiving node's variables. 
+        Variable-to-factor messages aggregate the messages the variable node has received from all factor nodes other than the factor node it is currently broadcasting to.
+        Lastly, the variable belief is updated by taking a product of all incoming messages. 
+        The 3 equations in the <a href="#bp_equations">figure</a> below, one for each phase of operation, fully define the algorithm.
       </p>
 
       <d-figure id="bp_equations" class="subgrid"></d-figure>
 
-      <p>
-        For graphs that are trees, beliefs will converge to the exact marginals after one sweep after one sweep of messages from a root node to the leaf nodes and back. <d-cite key="Pearl:book1988"></d-cite>. 
-        For models with arbitrary conditional independence structure, including cycles or "loops", loopy BP <d-cite key="Murphy:etal:1999"></d-cite> iteratively applies the same message passing rules to all nodes.
-        The simplest variant of loopy BP sends messages from all nodes at every iteration in a synchronous fashion.
-        The <a href="#mp_videos">videos</a> on the right illustrate how BP is applied to trees and graphs with loops.
-      </p>
-
-      <p class="note">
-      The below has to be worked out. Need to give some intuition about why it may not converge. Can't talk about free energies unless we actually define it, either here or in an appendix.
-      </p>
-
-      <p>
-        Loopy BP generally converges to the true marginals although can fail to converge for very loopy graphs <d-cite key="Murphy:etal:1999, Weiss:Freeman:NIPS2000, wainwright2008graphical"></d-cite>.  
-        This behaviour can be understood by viewing loopy BP as an approximate variational inference method in which inference is cast as the problem of optimizing a free energy. 
-        Loopy BP can be derived via constrained minimization of the Bethe free energy which is a non-convex approximation of the variational free energy.
-        BP variants have been developed using more accurate approximations of the free energy <d-cite key="yedidia2000generalized"></d-cite>, however a detailed discussion of the theory behind BP is beyond the scope of this article and we refer the reader to <d-cite key="wainwright2008graphical"></d-cite> for a in depth review. 
-        Most interesting problems have loopy structures and so for the remainder of the article we will use BP to refer to loopy BP.
-      </p>
-
-      <d-figure id="mp_videos">
-        <video style="width: 48%;" loop controls muted>
+      <g>
+      <d-figure id="mp_videos"class="right-d-figure">
+        <video style="width: 48%" loop controls muted>
           <source src="diagrams/tree_bp.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
@@ -322,10 +293,34 @@
         </figcaption>
       </d-figure>
 
-      </g>
-    
       <p>
-        So far, although we have outlined the BP equations, we have not specified the form of the factors, messages or beliefs. In the remainder of the technical introduction, we focus on Gaussian belief propagation which is a special form of continous BP for Gaussian models. 
+        Belief propagation was originally developed for graphs that are trees        
+        <d-footnote>
+          For <a href="https://en.wikipedia.org/wiki/Tree_(graph_theory)#:~:text=In%20graph%20theory%2C%20a%20tree,a%20connected%20acyclic%20undirected%20graph." target="_">tree</a> graphs, any two nodes are connected by exactly one path.
+        </d-footnote>
+        and the updates were designed such that the beliefs converge to the exact marginals after one sweep of messages from a root node to the leaf nodes and back <d-cite key="Pearl:book1988"></d-cite>. 
+        For models with arbitrary conditional independence structure, including cycles or "loops", loopy BP <d-cite key="Murphy:etal:1999"></d-cite> iteratively applies the same message passing rules to all nodes.
+        The simplest variant of loopy BP sends messages from all nodes at every iteration in a synchronous fashion.
+        The <a href="#mp_videos">videos</a> on the right illustrate how BP is applied to trees and graphs with loops.
+      </p>
+
+      <p>
+        As BP was originally developed for trees, its application to loopy graphs was at first empirical <d-cite key="Murphy:etal:1999"></d-cite>. 
+        Theoretical grounds for applying the same update rules to loopy graphs were later developed <d-cite key="yedidia2000generalized, Weiss:Freeman:NIPS2000, wainwright2008graphical"></d-cite> that explain loopy BP as an approximate variational inference method in which inference is cast as an optimization problem.
+        Instead of directly minimizing the factor energies (as is done in MAP inference), loopy BP minimizes the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> between the marginal posteriors and a variational distribution which we will use as a proxy for the marginals after optimization.
+        <!-- The dissimilarity is usually measured by the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> and approximations of this divergence are often known as free energies.  -->
+        Loopy BP can be derived via constrained minimization of an approximation of the KL divergence known as the Bethe free energy <d-cite key="yedidia2000generalized"></d-cite> (see <a href="#derivation">Appendix A</a> for the derivation).
+      </p>
+      <p>
+        As the Bethe free energy is non-convex, loopy BP is not guaranteed to converge and even when it does it may converge to the wrong marginals.
+        Empirically, however BP generally converges to the true marginals although for very loopy graphs it can fail <d-cite key="Murphy:etal:1999, wainwright2008graphical"></d-cite>. 
+      </p>
+      </g>
+
+      <p>
+        Most interesting problems have loopy structures and so for the remainder of the article we will use BP to refer to loopy BP.
+        So far, although we have outlined the BP equations, we have not specified the form of the factors, messages or beliefs. 
+        From here, we focus on Gaussian belief propagation which is a special form of continuous BP for Gaussian models. 
       </p>
 
       <h3 id="gaussian-models">Gaussian Models</h2>
@@ -365,14 +360,14 @@
             P(X) \propto \exp( - \frac{1}{2} X^\top \Lambda X + \eta^\top X)
             ~,
           </d-math>
-          <b>MAP inference</b> in this system corresponds to computing the parameters $X_{\text{MAP}}$ that maximize the above quantity. As usual, we can compute the gradient of the log-likelihood (the total energy):
+          <b>MAP inference</b> corresponds to computing the parameters $X_{\text{MAP}}$ that maximize the above joint distribution. As usual, we can compute the gradient of the log-probability (the total energy):
 
           <d-math block="">
             \nabla_X E = \nabla_X \log P(X) = - \Lambda X + \eta
-            ~
+            ~,
           </d-math>
 
-          And solve for $\nabla_X E = 0$. From here, we see that MAP inference in a Gaussian system reduces simply to solving $X_{\text{MAP}} = \mu = \Lambda^{-1} \eta$. 
+          and solve for $\nabla_X E = 0$. From here, we see that MAP inference in a Gaussian system reduces simply to solving $X_{\text{MAP}} = \Lambda^{-1} \eta = \mu$, which as expected is equal to the mean. 
           <!-- Note that maximizing the posterior is also equivalent to minimizing a least squares energy objective: -->
           <!-- <d-math block="">
             X_{\text{MAP}} = \text{arg min}_X  \; - \log p(X) = \text{arg min}_X \; (X - \mu)^\top \Sigma^{-1} (X - \mu) = \mu
@@ -395,25 +390,20 @@
           <!-- The precision matrix $\Lambda$ is a real, square, symmetric, positive definite matrix with known sparsity structure. -->
           <b>MAP inference</b> solves for $\mu$ while <b>marginal inference</b> solves for both  $\mu$ and the block diagonal elements of $\Lambda^{-1}$.
         </p>
-  
-    
-        <!-- <d-figure id="probinf_eqns"></d-figure> -->
-  
-        <!-- 
-        <p>
+      
+        <!-- <p>
           Directly solving the linear system for $x_{\text{\tiny MAP}}$ by inverting $\Lambda$ gives the uncertainty which is the marginal variances or the diagonal elements of the joint covariance matrix $\Sigma = \Lambda^{-1}$. 
           For large systems, this inversion can be very expensive and Gaussian Belief Propagation is an iterative methods that estimates the full marginal distributions, giving both the MAP estimate (the marginal means) and the uncertainty (the marginal variances). We discuss related linear solvers and non-linear least squares optimization methods <a href="#related-methods">later on</a>.    
         </p> -->
 
-
-
     <h3 id="gaussian-belief-propagation-ti">Gaussian Belief Propagation</h2>
 
     <p>
-      Having introduced Gaussian models, we now discuss <b>Gaussian Belief Propagation (GBP)</b>. Due to the closure properties of Gaussians, the beliefs and messages are also Gaussians. Messages in GBP are therefore described completetly by the information vectors and precision matrices corresponding to the local marginalized beliefs.
+      Having introduced Gaussian models, we now discuss <b>Gaussian Belief Propagation (GBP)</b> a form of BP applied to Gaussian models.
+      Due to the closure properties of Gaussians, the beliefs and messages are also Gaussians and GBP operates by storing and passing around information vectors and precision matrices.
     </p>
     <p>
-      Unlike general loopy BP, GBP is guaranteed to converge to the the exact marginal means <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>, although the same is unfortunately not true for the variances - although the variances often converge to the true marginal variances, they are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
+      Unlike general loopy BP, GBP is guaranteed to compute the exact marginal means on convergence<d-cite key="Weiss:Freeman:NIPS2000"></d-cite>, although the same is unfortunately not true for the variances which often converge to the true marginal variances, but are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
       Although GBP does not in general have convergence guarantees, there some convergence conditions <d-cite key="Bickson:PhDThesis:2008, du2018convergence, su2015convergence"></d-cite> as well as methods to improve chances of convergence (see chapter 22 in <d-cite key="murphy2012machine"></d-cite>). 
     </p>
     <p>  
@@ -431,52 +421,54 @@
       We have introduced Gaussian Belief Propagation in its basic form as a probabilistic inference algorithm for Gaussian estimation problems. However, to solve real practical problems with GBP, we often need a number of extra details and tricks which we discuss in this section.
     </p>
 
-    <h3 id="non-linear-factors">Non-linear factors</h3>
+    <h3 id="non-gaussian-factors">Non-Gaussian factors</h3>
 
     <p>
-      <!-- Requiring all factors to be Gaussians is convenient as we can pass around the Gaussian parameters in the form of information vectors and precision matrices. -->
-      Although requiring all factors to be Gaussian is a convenient assumption, many interesting problems involve non-linear relationships.
-      GBP can be extended to handle these problems by linearization, yielding Gaussian approximations of the non-Gaussian factors. 
+      Although requiring all factors to be Gaussian is a convenient assumption, most interesting problems involve <b>non-linear relationships</b> and / or <b>non-Gaussian data distributions</b>, both of which result in non-Gaussian factors. 
+      GBP can be extended to handle these problems by linearizing the non-linear relationships and using covariance scaling to handle non-Gaussian data distributions. 
+      <!-- We will show that with these additions GBP becomes more useful and generally applicable to real problems. -->
     </p>
+
+    <h4 id="non-linear-relationships">Non-linear Relationships</h4>
+
     <p>
+      <!-- To understand how to handle these cases, we first look into how the form of factors is specified.  -->
       A factor is usually created given some observed data $d$ that we model as $d \sim h(X) + \epsilon$, where $h$ simulates the data generation process from the subset of variables $X$ <d-footnote>We are overloading $X$ here by using it to denote a subset of the variables for ease of notation.</d-footnote> and $\epsilon \sim \mathcal{N}(0, \Sigma_n)$ is Gaussian noise.
-      Rearranging, we see that the residual is Gaussian distributed $d - h(X) \sim \mathcal{N}(0, \Sigma_n)$, such that we can write the energy factor in the form: 
+      Rearranging, we see that the residual is Gaussian distributed $r = d - h(X) \sim \mathcal{N}(0, \Sigma_n)$, allowing us to form the factor with energy:
+      <d-math block="">
+        E(X) = \frac{1}{2}(h(X) - d)^\top \Sigma_n^{-1} (h(X) - d)
+        ~.
+      </d-math>
     </p>
-    
-    <d-math block="">
-      E(X) = \frac{1}{2}(h(X) - d)^\top \Sigma_n^{-1} (h(X) - d)
-      ~.
-    </d-math>
-    
+
     <p>
       For linear functions $h(X) = \mathtt{J} X + c$, the energy is quadratic in $X$ and we can rearrange the energy so that the factor is in the Gaussian information form as:
+      <d-math block="">
+        E(X) = \frac{1}{2} X^\top \Lambda X - \eta^\top X
+        \;\;\;\;
+        \text{, where} \;
+        \eta = \mathtt{J}^\top \Sigma_n^{-1} (d - c) 
+        \; \text{and} \;
+        \Lambda = \mathtt{J}^\top \Sigma_n^{-1} \mathtt{J}
+        ~.
+      </d-math>
     </p>
-
-    <d-math block="">
-      E(X) = \frac{1}{2} X^\top \Lambda X - \eta^\top X
-      \;\;\;\;
-      \text{, where} \;
-      \eta = \mathtt{J}^\top \Sigma_n^{-1} (d - c) 
-      \; \text{and} \;
-      \Lambda = \mathtt{J}^\top \Sigma_n^{-1} \mathtt{J}
-      ~.
-    </d-math>
-
 
     <p>
       If $h$ is non-linear <d-footnote>The function $h$ could be any non-linear function, for example a trained neural network <d-cite key="czarnowski2020deepfactors"></d-cite> or a Gaussian process <d-cite key="mukadam2018continuous"></d-cite>.</d-footnote>, the energy is no longer quadratic in $X$ meaning the factor is not Gaussian-distributed. 
-      To restore the Gaussian form, it is standard to use a first-order Taylor expansion about the current estimate $X_{0}$ to approximate the factor as a Gaussian.
+      To restore the Gaussian form, it is standard to use a first-order Taylor expansion about the current estimate $X_{0}$ to approximate the factor as a Gaussian:
     <d-math block="">
       h(X) \approx h(X_{0}) + \mathtt{J} (X - X_{0})
-      ~,  
+      ~.
     </d-math>
       Here $\mathtt{J}$ is now the Jacobian matrix and the factor can be written in the same form as above but with $c = h(X_{0}) - \mathtt{J} X_{0}$ <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>.
     </p>
+
     <p>
       After linearization, the posterior is a Gaussian approximation of the true posterior and inference is performed by successively solving linearized versions of the underlying non-linear problem (as in non-linear least squares optimization).
     </p>
     <p>
-      To see how this linearization works, consider a robot moving in a plane that measures the 2D distance and angle to a landmark also in the plane, where the current estimates for the position of the robot and landmark are $r_0$ and $l_0$ respectively, and the observed measurement is $h(r_0, l_0)$. 
+      To see how this linearization works, consider a robot moving in a plane that measures the 2D distance and angle to a landmark also in the plane, where the current estimates for the position of the robot and landmark are $r_0$ and $l_0$ respectively, and the observed measurement $d = h(r_0, l_0)$. 
       In the interactive figure below, we show both the true non-linear factor and the Gaussian approximated factor with $r$ held constant at $r_0$. 
     </p>
 
@@ -484,42 +476,57 @@
 
     <p>
       The accuracy of the approximate Gaussian factor depends on the linearity of the function $h$ at the linearization point.
-      If $h$ reasonably is smooth, the linear approximation will be good close to the linearization point $l_0$. 
-      Further away $l_0$, the approximation might degrade.
+      As $h$ reasonably is smooth, the linear approximation is good close to the linearization point $l_0$, while further away, the approximation can degrade.
       In practice, during optimization we can avoid this region of poor approximation by relinearizing frequently.
       As GBP is local, a just-in-time approach to linearization <d-cite key="Ranganathan:etal:IJCAI2007"></d-cite> can be used in which factors are relinearized individually when the current estimate of the adjacent variables strays significantly from the linearization point.
     </p>
 
-    <h3 id="robust-energy-functions">Robust Energy Functions</h3>
+    <h4 id="non-gaussian-data-distributions">Non-Gaussian data distributions</h4>
 
     <g>
-    <d-figure class="small-right-d-figure" id="huber"></d-figure>
+    <d-figure class="small-right-d-figure" id="scaling"></d-figure>
 
     <p>
+      A second cause of non-Gaussian factors is non-Gaussian data distributions.
+      We usually model observed data as coming from a Gaussian distribution: $d \sim h(X) + \epsilon$, by choosing $\epsilon$ to be Gaussian noise.
+      Although this is generally sensible <d-cite key="Jaynes:probability2003"></d-cite>, true data distributions often have stronger tails or are more tightly peaked.
+      In these cases, to retain the Gaussian form for GBP, we use an approximate Gaussian data distribution via covariance scaling <d-cite key="Agarwal:etal:ICRA2013, Davison:Ortiz:ARXIV2019, Ortiz:etal:CVPR2020"></d-cite>. 
+      The covariance of the approximate Gaussian is chosen such that the quadratic energy matches the true non-Gaussian energy at that residual, as shown in the <a href="#scaling">figure</a> on the right.
+    </p>
 
-      <p class="note">Motivate this section with discussion of non-Gaussian noise.</p>
-
-      Often due to sensor frailties or unknown hidden variables real datasets contain a large number of outlying observations. 
-      The Gaussian distribution has low probability tails and so a model based on Gaussian-distributed observations is strongly influenced by the large error outliers.
-      To reduce sensitivity to outliers, there are a large class of robust energy / loss functions or <a href="https://en.wikipedia.org/wiki/M-estimator" target="_blank">M-estimators</a> which model the observed data with a distribution that has greater probability mass in the tails. 
-      One example is the Huber loss function <d-cite key="Huber:AMS:1964, Huber:1981"></d-cite> which models the distribution with a Gaussian close to the mean and with a Laplace distribution
+    <p>
+      Robust data distributions (or <a href="https://en.wikipedia.org/wiki/M-estimator" target="_blank">M-estimators</a>), such as the Huber energy <d-cite key="Huber:AMS:1964, Huber:1981"></d-cite>, are a common class of non-Gaussian data distributions which have greater probability mass in the tails to reduce sensitivity to outliers.
+      The Huber energy is a continuous function that is quadratic close to the mean and transitions to a linear function for large residuals to reduce the energy cost of outliers
       <d-footnote>
+        The distribution induced by the Huber energy is therefore a Gaussian distribution close to the mean and a Laplace distribution in the tails.
         The probability density function for the Laplace distribution is 
         <d-math block="">
           p(x ; \mu, \beta) = \frac{1}{2b} \exp\big(\frac{-|x - \mu|}{b}\big)
           ~.
         </d-math> 
-      </d-footnote>
-      in the tails; this is equivalent an energy that penalises squared residuals for inliers and absolute residuals for outliers.
+      </d-footnote>:
+      <d-math block="">
+        E_{\text{huber}}(r) =     
+        \begin{cases}
+          \frac{1}{2} r^\top \Sigma_n^{-1} r, & \text{if}\ \rvert r\rvert  < t \\
+          A \;+ \;  \rvert r \rvert, & \text{otherwise} ~.
+        \end{cases}
+      </d-math> 
+      The approximate quadratic energy for the Huber distribution can be found by solving $\frac{1}{2} r^\top \Sigma_{\text{sc}}^{-1} r = E_{\text{huber}}(r)$ to give the diagonal scaled covariance:
+      <d-math block="">
+        \Sigma_{\text{sc}} =
+        \begin{cases}
+          \Sigma_n , & \text{if}\ \rvert r\rvert  < t \\
+          \frac{2 E_{\text{huber}}(r)}{ r^\top \Sigma_n^{-1} r} \Sigma_n, & \text{otherwise} ~.
+        \end{cases}
+      </d-math> 
     </p>
 
     <p>
-      Robust estimators can be used within the Gaussian framework by rescaling the covariance of a Gaussian to match the energy of the robust estimator at that residual <d-cite key="Agarwal:etal:ICRA2013, Davison:Ortiz:ARXIV2019"></d-cite>. 
-      The interactive <a href="#huber">figure</a> on the right displays how the rescaled Gaussian factor is computed.
-      Our interpretation is that robust factors play a similar role to non-linearities in neural networks, activating or deactivating messages in the graph.
-      Indeed, <d-cite key="Ortiz:etal:CVPR2020"></d-cite> recently showed that robust factors with GBP are crucial to identify outlying correspondences in bundle adjustment.
-      <!-- Indeed recent works have shown the importance of robust factors with GBP - they are crucial to identify outlying correspondences in bundle adjustment <d-cite key="Ortiz:etal:CVPR2020"></d-cite> and outlying semantic predictions in incremental scene abstraction <span class="note">(fix ref)</span><d-cite key="Ortiz:planes2021"></d-cite>.   -->
+      Robust energy functions can make GBP much more generally useful - for example, they are crucial for bundle adjustment <d-cite key="Ortiz:etal:CVPR2020"></d-cite> and for sharp image denoising (as we will see in a <a href="#attentiongl">later figure</a>).
+      More generally, our interpretation is that robust factors can play a similar role to non-linearities in neural networks, activating or deactivating messages in the graph.
     </p>
+
     </g>
 
     <p>
@@ -527,8 +534,7 @@
       The variables we are estimating are the $y$ values at fixed intervals along the $x$ axis and the blue circles and lines show the mean and standard deviation of the beliefs. 
       The red squares are measurements that produce data factors in the graph and there are also smoothness factors between all adjacent variable nodes encouraging the $y$ values to be close.
       You can add your own data factors by clicking on the canvas and a diagram of the factor graph is in the bottom right of the <a href="#gbp1d">figure</a>.
-      Press play to run synchronous GBP and observe that a Huber energy can disregard outliers and retain step discontinuities in the data unlike the standard squared loss<d-footnote>We will see that robust energy functions are crucial for sharp image denoising in a <a href="#attentiongl">later figure</a>.
-      </d-footnote>.
+      Press play to run synchronous GBP and observe that a Huber energy can disregard outliers and retain step discontinuities in the data unlike the standard squared loss.
     </p>
 
     <d-figure id="gbp1d_robust" class="subgrid"></d-figure>
@@ -562,7 +568,7 @@
 
     <p>
       The second property is that GBP can achieve approximate local convergence without global convergence. 
-      Due to the factorized structure of GBP <d-cite key="diehl2018factorized"></d-cite>, global optimization is achieved by solving a set of many interdependent local subproblems.
+      Due to the factorized structure of GBP <d-cite key="diehl2018factorized"></d-cite>, global inference is achieved by jointly solving many interdependent local subproblems.
       There are many instances in which we might only be interested in local solutions - in these cases, GBP can operate in a <b>just-in-time</b> or <b>attention-driven</b> fashion, focusing processing on parts of the graph to solve local subproblems as the task demands. 
       Local message passing can yield accurate relative local solutions which estimate the marginals up to global corrections that come from more distant parts of the graph <d-footnote>One simple example is mapping two connected rooms. An accurate local map of one room can be constructed by focusing processing on the part of the factor graph in that room. For some applications this may be sufficient while for others it may be important to build a map with an accurate absolute position which may require longer range message passing between the parts of the graph corresponding to each separate room. </d-footnote>.
       This attention-driven scheduling can be very economical with compute and energy, only sending the most task-critical messages. 
@@ -575,7 +581,7 @@
       In the <a href="#attentiongl">figure</a> below we explore attention-driven message passing for image denoising <d-footnote>As there are no long-range connections in the image denoising graph, local message passing can produce the true local marginals as the effect of more distant parts of the graph is negligible.</d-footnote>. 
       Image denoising is the 2D equivalent of the surface estimation problem from the previous <a href="#gbp1d">figure</a>. 
       The only difference is that previously although variable nodes were at discrete locations the data factors were at any location, while now the data factors are at the same discrete locations as the variable nodes with one per node.
-      We also revisit the use of robust energy functions with GBP via covariance rescaling which is crucial for sharp denoising. 
+      We also revisit the use of robust energy functions with GBP via covariance scaling which is crucial for sharp denoising. 
     </p>
 
     <d-figure id="attentiongl" class="subgrid"></d-figure>
@@ -648,10 +654,20 @@
 
     <d-figure id="related" class="wider"></d-figure>
 
-    <p>
+    <!-- <p>
       Among these algorithmic choices, our key argument in this article is that local, probabilistic and iterative algorithms will scale more favourably and be able to more gracefully exploit the structure of future problems in machine learning. 
-    </p>
+    </p> -->
 
+    <p>
+      With so many different inference methods, choosing which method to use can be a challenge in itself. 
+      Judging the speed of each method is complex and depends on both the sparsity structure of $\Lambda$ and on the implementation on the available hardware. 
+      Our key argument in this article is that we want a general method that is local, probabilistic and iterative which led us towards Gaussian Belief Propagation.
+    </p>
+    <p>
+      Other notable candidate methods that are local, probabilistic and iterative are Expectation Propagation (EP) <d-cite key="minka2013ep"></d-cite> and Barfoot's algorithm <d-cite key="barfoot2020fundamental"></d-cite>.
+      EP is generally not node-wise parallel and simplifies to GBP in the special case when it is node-wise parallel, while Barfoot's algorithm involves extra communication edges and is yet to be applied to real problems. 
+      For these reasons GBP stands out as the extreme case that maximizes parallelism and minimizes communication - two principles that are at the core of scalable and low-power computation.
+    </p>
     <!--
       <p>
         Approximate inference algorithms: rejection sampling, monte carlo (Gibbs sampling, metropolis hastings), particle filters, 
@@ -697,6 +713,12 @@
 
 
   <d-appendix>
+    <h3 id="derivation">Appendix A: <br> Loopy Belief Propagation Derivation</h3>
+
+    <p>
+      BP variants have been developed using more accurate or convex approximations of the free energy <d-cite key="yedidia2000generalized"></d-cite>, however a detailed discussion of the theory behind BP is beyond the scope of this article and we refer the reader to <d-cite key="wainwright2008graphical"></d-cite> for a in depth review. 
+    </p>
+
     <h3>Acknowledgments</h3>
     <p>
       We are grateful to many researchers with whom we have discussed some of the ideas in this paper, especially from the Dyson Robotics Lab and Robot Vision Group at Imperial College London.
