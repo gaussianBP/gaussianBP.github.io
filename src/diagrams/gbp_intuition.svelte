@@ -18,7 +18,7 @@
     const eq3 = `
         \\tilde{\\eta}_{t} = \\beta \\, \\eta_{t} + (1 - \\beta) \\, \\tilde{\\eta}_{t-1} 
         \\;\\;\\; \\text{and} \\;\\;\\;
-        \\tilde{\\Lambda}_{t} = \\beta \, \\Lambda_{t} + (1 - \\beta) \, \\tilde{\\Lambda}_{t-1} 
+        \\tilde{\\Lambda}_{t} = \\beta \\, \\Lambda_{t} + (1 - \\beta) \\, \\tilde{\\Lambda}_{t-1} 
     `
 
 
@@ -636,7 +636,7 @@
         We employ message damping for the grid 
         <d-footnote>
           Message damping is commonly used to speed up and improve chances of convergence in very loopy graphs, such as the grid problem. 
-          Message damping both empirically <d-cite key="Murphy:etal:1999"></d-cite> and theoretically <d-cite key="su2015convergence"></d-cite> improves convergence without affecting the fixed points of GBP <d-cite key="Murphy:etal:1999"></d-cite>.
+          Message damping both empirically <d-cite key="Murphy:etal:1999"></d-cite> and theoretically <d-cite key="su2015convergence"></d-cite> improves convergence without affecting the fixed points of GBP.
           The idea behind message damping is to use momentum to reduce chances of oscillation by replacing the message at time $t$ with a combination of the message at time $t$ and time $t-1$:
           <d-math block="">
             {eq1}

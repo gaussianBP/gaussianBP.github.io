@@ -73,7 +73,7 @@
       Inference on such graphs will only become more important as general purpose perception systems strive towards more heterogeneous and dynamic representations containing abstractions (such as objects or concepts) with continually changing relationships <d-cite key="bengio2017consciousness, davison2018futuremapping"></d-cite>
       <d-footnote>
         In AI, there has been a recent trend towards sparse representations and graphs which are well-suited for representing sparse high dimensional data.
-        Part of this trend has been driven by the fact that graphs are a natural representation in certain domains <d-cite key="bengio2017consciousness"></d-cite>, and evidence of this is the rise of graph neural networks and graph-based probabilistic inference frameworks <d-cite key="dellaert2017factor, davison2018futuremapping"></d-cite>.
+        Part of this trend has been driven by the fact that graphs are a natural representation in certain domains, and evidence of this is the rise of graph neural networks and graph-based probabilistic inference frameworks <d-cite key="dellaert2017factor, davison2018futuremapping"></d-cite>.
         Another trend is driven by the idea that massive sparsity is required to scale AI compute and evidence of this is the scaling of neural networks with gated computation <d-cite key="shazeer2017outrageously, fedus2021switch"></d-cite> and the development of novel AI processors specifically for high performance on sparse representations <d-cite key="Lacey:IPUBenchmarks2019"></d-cite>.
         We believe that inference on large scale and dynamic probabilistic graphs will be an important part of this trend towards sparse computing to scale AI compute. 
       </d-footnote>.
@@ -94,7 +94,7 @@
     
     <p>
       <!-- If we imagine probabilistic problems spread in complex, multi-scale, dynamic inter-connected webs across such processing resources, we need inference methods which can operate with distributed, local processing and storage, and message passing communication.  -->
-      To scale arbitrarily and leverage all available computation in this "hardware jungle", our key hypothesis is that <b>we need inference methods which can operate with distributed local processing/storage and message passing communication</b>, without the need for a global view or coordination of the whole model <d-footnote>The opposite proposition would be a global centralized inference method, for example via a monolithic cloud-based processor. This centralized approach would not leverage most of the available compute resources and even if feasible may not be desirable, for communication bandwidth or privacy reasons.</d-footnote>.
+      To scale arbitrarily and leverage all available computation in this "hardware jungle", our key hypothesis is that <b>we need inference methods which can operate with distributed local processing / storage and message passing communication</b>, without the need for a global view or coordination of the whole model <d-footnote>The opposite proposition would be a global centralized inference method, for example via a monolithic cloud-based processor. This centralized approach would not leverage most of the available compute resources and even if feasible may not be desirable, for communication bandwidth or privacy reasons.</d-footnote>.
     </p>
 
     <h4>Gaussian Belief Propagation </h4>
@@ -106,7 +106,8 @@
     
     <p>
       BP guarantees exact marginal computation with one sequence of forward-backward message passing in tree-structured graphs <d-cite key="Bishop:Book2006"></d-cite>, but empirically produces good results when applied to "loopy" graphs with cycles <d-cite key="Murphy:etal:1999"></d-cite>. 
-      Although Loopy BP has been successful in a few applications such as error-correcting codes <d-cite key="mceliece1998turbo"></d-cite>, it has not as of yet been applied to broader machine learning problems. Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, loopy BP applies probabilistic message passing updates with iterative convergent behaviour.
+      Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, loopy BP applies probabilistic message passing updates with iterative convergent behaviour.
+      Although Loopy BP has been successful in a few applications such as error-correcting codes <d-cite key="mceliece1998turbo"></d-cite>, it has not as of yet been applied to broader machine learning problems. 
     </p>
 
     <p>
@@ -139,7 +140,7 @@
 
     <p>
       In the remainder of the article, we first introduce the GBP algorithm and show that it is intimately linked to solving a linear system of equations $Ax = b$. 
-      We then explore 4 key practical details for applying GBP to real problems: extending GBP to handle <a href="#non-linear-relationships">non-linear relationships</a> and <a href="#non-gaussian-data-distributions">robust non-Gaussian data distributions</a>, using <a href="#local-updates-and-scheduling">local message schedules</a> and lastly how <a href="#multiscale-learning">hierarchical structure</a> can help convergence. 
+      We then explore 4 key practical details for applying GBP to real problems: extending GBP to handle <a href="#non-linear-relationships">non-linear relationships</a> and <a href="#non-gaussian-data-distributions">non-Gaussian data distributions</a>, using <a href="#local-updates-and-scheduling">local message schedules</a> and lastly how <a href="#multiscale-learning">hierarchical structure</a> can help convergence. 
 
     </p>
 
@@ -169,7 +170,7 @@
         </li>
       </ol>
     <p>
-      These two calculations are known as <b>MAP inference</b> and <b>marginal inference</b> respectively.
+      These two calculations are known as <b>maximum a posteriori (MAP) inference</b> and <b>marginal inference</b> respectively.
       An important difference is that MAP inference produces a point estimate while marginal inference retains information about uncertainty.
     </p>
 
@@ -187,7 +188,7 @@
     <p>
       <!-- A node, edge and triangle are examples of 1-, 2- and 3-cliques, respectively.  -->
       Factorized representations can be very convenient as they expose structure in a model.
-      <b>Factor graphs</b> are the natural visual representation of this factorization and can be very useful representations for reasoning about problems <d-cite key="dellaert2017factor"></d-cite>.
+      <b>Factor graphs</b> are the natural visual representation of this factorization and can be very useful for reasoning about problems <d-cite key="dellaert2017factor"></d-cite>.
     </p>
     <p>
       In the factor graphs in this article, circles and squares represent variable and factor nodes respectively, with edges connecting each factor to the variables it depends on.
@@ -274,7 +275,7 @@
         <br>
         <b>Factor-to-variable message:</b> To send a message to an adjacent variable node, a factor aggregates messages from all other adjacent variable nodes and marginalizes over all the other nodes' variables to produce a message that expresses the factor's belief over the receiving node's variables. 
         <br>
-        <b>Variable-to-factor message:</b> A variable-to-factor message tells the factor what the belief of the variable would be if the receiving factor node did not exist. This is computed by taking the messages the variable node has received from all other factor nodes.
+        <b>Variable-to-factor message:</b> A variable-to-factor message tells the factor what the belief of the variable would be if the receiving factor node did not exist. This is computed by taking the product of the messages the variable node has received from all other factor nodes.
         <br>
         These 3 operations full define the algorithm and their equations are presented <a href="#bp_equations">below</a>.
       </p>
@@ -310,7 +311,7 @@
       <p>
         As BP was originally developed for trees, its application to loopy graphs was at first empirical <d-cite key="Murphy:etal:1999"></d-cite>. 
         Theoretical grounds for applying the same update rules to loopy graphs were later developed <d-cite key="yedidia2000generalized, Weiss:Freeman:NIPS2000, wainwright2008graphical"></d-cite> that explain loopy BP as an approximate variational inference method in which inference is cast as an optimization problem.
-        Instead of directly minimizing the factor energies (as is done in MAP inference), loopy BP minimizes the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> between the marginal posteriors and a variational distribution which we will use as a proxy for the marginals after optimization.
+        Instead of directly minimizing the factor energies (as is done in MAP inference), loopy BP minimizes the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> between the marginal posteriors and a variational distribution which we use as a proxy for the marginals after optimization.
         <!-- The dissimilarity is usually measured by the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> and approximations of this divergence are often known as free energies.  -->
         Loopy BP can be derived via constrained minimization of an approximation of the KL divergence known as the Bethe free energy <d-cite key="yedidia2000generalized"></d-cite> (see <a href="#derivation">Appendix A</a> for the derivation).
       </p>
@@ -358,10 +359,10 @@
         <h3 id="from-gaussian-inference-to-linear-algebra">From Gaussian Inference to Linear Algebra</h2>
     
         <p>
-          The joint distribution corresponding to a factor graph in which all factors are Gaussian can be represented as a single multivariate Gaussian distribution (since the energy terms are additive). In canonical form:
+          The joint distribution corresponding to a factor graph in which all factors are Gaussian can be represented as a single multivariate Gaussian distribution (since the energy terms are additive) in the canonical form:
           <d-math block="">
             P(X) \propto \exp( - \frac{1}{2} X^\top \Lambda X + \eta^\top X)
-            ~,
+            ~.
           </d-math>
           <b>MAP inference</b> corresponds to computing the parameters $X_{\text{MAP}}$ that maximize the above joint distribution. As usual, we can compute the gradient of the log-probability (the total energy):
 
@@ -406,12 +407,12 @@
       Due to the closure properties of Gaussians, the beliefs and messages are also Gaussians and GBP operates by storing and passing around information vectors and precision matrices.
     </p>
     <p>
-      Unlike general loopy BP, GBP is guaranteed to compute the exact marginal means on convergence<d-cite key="Weiss:Freeman:NIPS2000"></d-cite>, although the same is unfortunately not true for the variances which often converge to the true marginal variances, but are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
+      Unlike general loopy BP, GBP is guaranteed to compute the exact marginal means on convergence <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>, although the same is unfortunately not true for the variances which often converge to the true marginal variances, but are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
       Although GBP does not in general have convergence guarantees, there some convergence conditions <d-cite key="Bickson:PhDThesis:2008, du2018convergence, su2015convergence"></d-cite> as well as methods to improve chances of convergence (see chapter 22 in <d-cite key="murphy2012machine"></d-cite>). 
     </p>
     <p>  
       The interactive <a href="#gbp_intuition">figure</a> below aims to build intuition for GBP by exploring the effect of individual messages.
-      For easy visualization and interpretation of the beliefs, we examine 3 spatial estimation problems with increasing loopiness: a chain, a loop and a grid.
+      For easy visualization and interpretation of the beliefs, we examine 3 spatial estimation problems with increasing "loopiness": a chain, a loop and a grid.
       Click on a variable node to send messages to its adjacent variables and observe how neighbouring beliefs are updated.
       You will see that GBP converges to the true marginals regardless of the order in which messages are passed.
     </p>
@@ -445,7 +446,7 @@
     </p>
 
     <p>
-      For linear functions $h(X) = \mathtt{J} X + c$, the energy is quadratic in $X$ and we can rearrange the energy so that the factor is in the Gaussian information form as:
+      For linear functions $h(X) = \mathtt{J} X + c$, the energy is quadratic in $X$ and we can rearrange the energy so that the factor is in the Gaussian canonical form as:
       <d-math block="">
         E(X) = \frac{1}{2} X^\top \Lambda X - \eta^\top X
         \;\;\;\;
@@ -536,7 +537,7 @@
       The interactive <a href="#gbp1d_robust">figure</a> below gives intuition for the effect of robust factors for the task of 1D line fitting.
       The variables we are estimating are the $y$ values at fixed intervals along the $x$ axis and the blue circles and lines show the mean and standard deviation of the beliefs. 
       The red squares are measurements that produce data factors in the graph and there are also smoothness factors between all adjacent variable nodes encouraging the $y$ values to be close.
-      You can add your own data factors by clicking on the canvas and a diagram of the factor graph is in the bottom right of the <a href="#gbp1d">figure</a>.
+      You can add your own data factors by clicking on the canvas and a diagram of the factor graph is in the bottom right of the <a href="#gbp1d_robust">figure</a>.
       Press play to run synchronous GBP and observe that a Huber energy can disregard outliers and retain step discontinuities in the data unlike the standard squared loss.
     </p>
 
@@ -551,7 +552,7 @@
 
     <p>
       It turns out that the message schedule can have a dramatic effect on the rate of convergence. For example, swapping synchronous updates for random message passing tends to improve convergence, while a fixed "round-robin" schedule can do even better <d-cite key="koller2009probabilistic"></d-cite>.
-      Better yet, if each message requires some unit of computation (and therefore energy), it's possible to prioritize sending messages that we think will contribute most to the overall convergence of the system (there is evidence that the brain may apply a similar economical principle<d-cite key="Evans:Burgess:NIPS2019"></d-cite>).
+      Better yet, if each message requires some unit of computation (and therefore energy), it's possible to prioritize sending messages that we think will contribute most to the overall convergence of the system (there is evidence that the brain may apply a similar economical principle <d-cite key="Evans:Burgess:NIPS2019"></d-cite>).
       This is the idea behind residual belief propagation (RBP) <d-cite key="Elidan:etal:UAI2006"></d-cite> and similar variants <d-cite key="Sutton:McCallum:UAI2007, Ranganathan:etal:IJCAI2007"></d-cite>, which form a message queue according to the norm of the difference from the previous message.
     </p>
 
@@ -592,8 +593,7 @@
     <h3 id="multiscale-learning">Multiscale Learning</h3>
 
     <p>
-      As we have discussed being a local algorithm gives GBP many nice properties, however its locality also has some drawbacks.
-      Propagating information from one node to another takes the same number of iterations as the number of hops between the nodes. 
+      Propagating information from one node to another with GBP takes the same number of iterations as the number of hops between the nodes. 
       For nearby nodes in a local region, information can be communicated in a small number of iterations and consensus can be reached quickly, while for distant nodes, a global consensus can take many more iterations to be established. 
       This is an inherent property of local algorithms and can be summarized as low frequency errors decay more slowly than the high frequency errors.
     </p>
@@ -633,7 +633,7 @@
     </p>
     
     <p>
-      Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build coarsened representations of the same problem. 
+      Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build equivalent coarsened representations. 
       In general, most problems are more unstructured and it is not clear how to build a coarsened or abstracted representation of the original problem.
       In the general case, we see two possible ways to build hierarchy into a model. A network could be trained to directly predict specific abstractions that form long range connections when included in the graph. Second, the graph could contain additional constraints that define a generic hierarchical structure (much like a neural network) and then the abstractions themselves are also inferred <d-cite key="george2017generative"></d-cite>.
       <!-- In the these general cases, abstractions or long range connections into the original graph which represent more global features and act as shortcuts for propagating global information. -->
