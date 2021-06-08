@@ -602,7 +602,7 @@
       Accelerating convergence in such grid graphs has been well-studied in the field of Multigrid methods <d-cite key="briggs2000multigrid"></d-cite>.
       One simple approach is to coarsen the grid which transforms low frequency errors into higher frequency errors that decay faster. 
       After convergence in the coarsened grid, the solution is used to initialize inference in the original grid which now has smaller low frequency errors. 
-      This is the idea behind coarse-to-fine optimization which is broadly used in many grid-based problems where it is simple to build a coarser graph. One notable work is <d-cite key="felzenszwalb2006efficient"></d-cite>, in which the authors demonstrate much faster inference for stereo, optical flow and image restoration with multiscale BP. 
+      This is the idea behind coarse-to-fine optimization which is broadly used in many grid-based problems where it is simple to build a coarser graph. In one notable work <d-cite key="felzenszwalb2006efficient"></d-cite>, the authors demonstrate much faster inference for stereo, optical flow and image restoration with multiscale BP. 
     </p>
 
     <g>
@@ -686,7 +686,7 @@
     </p>
 
     <p>
-      We see many exciting directions for future research around GBP and provide a <a href="https://colab.research.google.com/drive/1-nrE95X4UC9FBLR0-cTnsIP_XhA_PZKW?usp=sharing" target="_">GBP Library</a> as a starting point for the interested reader. 
+      We see many exciting directions for future research around GBP and provide a <a href="https://colab.research.google.com/drive/1-nrE95X4UC9FBLR0-cTnsIP_XhA_PZKW?usp=sharing" target="_">GBP Library<span class="colab-span" style="background-image: url(./images/colab.svg);">Notebook</span></a> as a starting point for the interested reader. 
       Some directions we are most excited about are improving theoretical guarantees, using learned factors <d-cite key="czarnowski2020deepfactors, mukadam2018continuous, opipari2021differentiable"></d-cite>, introducing discrete variables, combining GBP with GNNs <d-cite key="satorras2021neural, kuck2020belief"></d-cite>, incrementally abstracting factor graphs, investigating numerical precision for messages, using GBP for distributed learning in overparameterized networks and lastly unifying iterative inference with test-time self-supervised learning.
     </p>
 
