@@ -14,7 +14,6 @@
 
 <body>
 
-
   <d-front-matter>
     <script type="text/json">
       <%= JSON.stringify(require("./frontmatter.json"), null, 4) %>
@@ -25,7 +24,6 @@
     <h1>A visual introduction to Gaussian Belief Propagation</h1>
     <p>A Framework for Distributed Inference with Emerging Hardware.</p>
   </d-title>
-
 
   <d-article>
 
@@ -117,7 +115,8 @@
     </p>
 
     <p>
-      We believe that now is the right time to re-evaluate the properties of loopy BP given the rise of graph-like computing hardware and sparse models - indeed there has been a recent resurgence in interest in the algorithm <d-cite key="george2017generative, satorras2021neural, kuck2020belief, Ortiz:etal:CVPR2020, opipari2021differentiable"></d-cite>.
+      We believe that now is the right time to re-evaluate the properties of loopy BP given the rise of graph-like computing hardware and sparse models.
+      Indeed there has been a recent resurgence in interest in the algorithm <d-cite key="george2017generative, satorras2021neural, kuck2020belief, Ortiz:etal:CVPR2020, opipari2021differentiable"></d-cite>; in particular, one notable work <d-cite key="Ortiz:etal:CVPR2020"></d-cite> demonstrated that BP on novel graph processor hardware can achieve a 24x speed improvement over standard methods for bundle adjustment.
       <!-- and the ambitions for more heterogeneous and dynamic representations with less fixed structure. -->
       We focus on the special case of Gaussian Belief Propagation (GBP) <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, in which all factors are Gaussian functions of their dependent variables, and we also infer Gaussian-distributed marginals. 
       GBP has both more extensive mathematical guarantees <d-cite key="du2018convergence"></d-cite> and stronger empirical performance <d-cite key="Bickson:PhDThesis:2008"></d-cite> than general loopy BP.
@@ -603,12 +602,12 @@
       Accelerating convergence in such grid graphs has been well-studied in the field of Multigrid methods <d-cite key="briggs2000multigrid"></d-cite>.
       One simple approach is to coarsen the grid which transforms low frequency errors into higher frequency errors that decay faster. 
       After convergence in the coarsened grid, the solution is used to initialize inference in the original grid which now has smaller low frequency errors. 
-      This is the idea behind coarse-to-fine optimization which is broadly used in many grid-based problems where it is simple to build a coarser graph <d-cite key="felzenszwalb2006efficient"></d-cite>. 
+      This is the idea behind coarse-to-fine optimization which is broadly used in many grid-based problems where it is simple to build a coarser graph. One notable work is <d-cite key="felzenszwalb2006efficient"></d-cite>, in which the authors demonstrate much faster inference for stereo, optical flow and image restoration with multiscale BP. 
     </p>
 
     <g>
 
-    <d-figure class="right-d-figure">
+    <!-- <d-figure class="right-d-figure">
       <video style="width: 100%;" loop controls muted>
         <source src="diagrams/tree_bp.mp4" type="video/mp4" />
         Your browser does not support the video tag.
@@ -624,13 +623,13 @@
           </a>
         </p>
       </figcaption>
-    </d-figure>
+    </d-figure> -->
 
-    <p>
+    <!-- <p>
       In experiments, we explored coarse-to-fine GBP for stereo disparity estimation of rectified images using a photometric loss.
       This task is very similar to image stitching and optical flow estimation.
       The <a href="#coarse_to_fine">figure</a> on the right compares the energy in the graph with coarse-to-fine GBP and GBP immediately at the finest level.
-    </p>
+    </p> -->
     
     <p>
       Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build equivalent coarsened representations. 
@@ -687,8 +686,8 @@
     </p>
 
     <p>
-      We see many exciting directions for future research around GBP. 
-      Some directions we are most excited about are improving theoretical guarantees, using learned factors <d-cite key="czarnowski2020deepfactors, mukadam2018continuous, opipari2021differentiable"></d-cite>, introducing discrete variables, combining GBP with GNNs <d-cite key="satorras2021neural, kuck2020belief"></d-cite>, using GBP for distributed learning in overparameterized networks and lastly unifying iterative inference with test-time self-supervised learning.
+      We see many exciting directions for future research around GBP and provide a <a href="https://colab.research.google.com/drive/1-nrE95X4UC9FBLR0-cTnsIP_XhA_PZKW?usp=sharing" target="_">GBP Library</a> as a starting point for the interested reader. 
+      Some directions we are most excited about are improving theoretical guarantees, using learned factors <d-cite key="czarnowski2020deepfactors, mukadam2018continuous, opipari2021differentiable"></d-cite>, introducing discrete variables, combining GBP with GNNs <d-cite key="satorras2021neural, kuck2020belief"></d-cite>, incrementally abstracting factor graphs, investigating numerical precision for messages, using GBP for distributed learning in overparameterized networks and lastly unifying iterative inference with test-time self-supervised learning.
     </p>
 
     <!-- <p class="note">
@@ -716,6 +715,12 @@
 
 
   <d-appendix>
+    <h3>Acknowledgments</h3>
+    <p>
+      We are grateful to many researchers with whom we have discussed some of the ideas in this paper, especially from the Dyson Robotics Lab and Robot Vision Group at Imperial College London.
+      We would particularly like to thank Xiaofan Mu, Raluca Scona, Riku Murai, Edgar Sucar, Seth Nabarro, Tristan Laidlow, Nanfeng Liu, Shuaifeng Zhi, Kentara Wada and Stefan Leutenegger.
+    </p>
+
     <h3 id="derivation">Appendix A: <br> Variational BP Derivation</h3>
 
     <p>
@@ -824,12 +829,6 @@
 
     <p>
       BP variants have been developed using more accurate or convex approximations of the free energy <d-cite key="yedidia2000generalized"></d-cite>, however a detailed discussion of the theory behind BP is beyond the scope of this article and we refer the reader to <d-cite key="wainwright2008graphical"></d-cite> for a in depth review. 
-    </p>
-
-    <h3>Acknowledgments</h3>
-    <p>
-      We are grateful to many researchers with whom we have discussed some of the ideas in this paper, especially from the Dyson Robotics Lab and Robot Vision Group at Imperial College London.
-      We would particularly like to thank Xiaofan Mu, Raluca Scona, Riku Murai, Edgar Sucar, Seth Nabarro, Tristan Laidlow and Stefan Leutenegger.
     </p>
 
     <d-footnote-list></d-footnote-list>
