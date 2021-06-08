@@ -270,10 +270,13 @@
       <d-figure id="phases"></d-figure>
 
       <p>
-        Factor-to-variable messages express a belief over the receiving node's variables. 
-        Variable-to-factor messages aggregate the messages the variable node has received from all factor nodes other than the factor node it is currently broadcasting to.
-        Lastly, the variable belief is updated by taking a product of all incoming messages. 
-        The 3 equations in the <a href="#bp_equations">figure</a> below, one for each phase of operation, fully define the algorithm.
+        <b>Belief Update:</b> The variable node beliefs are updated by taking a product of the incoming messages from all adjacent factors, each of which represents that factor's belief on the receiving node's variables.
+        <br>
+        <b>Factor-to-variable message:</b> To send a message to an adjacent variable node, a factor aggregates messages from all other adjacent variable nodes and marginalizes over all the other nodes' variables to produce a message that expresses the factor's belief over the receiving node's variables. 
+        <br>
+        <b>Variable-to-factor message:</b> A variable-to-factor message tells the factor what the belief of the variable would be if the receiving factor node did not exist. This is computed by taking the messages the variable node has received from all other factor nodes.
+        <br>
+        These 3 operations full define the algorithm and their equations are presented <a href="#bp_equations">below</a>.
       </p>
 
       <d-figure id="bp_equations" class="subgrid"></d-figure>
@@ -490,7 +493,7 @@
       A second cause of non-Gaussian factors is non-Gaussian data distributions.
       We usually model observed data as coming from a Gaussian distribution: $d \sim h(X) + \epsilon$, by choosing $\epsilon$ to be Gaussian noise.
       Although this is generally sensible <d-cite key="Jaynes:probability2003"></d-cite>, true data distributions often have stronger tails or are more tightly peaked.
-      In these cases, to retain the Gaussian form for GBP, we use an approximate Gaussian data distribution via covariance scaling <d-cite key="Agarwal:etal:ICRA2013, Davison:Ortiz:ARXIV2019, Ortiz:etal:CVPR2020"></d-cite>. 
+      In these cases, to retain the Gaussian form for GBP, we use an approximate Gaussian data distribution via covariance scaling <d-cite key="Agarwal:etal:ICRA2013, Davison:Ortiz:ARXIV2019"></d-cite>. 
       The covariance of the approximate Gaussian is chosen such that the quadratic energy matches the true non-Gaussian energy at that residual, as shown in the <a href="#scaling">figure</a> on the right.
     </p>
 
@@ -498,8 +501,8 @@
       Robust data distributions (or <a href="https://en.wikipedia.org/wiki/M-estimator" target="_blank">M-estimators</a>), such as the Huber energy <d-cite key="Huber:AMS:1964, Huber:1981"></d-cite>, are a common class of non-Gaussian data distributions which have greater probability mass in the tails to reduce sensitivity to outliers.
       The Huber energy is a continuous function that is quadratic close to the mean and transitions to a linear function for large residuals to reduce the energy cost of outliers
       <d-footnote>
-        The distribution induced by the Huber energy is therefore a Gaussian distribution close to the mean and a Laplace distribution in the tails.
-        The probability density function for the Laplace distribution is 
+        The distribution induced by the Huber energy is a Gaussian distribution close to the mean and a Laplace distribution in the tails.
+        The probability density function for the Laplace distribution is:
         <d-math block="">
           p(x ; \mu, \beta) = \frac{1}{2b} \exp\big(\frac{-|x - \mu|}{b}\big)
           ~.
@@ -509,7 +512,7 @@
         E_{\text{huber}}(r) =     
         \begin{cases}
           \frac{1}{2} r^\top \Sigma_n^{-1} r, & \text{if}\ \rvert r\rvert  < t \\
-          A \;+ \;  \rvert r \rvert, & \text{otherwise} ~.
+          A \;+ \;  B \rvert r \rvert, & \text{otherwise} ~.
         \end{cases}
       </d-math> 
       The approximate quadratic energy for the Huber distribution can be found by solving $\frac{1}{2} r^\top \Sigma_{\text{sc}}^{-1} r = E_{\text{huber}}(r)$ to give the diagonal scaled covariance:
@@ -713,7 +716,111 @@
 
 
   <d-appendix>
-    <h3 id="derivation">Appendix A: <br> Loopy Belief Propagation Derivation</h3>
+    <h3 id="derivation">Appendix A: <br> Variational BP Derivation</h3>
+
+    <p>
+      This standard derivation of the belief propagation equations follows Yedida et al <d-cite key="yedidia2000generalized"></d-cite> in showing that the BP update rules follow from constrained minimization of an approximate free energy known as the Bethe free energy. 
+
+    </p>
+
+    <p>
+      We begin by writing the posterior as a product of the factors:
+      <d-math block="">
+        p(X) = \frac{1}{Z} \prod_a f_a(X_a) = \frac{1}{Z} \prod_a e^{-E(X_a)}
+        ~.
+      </d-math>
+      The goal of variational inference is to find a variational distribution $q(X)$ that approximates the posterior well by minimizing the Kullback-Leibler divergence between the variational distribution and the posterior.
+      The KL divergence is a non-negative asymmetric similarity metric that has a minimum of 0 when $p = q$.
+      <d-math block="">
+        \begin{aligned}
+          KL(q \lvert \rvert p) &= \sum_{X} q(X) \log \frac{q(X)}{p(X)} \\
+            &= \sum_{X} q(X) \log q(X) - \sum_{X} q(X) \log p(X) \\
+            &= -H_q(X) - \mathop{\mathbb{E}}_q [\log p(X)] \\
+            &= -H_q(X) - \sum_{a} \mathop{\mathbb{E}}_q [\log f_a(X_a)] + \log(Z) \\
+            <!-- &= -H_q(X) + \sum_{a} \mathop{\mathbb{E}}_q [E(X_a)] + \log(Z) \\ -->
+            &= F(p, q) + \log(Z)
+        \end{aligned}
+      </d-math>
+      Above, we defined the free energy: <d-math block="">F(p, q) = -H_q(X) - \sum_{a} \mathop{\mathbb{E}}_q [\log f_a(X_a)] ~,</d-math> where the first term is the negative of the entropy and the second term is known as the average energy because $-\log f_a(X_a) = E(X_a)$. The free energy has a minimum value of $-\log(Z)$ and by minimizing this free energy we can also minimizing the KL divergence. 
+    </p>
+
+    <p>
+      We first consider the form of the free energy for a tree. For tree graphs, the distribution $q(X)$ can be written in the form:
+      <d-math block="">
+        q(X) = \prod_{i} b_i(x_i)^{1 - d_i} \prod_{a} b_{a}(X_a) 
+        <!-- = \prod_{r \in V} b_r(x_r) \prod_{(s, t) \in E} \frac{b_{st}(x_s, x_t)}{b_s(x_s) b_t(x_t)} -->
+        ~,
+      </d-math>
+      where the first product is over variables and the second is over the factors.
+      $b_i(x_i)$ is the marginal distribution over variable $x_i$, $b_a(X_a)$ is the joint marginal distribution over variables $X_a$ that connect to factor $f_a$, and $d_i$ is the degree of variable node $i$ (the number of nodes neighbouring node $i$). 
+      Plugging this into the expression for the entropy, we get: 
+      <d-math block="">
+        H_{tree}(X) 
+        <!-- &= -\sum_{X} \prod_{i} b_i(x_i)^{1-d_i} \prod_{a} b_{a}(X_a) \log \big\{ \prod_{i} b_i(x_i)^{1-d_i} \prod_{a} b_{a}(X_a) \big\} \\ -->
+        = -\sum_{i} (1 - d_i)  \sum_{x_i} b_i(x_i) \log b_i(x_i) - \sum_{a} \sum_{X_a} b_{a}(X_a) \log b_{a}(X_a) ~.
+      </d-math>
+      Similarly, the average energy can be written as: 
+      <d-math block="">
+        - \sum_{i} \mathop{\mathbb{E}}_q [\log f_i(X_i)] = - \sum_{a} b_a(X_a) \log f_a(X_a)
+      </d-math>
+      Putting this together gives the free energy for tree graphs: 
+      <d-math block="">
+        F_{tree} = - \sum_{i} (d_i-1) \sum_{x_i} b_i(x_i) \log b_i(x_i) + \sum_{a} \sum_{X_a} b_{a}(X_a) \log \frac{b_{a}(X_a)}{ f_{a}(X_a)} ~.
+      </d-math> 
+      For general factor graphs with loops, the $F \neq F_{tree}$.
+      The Bethe approximation is to use the free energy for a tree to approximate the free energy for arbitrary loopy graphs. The resulting approximate free energy is known as the Bethe free energy. 
+    </p>
+    <p>
+      Belief propagation can be derived via minimization of the Bethe free energy subject to two constraints.
+      The first is a marginalization constraint: $b_i(x_i) = \sum_{X_a \setminus i} b_{a}(X_a)$, and the second is a normalization constraint: $\sum_i b_i(x_i) = 1$.
+      With these constraints, we can form the Lagrangian and then set the derivates with respect to the parameters to zero: 
+      <d-math block="">
+        L = F_{Bethe} + \sum_i \gamma_i \bigg\{ 1 - \sum_{x_i} b_i(x_i) \bigg\} + \sum_a \sum_{i \in N(a)} \sum_{x_i} \lambda_{ai}(x_i) \bigg\{ b_i(x_i) - \sum_{X_a \setminus i} b_{a}(X_a) \bigg\}
+      </d-math> 
+      <!-- <d-math block="">
+        \frac{\partial L}{\partial b_{i}(x_i)} = (1 - d_i) (\log b_i(x_i) + 1) + \gamma_i + \sum_{a \in N(i)}\lambda_{ai}(x_i)  = 0
+        ~,
+      </d-math> -->
+      <d-math block="">
+        \frac{\partial L}{\partial b_{i}(x_i)} = 0 \;\;\;\;\;\;
+        \Rightarrow b_{i}(x_i) \propto \prod_{a \in N(i)} \exp \big(\lambda_{ai}(x_i) \big)
+      </d-math>
+      <!-- <d-math block="">
+        \frac{\partial L}{\partial b_{a}(X_a)} = \log \frac{b_{a}(X_a)}{ f_{a}(X_a)} + 1 + \sum_{i \in N(a)}\lambda_{ai}(x_i) = 0
+        ~,
+      </d-math> -->
+      <d-math block="">
+        \frac{\partial L}{\partial b_{a}(X_a)} = 0 \;\;\;\;
+        \Rightarrow b_{a}(X_a) \propto f_{a}(X_a) \prod_{i \in N(a)}\exp \big( \lambda_{ai}(x_i) \big)
+      </d-math>
+
+    </p>
+
+    <p>
+      We now choose the lagrange multiplier to be $\exp(\lambda_{ai}(x_i)) = m_{x_i \rightarrow f_a}(x_i) = \prod_{c \in N(i) \setminus a} m_{f_c \rightarrow x_i}(x_i)$. This is the familiar variable-to-factor message equation and substituting this into the above equations yields the belief propagation fixed point equations (the first of which the reader will recognize as the belief update rule).
+      <d-math block="">
+        b_i(x_i) \propto \prod_{a \in N(i)} m_{x_i \rightarrow f_a} (x_i) \propto
+        <!-- (d_i-1)  -->
+        \prod_{a \in N(i)} m_{f_a \rightarrow x_i}(x_i)
+      </d-math>
+      <d-math block="">
+        b_a(X_a) \propto f_a(X_a) \prod_{i \in N(a)} m_{x_i \rightarrow f_a}(x_i) = f_a(X_a) \prod_{i \in N(a)} \prod_{c \in N(i) \setminus a} m_{f_c \rightarrow x_i} (x_i)
+      </d-math>
+    </p>
+
+    <p>
+      Using the marginalization condition , we can derive an equation for the messages in terms of other messages and produce the factor-to-variable message equation:
+      <d-math block="">
+        \begin{aligned}
+          m_{f_a \rightarrow x_i}(x_i) &= \sum_{X_a \setminus x_i} f_a(X_a) \prod_{j \in N(a) \setminus i} \; \prod_{b \in N(j) \setminus a} m_{f_b \rightarrow x_j}(x_j) \\
+          &= \sum_{X_a \setminus x_i} f_a(X_a) \prod_{j \in N(a) \setminus i} m_{x_j \rightarrow f_a}(x_j)
+        \end{aligned}  
+      </d-math>
+    </p>
+
+    <p>
+      This result tells us that the fixed-points of loopy belief propagation are local stationary points of the Bethe free energy and because the Bethe energy is bounded from below, BP always has a fixed point.
+    </p>
 
     <p>
       BP variants have been developed using more accurate or convex approximations of the free energy <d-cite key="yedidia2000generalized"></d-cite>, however a detailed discussion of the theory behind BP is beyond the scope of this article and we refer the reader to <d-cite key="wainwright2008graphical"></d-cite> for a in depth review. 
