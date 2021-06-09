@@ -99,13 +99,13 @@ d-figure.wider{
   border: solid 1px rgba(0, 0, 0, 0.15);
   border-bottom-color: rgba(0, 0, 0, 0.15);
   text-transform: uppercase;
-  line-height: 16px;
+  line-height: 14px;
 }
 
 span.colab-span {
   background-repeat: no-repeat;
   background-size: 20px;
-  background-position-y: 2px;
+  background-position-y: 8px;
   display: inline-block;
   padding-left: 24px;
   border-radius: 4px;

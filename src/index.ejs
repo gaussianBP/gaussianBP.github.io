@@ -34,7 +34,7 @@
         <div><a href="#technical-introduction">Technical Introduction</a></div>
         <div><a href="#beyond-the-standard-algorithm">Beyond the standard algorithm</a></div>
         <ul>
-          <li><a href="#non-linear-relationships">Non-linear relationships</a></li>
+          <li><a href="#non-linear-relationships">Non-linear Relationships</a></li>
           <li><a href="#non-gaussian-data-distributions">Non-Gaussian Data Distributions</li>
           <li><a href="#local-updates-and-scheduling">Local updates and Scheduling</a></li>
           <li><a href="#multiscale-learning">Multiscale Learning</a></li>
@@ -200,7 +200,7 @@
           p(x_i, x_j | X_{-ij}) = p(x_i | X_{-ij}) p(x_j | X_{-ij})
           ~.
         </d-math>
-        An equivalent way of writing this definition is: 
+        An equivalent way condition is: 
         <d-math block="">
           p(x_i | x_j, X_{-ij}) = p(x_i | X_{-ij}) 
           ~.
@@ -276,7 +276,7 @@
         <br>
         <b>Variable-to-factor message:</b> A variable-to-factor message tells the factor what the belief of the variable would be if the receiving factor node did not exist. This is computed by taking the product of the messages the variable node has received from all other factor nodes.
         <br>
-        These 3 operations full define the algorithm and their equations are presented <a href="#bp_equations">below</a>.
+        These 3 operations fully define the algorithm and their equations are presented <a href="#bp_equations">below</a>.
       </p>
 
       <d-figure id="bp_equations" class="subgrid"></d-figure>
@@ -310,7 +310,7 @@
       <p>
         As BP was originally developed for trees, its application to loopy graphs was at first empirical <d-cite key="Murphy:etal:1999"></d-cite>. 
         Theoretical grounds for applying the same update rules to loopy graphs were later developed <d-cite key="yedidia2000generalized, Weiss:Freeman:NIPS2000, wainwright2008graphical"></d-cite> that explain loopy BP as an approximate variational inference method in which inference is cast as an optimization problem.
-        Instead of directly minimizing the factor energies (as is done in MAP inference), loopy BP minimizes the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> between the marginal posteriors and a variational distribution which we use as a proxy for the marginals after optimization.
+        Instead of directly minimizing the factor energies (as is done in MAP inference), loopy BP minimizes the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> between the posterior and a variational distribution which we use as a proxy for the marginals after optimization.
         <!-- The dissimilarity is usually measured by the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> and approximations of this divergence are often known as free energies.  -->
         Loopy BP can be derived via constrained minimization of an approximation of the KL divergence known as the Bethe free energy <d-cite key="yedidia2000generalized"></d-cite> (see <a href="#derivation">Appendix A</a> for the derivation).
       </p>
@@ -406,7 +406,7 @@
       Due to the closure properties of Gaussians, the beliefs and messages are also Gaussians and GBP operates by storing and passing around information vectors and precision matrices.
     </p>
     <p>
-      Unlike general loopy BP, GBP is guaranteed to compute the exact marginal means on convergence <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>, although the same is unfortunately not true for the variances which often converge to the true marginal variances, but are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
+      Unlike general loopy BP, GBP is guaranteed to compute the exact marginal means on convergence, although the same is unfortunately not true for the variances which often converge to the true marginal variances, but are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
       Although GBP does not in general have convergence guarantees, there some convergence conditions <d-cite key="Bickson:PhDThesis:2008, du2018convergence, su2015convergence"></d-cite> as well as methods to improve chances of convergence (see chapter 22 in <d-cite key="murphy2012machine"></d-cite>). 
     </p>
     <p>  
@@ -602,7 +602,7 @@
       Accelerating convergence in such grid graphs has been well-studied in the field of Multigrid methods <d-cite key="briggs2000multigrid"></d-cite>.
       One simple approach is to coarsen the grid which transforms low frequency errors into higher frequency errors that decay faster. 
       After convergence in the coarsened grid, the solution is used to initialize inference in the original grid which now has smaller low frequency errors. 
-      This is the idea behind coarse-to-fine optimization which is broadly used in many grid-based problems where it is simple to build a coarser graph. In one notable work <d-cite key="felzenszwalb2006efficient"></d-cite>, the authors demonstrate much faster inference for stereo, optical flow and image restoration with multiscale BP. 
+      This is the idea behind coarse-to-fine optimization which is used in many grid-based problems where it is simple to build a coarser graph. In one notable work <d-cite key="felzenszwalb2006efficient"></d-cite>, the authors demonstrate much faster inference for stereo, optical flow and image restoration with multiscale BP. 
     </p>
 
     <g>
