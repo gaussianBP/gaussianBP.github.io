@@ -1,6 +1,5 @@
 {
 	"title": "A visual introduction to Gaussian Belief Propagation",
-	"password": "",
 	"authors": [
 		{
 			"author": "Joseph Ortiz",
@@ -24,6 +23,7 @@
 		}
 
 	],
+	"publishedDate": "2021-06-21T10:54:16.000Z",
 	"katex": {
 		"delimiters": [
 			{
