@@ -1,0 +1,736 @@
+:root {
+  --gray-bg: hsl(0, 0%, 97%);
+  --gray-border: hsla(0, 0%, 0%, 0.1);
+  --gray: rgba(0, 0, 0, 0.6);
+  --border-radius: 5px;
+  --orange: hsl(24, 100%, 50%);
+  --distill-blue: hsl(200, 50%, 25%);
+  --blue: #337699;
+  --green: #3db867;
+  --full_blue: #007bff;
+  --teal: #69b3a2;
+  --scarlet: #ff2400;
+  --red: #FF0000;
+}
+
+.subgrid {
+  grid-column: screen; 
+  display: grid; 
+  grid-template-columns: inherit;
+  grid-template-rows: inherit;
+  grid-column-gap: inherit;
+  grid-row-gap: inherit;
+}
+
+
+@media (min-width: 1500px) {
+  .part2-fig {
+    grid-column: screen;
+    padding: 10px;
+  }
+}
+
+.citation {
+  font-size: 11px;
+  line-height: 15px;
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+  padding-left: 18px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: rgba(0, 0, 0, 0.02);
+  padding: 10px 18px;
+  border-radius: 3px;
+  color: rgba(150, 150, 150, 1);
+  overflow: hidden;
+  margin-top: -12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  cursor: auto;
+}
+
+d-figure.wider{
+  grid-column: page;
+}
+
+.teaser {
+  float: right;
+  position: relative;
+  left: 9em;
+  margin-left: -9em;
+  width: 450px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 1em;
+}
+
+.right-d-figure {
+  float: right;
+  position: relative;
+  left: 11em;
+  margin-left: -11em;
+  width: 450px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 1em;
+}
+
+.small-right-d-figure {
+  float: right;
+  position: relative;
+  left: 5em;
+  margin-left: -5em;
+  width: 320px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 0.5em;
+}
+
+
+.interactive-container {
+  background-color: var(--gray-bg);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--border-radius);
+  /* border-bottom: 1px solid hsla(0, 0%, 0%, 0.1); */
+  padding: 1em 1.5em;
+  margin-bottom: 1em;
+}
+
+@media (max-width: 768px) {
+  .interactive-container {
+    border-radius: 0;
+    padding: 1em;
+  }
+}
+
+.colab-root {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px !important;
+  text-decoration: none;
+  color: #aaa;
+  border: none;
+  font-weight: 300;
+  border: solid 1px rgba(0, 0, 0, 0.15);
+  border-bottom-color: rgba(0, 0, 0, 0.15);
+  text-transform: uppercase;
+  line-height: 14px;
+}
+
+span.colab-span {
+  background-repeat: no-repeat;
+  background-size: 20px;
+  background-position-y: 8px;
+  display: inline-block;
+  padding-left: 24px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+a.colab-root:hover {
+  color: #666;
+  background: white;
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.note {
+  color: red; 
+  font-weight: bold;
+}
+
+.statement {
+  text-align: center;
+  font-weight: bold;
+  color: var(--blue)
+}
+
+d-figure.base-grid {
+  grid-column: screen;
+  background: hsl(0, 0%, 97%);
+  padding: 20px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+d-figure {
+  margin-bottom: 1em;
+  position: relative;
+}
+
+d-figure > figure {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+d-figure.fullscreen{
+  grid-column: screen;
+}
+
+.shaded-figure {
+  background-color: hsl(0, 0%, 97%);
+  border-top: 1px solid hsla(0, 0%, 0%, 0.1);
+  border-bottom: 1px solid hsla(0, 0%, 0%, 0.1);
+  padding: 30px 0;
+}
+
+.pointer {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  top: 26px;
+  left: -48px;
+}
+
+.demo-container {
+  display:inline-block;
+}
+
+#gbp-container {
+  position: relative;
+  width: 75%;
+  float: left;
+  margin-right:5px;
+}
+
+#settings-panel {
+  position: relative;
+  width: 24%;
+  float: left;
+}
+
+#playground-container {
+  position: relative;
+  width: 800px;
+  height: 800px;
+  float: left;
+  margin-right:5px;
+}
+
+#playground-settings-panel {
+  position: relative;
+  width: 24%;
+  float: left;
+  font-size: 16px;
+  user-select: none;
+}
+
+#hints-panel {
+  font-size: 13px;
+  color: grey;
+  line-height: 1.5em;
+}
+
+#plot_container {
+  display: inline-block;
+  position: relative;
+}
+
+.plot_div {
+  position: relative;
+  float: left;
+  width: 300px;
+  height: 200px;
+  background-color: white;
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.plot_svg {
+  position: relative;
+  width: 270px;
+  height: 170px;
+  background-color: white;
+}
+
+.buttons-panel {
+  font-size: 36px; 
+}
+
+.center {
+  position: absolute;
+  left: 0;
+  top: 37%;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+}
+
+.top-left {
+  position: absolute;
+  font-size: 18px;
+  left: 0;
+  top: 0%;
+  width: 100%;
+  font-size: 18px;
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+  /* background-color: #D3D3D3	; */
+}
+
+.var_node {
+  stroke: #FF0000;
+  fill: white;
+}
+
+.factor_node {
+  fill: white;
+}
+
+.factor_node_off {
+  fill: white;
+  stroke-dasharray: 2;
+}
+
+.factor_box_on {
+  stroke: grey;
+  fill: none;
+  stroke-dasharray: 2;
+}
+
+
+.node_text {
+  user-select: none;
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.svg_text {
+  user-select: none;
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.legend_text {
+  font-size: 14px;
+}
+
+#click-svg {
+  cursor: pointer;
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+  float: left;
+}
+
+.icon {
+  width: 40px; height: 40px;
+  background: steelblue;
+  fill: white;
+  color: white;
+  border-radius: 20px;
+  padding: 5px;
+  margin: 0px;
+  cursor: pointer;
+  position: relative;
+}
+
+.icon-button {
+  width: fit-content;
+  height: fit-content;
+  float: left;
+  outline: none;
+}
+
+button {
+  width: fit-content;
+  border: none;
+  background-color: white;
+  padding: 5px 5px;
+  font-size: 36px;
+  color: rgb(39, 36, 36);
+  font-family: Arial, Arial, Helvetica, sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+
+.not_pressable {
+  opacity: 0.5;
+}
+
+
+#alert {
+  text-align: center;
+  font-size: xx-large;
+}
+
+#pointer {
+  margin-top: 3px;
+  width: 35px;
+  height: 35px;
+}
+
+#wasd {
+  width: 45px;
+}
+
+#demo-tip{
+  float: right;
+  display: grid;
+  grid-template-columns: 40px auto;
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 10px;
+}
+
+#left-demo-tip{
+  float: left;
+  display: grid;
+  grid-template-columns: 40px auto;
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 10px;
+}
+
+#hint {
+  position: relative;
+  color: rgba(0, 0, 0, 0.6);
+  line-height: 1.4em;
+  user-select: text;
+  font-size: 16px;
+}
+
+.boxon {
+  border-radius: 10px;
+  border: 2px solid #000000;
+  padding: 10px;
+}
+.boxoff {
+  border-radius: 10px;
+  border: 2px solid #000000;
+  padding: 10px;
+  opacity: 0.5;
+  background-color: rgb(223, 213, 213);
+}
+
+
+.mi {
+  font-size: 1rem;
+}
+/* Use this to make sure screen readers read something sensible when encountering the mi. If you are using the icons decoratively, you can omit the <span> */
+.u-sr-only {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+}
+
+/* ****************************************
+ * Input slider
+ ******************************************/
+
+ .slider {
+  font-size: 15px;
+  line-height: 1em;
+}
+
+ input[type=range] {
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  width: 95%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
+  margin-bottom: 8px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+
+input[type=range]:focus {
+  outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  cursor: pointer;
+
+  /* Hides the slider so custom styles can be added */
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+/* Thumb */
+
+/* Special styling for WebKit/Blink */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: steelblue;
+  cursor: pointer;
+  margin-top: -6px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+}
+
+/* All the same stuff for Firefox */
+input[type=range]::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: steelblue;
+  cursor: pointer;
+  border: none;
+}
+
+/* All the same stuff for IE */
+input[type=range]::-ms-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: grey;
+  cursor: pointer;
+}
+
+/* Track */
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+input[type=range]::-ms-fill-lower {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]:focus::-ms-fill-lower {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]::-ms-fill-upper {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]:focus::-ms-fill-upper {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ****************************************
+ * On hover tooltip
+ ******************************************/
+
+[data-tooltip] {
+  position: relative;
+  z-index: 2;
+  display: block;
+}
+
+[data-tooltip]:before,
+[data-tooltip]:after {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+	transition: .2s ease-out;
+	transform: translate(-50%, 5px)
+}
+
+[data-tooltip]:before {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 5px;
+  padding: 7px;
+	width: 260%;
+  min-width: 70px;
+	max-width: 250px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background-color: #000;
+  background-color: hsla(0, 0%, 20%, 0.9);
+  color: #fff;
+  content: attr(data-tooltip);
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.2;
+	transition: .2s ease-out
+}
+
+[data-tooltip]:after {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 0;
+  border-top: 5px solid #000;
+  border-top: 5px solid hsla(0, 0%, 20%, 0.9);
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  content: " ";
+  font-size: 0;
+  line-height: 0;
+}
+
+[data-tooltip]:hover:before,
+[data-tooltip]:hover:after {
+  visibility: visible;
+  opacity: 1;
+	transform: translate(-50%, 0)
+}
+[data-tooltip=false]:hover:before,
+[data-tooltip=false]:hover:after {
+  visibility: hidden;
+  opacity: 0;
+}
+
+
+/* ****************************************
+ * TOC
+ ******************************************/
+ @media(max-width: 1199px){
+  d-contents {
+    display: none;
+    justify-self: start;
+    align-self: start;
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+    padding-left: 0.25em;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+  }
+}
+d-contents a:hover {
+  border-bottom: none;
+}
+
+@media (min-width: 1200px){
+  d-contents {
+    align-self: start;
+    grid-column-start: 1 !important;
+    grid-column-end: 4 !important;
+    justify-self: end;
+    margin-top:  0em;
+    padding-right: 3em;
+    padding-left: 2em;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-right-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+d-contents nav h3 {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+d-contents nav div {
+  color: rgba(0, 0, 0, 0.8);
+  font-weight: bold;
+}
+
+d-contents nav a {
+  color: rgba(0, 0, 0, 0.8);
+  border-bottom: none;
+  text-decoration: none;
+}
+
+d-contents li {
+  list-style-type: none;
+}
+
+d-contents ul {
+  padding-left: 1em;
+}
+
+d-contents nav ul li {
+  margin-bottom: .25em;
+}
+
+d-contents nav a:hover {
+  text-decoration: underline solid rgba(0, 0, 0, 0.6);
+}
+
+d-contents nav ul {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+
+d-contents nav>div {
+  display: block;
+  outline: none;
+  margin-bottom: 0.5em;
+}
+
+d-contents nav>div>a {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+d-contents nav>div>a:hover,
+d-contents nav>ul>li>a:hover {
+    text-decoration: none;
+}
+
+
+.eq-grid {
+  display: grid;
+  justify-content: start;
+  grid-row-gap: 10px;
+}
+.eq-grid figcaption d-math {
+  font-size: 100%;
+}
+.eq-grid .expansion-marker-above {
+  border: 1px solid #CCC;
+  border-bottom: none;
+  height: .5em;
+  width: 100%;
+}
+.eq-grid .expansion-marker-below {
+  border: 1px solid #CCC;
+  border-top: none;
+  height: .5em;
+  width: 90%;
+}
+
+
+/* code blocks to margins */
+@media (min-width: 1600px) {
+  d-code {
+    margin-top: -10px;
+    grid-column-start: 12 !important;
+    grid-column-end: 14 !important; 
+  }
+}
+
+/* margin block */
+@media (min-width: 1600px) {
+  .margin {
+    font-size: 85%;
+    border-left: 2px solid rgb(199, 199, 199);
+    padding-left: 10px;
+    margin-top: 10px;
+    grid-column-start: 12 !important;
+    grid-column-end: 15 !important; 
+  }
+}

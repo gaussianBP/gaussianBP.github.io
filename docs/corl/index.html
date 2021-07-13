@@ -1,0 +1,1654 @@
+<!doctype html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style id="distill-article-specific-styles">
+    :root {
+  --gray-bg: hsl(0, 0%, 97%);
+  --gray-border: hsla(0, 0%, 0%, 0.1);
+  --gray: rgba(0, 0, 0, 0.6);
+  --border-radius: 5px;
+  --orange: hsl(24, 100%, 50%);
+  --distill-blue: hsl(200, 50%, 25%);
+  --blue: #337699;
+  --green: #3db867;
+  --full_blue: #007bff;
+  --teal: #69b3a2;
+  --scarlet: #ff2400;
+  --red: #FF0000;
+}
+
+.subgrid {
+  grid-column: screen; 
+  display: grid; 
+  grid-template-columns: inherit;
+  grid-template-rows: inherit;
+  grid-column-gap: inherit;
+  grid-row-gap: inherit;
+}
+
+
+@media (min-width: 1500px) {
+  .part2-fig {
+    grid-column: screen;
+    padding: 10px;
+  }
+}
+
+.citation {
+  font-size: 11px;
+  line-height: 15px;
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+  padding-left: 18px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: rgba(0, 0, 0, 0.02);
+  padding: 10px 18px;
+  border-radius: 3px;
+  color: rgba(150, 150, 150, 1);
+  overflow: hidden;
+  margin-top: -12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  cursor: auto;
+}
+
+d-figure.wider{
+  grid-column: page;
+}
+
+.teaser {
+  float: right;
+  position: relative;
+  left: 9em;
+  margin-left: -9em;
+  width: 450px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 1em;
+}
+
+.right-d-figure {
+  float: right;
+  position: relative;
+  left: 11em;
+  margin-left: -11em;
+  width: 450px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 1em;
+}
+
+.small-right-d-figure {
+  float: right;
+  position: relative;
+  left: 5em;
+  margin-left: -5em;
+  width: 320px;
+  padding-left: 1em;
+  margin-bottom: 0em !important;
+  padding-bottom: 0.5em;
+}
+
+
+.interactive-container {
+  background-color: var(--gray-bg);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--border-radius);
+  /* border-bottom: 1px solid hsla(0, 0%, 0%, 0.1); */
+  padding: 1em 1.5em;
+  margin-bottom: 1em;
+}
+
+@media (max-width: 768px) {
+  .interactive-container {
+    border-radius: 0;
+    padding: 1em;
+  }
+}
+
+.colab-root {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px !important;
+  text-decoration: none;
+  color: #aaa;
+  border: none;
+  font-weight: 300;
+  border: solid 1px rgba(0, 0, 0, 0.15);
+  border-bottom-color: rgba(0, 0, 0, 0.15);
+  text-transform: uppercase;
+  line-height: 14px;
+}
+
+span.colab-span {
+  background-repeat: no-repeat;
+  background-size: 20px;
+  background-position-y: 8px;
+  display: inline-block;
+  padding-left: 24px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+a.colab-root:hover {
+  color: #666;
+  background: white;
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.note {
+  color: red; 
+  font-weight: bold;
+}
+
+.statement {
+  text-align: center;
+  font-weight: bold;
+  color: var(--blue)
+}
+
+d-figure.base-grid {
+  grid-column: screen;
+  background: hsl(0, 0%, 97%);
+  padding: 20px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+d-figure {
+  margin-bottom: 1em;
+  position: relative;
+}
+
+d-figure > figure {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+d-figure.fullscreen{
+  grid-column: screen;
+}
+
+.shaded-figure {
+  background-color: hsl(0, 0%, 97%);
+  border-top: 1px solid hsla(0, 0%, 0%, 0.1);
+  border-bottom: 1px solid hsla(0, 0%, 0%, 0.1);
+  padding: 30px 0;
+}
+
+.pointer {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  top: 26px;
+  left: -48px;
+}
+
+.demo-container {
+  display:inline-block;
+}
+
+#gbp-container {
+  position: relative;
+  width: 75%;
+  float: left;
+  margin-right:5px;
+}
+
+#settings-panel {
+  position: relative;
+  width: 24%;
+  float: left;
+}
+
+#playground-container {
+  position: relative;
+  width: 800px;
+  height: 800px;
+  float: left;
+  margin-right:5px;
+}
+
+#playground-settings-panel {
+  position: relative;
+  width: 24%;
+  float: left;
+  font-size: 16px;
+  user-select: none;
+}
+
+#hints-panel {
+  font-size: 13px;
+  color: grey;
+  line-height: 1.5em;
+}
+
+#plot_container {
+  display: inline-block;
+  position: relative;
+}
+
+.plot_div {
+  position: relative;
+  float: left;
+  width: 300px;
+  height: 200px;
+  background-color: white;
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.plot_svg {
+  position: relative;
+  width: 270px;
+  height: 170px;
+  background-color: white;
+}
+
+.buttons-panel {
+  font-size: 36px; 
+}
+
+.center {
+  position: absolute;
+  left: 0;
+  top: 37%;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+}
+
+.top-left {
+  position: absolute;
+  font-size: 18px;
+  left: 0;
+  top: 0%;
+  width: 100%;
+  font-size: 18px;
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+  /* background-color: #D3D3D3	; */
+}
+
+.var_node {
+  stroke: #FF0000;
+  fill: white;
+}
+
+.factor_node {
+  fill: white;
+}
+
+.factor_node_off {
+  fill: white;
+  stroke-dasharray: 2;
+}
+
+.factor_box_on {
+  stroke: grey;
+  fill: none;
+  stroke-dasharray: 2;
+}
+
+
+.node_text {
+  user-select: none;
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.svg_text {
+  user-select: none;
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.legend_text {
+  font-size: 14px;
+}
+
+#click-svg {
+  cursor: pointer;
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+  float: left;
+}
+
+.icon {
+  width: 40px; height: 40px;
+  background: steelblue;
+  fill: white;
+  color: white;
+  border-radius: 20px;
+  padding: 5px;
+  margin: 0px;
+  cursor: pointer;
+  position: relative;
+}
+
+.icon-button {
+  width: fit-content;
+  height: fit-content;
+  float: left;
+  outline: none;
+}
+
+button {
+  width: fit-content;
+  border: none;
+  background-color: white;
+  padding: 5px 5px;
+  font-size: 36px;
+  color: rgb(39, 36, 36);
+  font-family: Arial, Arial, Helvetica, sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+
+.not_pressable {
+  opacity: 0.5;
+}
+
+
+#alert {
+  text-align: center;
+  font-size: xx-large;
+}
+
+#pointer {
+  margin-top: 3px;
+  width: 35px;
+  height: 35px;
+}
+
+#wasd {
+  width: 45px;
+}
+
+#demo-tip{
+  float: right;
+  display: grid;
+  grid-template-columns: 40px auto;
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 10px;
+}
+
+#left-demo-tip{
+  float: left;
+  display: grid;
+  grid-template-columns: 40px auto;
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 10px;
+}
+
+#hint {
+  position: relative;
+  color: rgba(0, 0, 0, 0.6);
+  line-height: 1.4em;
+  user-select: text;
+  font-size: 16px;
+}
+
+.boxon {
+  border-radius: 10px;
+  border: 2px solid #000000;
+  padding: 10px;
+}
+.boxoff {
+  border-radius: 10px;
+  border: 2px solid #000000;
+  padding: 10px;
+  opacity: 0.5;
+  background-color: rgb(223, 213, 213);
+}
+
+
+.mi {
+  font-size: 1rem;
+}
+/* Use this to make sure screen readers read something sensible when encountering the mi. If you are using the icons decoratively, you can omit the <span> */
+.u-sr-only {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+}
+
+/* ****************************************
+ * Input slider
+ ******************************************/
+
+ .slider {
+  font-size: 15px;
+  line-height: 1em;
+}
+
+ input[type=range] {
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  width: 95%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
+  margin-bottom: 8px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+
+input[type=range]:focus {
+  outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  cursor: pointer;
+
+  /* Hides the slider so custom styles can be added */
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+/* Thumb */
+
+/* Special styling for WebKit/Blink */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: steelblue;
+  cursor: pointer;
+  margin-top: -6px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+}
+
+/* All the same stuff for Firefox */
+input[type=range]::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: steelblue;
+  cursor: pointer;
+  border: none;
+}
+
+/* All the same stuff for IE */
+input[type=range]::-ms-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: grey;
+  cursor: pointer;
+}
+
+/* Track */
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+input[type=range]::-ms-fill-lower {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]:focus::-ms-fill-lower {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]::-ms-fill-upper {
+  background: rgba(0, 0, 0, 0.1);
+}
+input[type=range]:focus::-ms-fill-upper {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ****************************************
+ * On hover tooltip
+ ******************************************/
+
+[data-tooltip] {
+  position: relative;
+  z-index: 2;
+  display: block;
+}
+
+[data-tooltip]:before,
+[data-tooltip]:after {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+	transition: .2s ease-out;
+	transform: translate(-50%, 5px)
+}
+
+[data-tooltip]:before {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 5px;
+  padding: 7px;
+	width: 260%;
+  min-width: 70px;
+	max-width: 250px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background-color: #000;
+  background-color: hsla(0, 0%, 20%, 0.9);
+  color: #fff;
+  content: attr(data-tooltip);
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.2;
+	transition: .2s ease-out
+}
+
+[data-tooltip]:after {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 0;
+  border-top: 5px solid #000;
+  border-top: 5px solid hsla(0, 0%, 20%, 0.9);
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  content: " ";
+  font-size: 0;
+  line-height: 0;
+}
+
+[data-tooltip]:hover:before,
+[data-tooltip]:hover:after {
+  visibility: visible;
+  opacity: 1;
+	transform: translate(-50%, 0)
+}
+[data-tooltip=false]:hover:before,
+[data-tooltip=false]:hover:after {
+  visibility: hidden;
+  opacity: 0;
+}
+
+
+/* ****************************************
+ * TOC
+ ******************************************/
+ @media(max-width: 1199px){
+  d-contents {
+    display: none;
+    justify-self: start;
+    align-self: start;
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+    padding-left: 0.25em;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+  }
+}
+d-contents a:hover {
+  border-bottom: none;
+}
+
+@media (min-width: 1200px){
+  d-contents {
+    align-self: start;
+    grid-column-start: 1 !important;
+    grid-column-end: 4 !important;
+    justify-self: end;
+    margin-top:  0em;
+    padding-right: 3em;
+    padding-left: 2em;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-right-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+d-contents nav h3 {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+d-contents nav div {
+  color: rgba(0, 0, 0, 0.8);
+  font-weight: bold;
+}
+
+d-contents nav a {
+  color: rgba(0, 0, 0, 0.8);
+  border-bottom: none;
+  text-decoration: none;
+}
+
+d-contents li {
+  list-style-type: none;
+}
+
+d-contents ul {
+  padding-left: 1em;
+}
+
+d-contents nav ul li {
+  margin-bottom: .25em;
+}
+
+d-contents nav a:hover {
+  text-decoration: underline solid rgba(0, 0, 0, 0.6);
+}
+
+d-contents nav ul {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+
+d-contents nav>div {
+  display: block;
+  outline: none;
+  margin-bottom: 0.5em;
+}
+
+d-contents nav>div>a {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+d-contents nav>div>a:hover,
+d-contents nav>ul>li>a:hover {
+    text-decoration: none;
+}
+
+
+.eq-grid {
+  display: grid;
+  justify-content: start;
+  grid-row-gap: 10px;
+}
+.eq-grid figcaption d-math {
+  font-size: 100%;
+}
+.eq-grid .expansion-marker-above {
+  border: 1px solid #CCC;
+  border-bottom: none;
+  height: .5em;
+  width: 100%;
+}
+.eq-grid .expansion-marker-below {
+  border: 1px solid #CCC;
+  border-top: none;
+  height: .5em;
+  width: 90%;
+}
+
+
+/* code blocks to margins */
+@media (min-width: 1600px) {
+  d-code {
+    margin-top: -10px;
+    grid-column-start: 12 !important;
+    grid-column-end: 14 !important; 
+  }
+}
+
+/* margin block */
+@media (min-width: 1600px) {
+  .margin {
+    font-size: 85%;
+    border-left: 2px solid rgb(199, 199, 199);
+    padding-left: 10px;
+    margin-top: 10px;
+    grid-column-start: 12 !important;
+    grid-column-end: 15 !important; 
+  }
+}
+  </style>
+
+  <script src="template.v2.js"></script>
+  <title>Gaussian Belief Propagation</title>
+</head>
+
+
+<body>
+
+<!--   <d-front-matter>
+    <script type="text/json">
+      {
+    "title": "A visual introduction to Gaussian Belief Propagation",
+    "authors": [
+        {
+            "author": "Joseph Ortiz",
+            "authorURL": "http://joeaortiz.github.io",
+            "affiliation": "Imperial College London",
+            "affiliationURL": "https://wp.doc.ic.ac.uk/robotvision/"
+        },
+        {
+            "author": "Talfan Evans",
+            "authorURL": "http://www.talfanevans.co.uk",
+            "affiliations": [
+                {
+                    "name": "Imperial College London",
+                    "url": "https://www.imperial.ac.uk/dyson-robotics-lab/"
+                },
+                {
+                    "name": "*now at DeepMind"
+                }
+            ]
+        },
+        {
+            "author": "Andrew J. Davison",
+            "authorURL": "https://www.doc.ic.ac.uk/~ajd/",
+            "affiliation": "Imperial College London",
+            "affiliationURL": "https://wp.doc.ic.ac.uk/robotvision/"
+        }
+    ],
+    "publishedDate": "2021-06-21T10:54:16.000Z",
+    "katex": {
+        "delimiters": [
+            {
+                "left": "$",
+                "right": "$",
+                "display": false
+            },
+            {
+                "left": "$$",
+                "right": "$$",
+                "display": true
+            }
+        ]
+    }
+}
+    </script>
+  </d-front-matter> -->
+
+  <d-title>
+    <h1>A visual introduction to Gaussian Belief Propagation</h1>
+    <p>A Framework for Distributed Inference with Emerging Hardware.</p>
+  </d-title>
+
+  <d-article>
+
+    <d-contents>
+      <nav class="l-text toc figcaption">
+        <h3>Contents</h3>
+        <div><a href="#introduction">Introduction</a></div>
+        <div><a href="#technical-introduction">Technical Introduction</a></div>
+        <div><a href="#beyond-the-standard-algorithm">Beyond the standard algorithm</a></div>
+        <ul>
+          <li><a href="#non-linear-relationships">Non-linear Relationships</a></li>
+          <li><a href="#non-gaussian-data-distributions">Non-Gaussian Data Distributions</li>
+          <li><a href="#local-updates-and-scheduling">Local updates and Scheduling</a></li>
+          <li><a href="#multiscale-learning">Multiscale Learning</a></li>
+        </ul>
+        <div><a href="#related-methods">Related Methods</a></div>
+        <div><a href="#conclusions">Conclusions</a></div>
+        <div><a href="#supp-playground">Supplementary Playground</a></div>
+      </nav>
+    </d-contents>
+
+    <g>
+<!--     <p style="color: var(--blue)">
+      <b>NB</b>: A static version of this interactive article has been published on <a href="https://arxiv.org/abs/2107.02308" target="_">arXiv</a> and can be cited as:
+      <pre class="citation" style="cursor: auto;">@article{Ortiz2021visualGBP,
+  title = {A visual introduction to Gaussian Belief Propagation},
+  author = {Ortiz, Joseph and Evans, Talfan and Davison, Andrew J.},
+  journal={arXiv preprint arXiv:2107.02308},
+  year = {2021},
+}</pre>
+    </p>
+    <br> -->
+
+    <g>
+
+      <d-figure id="teaser" class="teaser"></d-figure>
+
+      <p>
+        In this article, we present a visual introduction to Gaussian Belief Propagation (GBP), an approximate probabilistic inference algorithm that operates by passing messages between the nodes of arbitrarily structured factor graphs. A special case of loopy belief propagation, GBP updates rely only on local information and will converge independently of the message schedule. Our key argument is that, given recent trends in computing hardware, GBP has the right computational properties to act as a scalable distributed probabilistic inference framework for future machine learning systems.
+      </p>
+    </g>
+    </g>
+
+    <h2 id="introduction">Introduction </h2>
+    
+    <h4>Bayesian Probabilistic Inference </h4>
+
+    <p>
+      Bayesian probability theory is the fundamental framework for dealing with uncertain data, and is at the core of practical systems in machine learning and robotics <d-cite key="Ghahramani:Nature2015, davison2018futuremapping"></d-cite>. 
+      A probabilistic model relates unknown variables of interest to observable, known or assumed quantities and most generally takes the form of a graph whose connections encode those relationships.
+      <!-- In particular, the elegant <b>factor graph</b> formulation connects variables via factors which represent independent relationships <d-cite key="dellaert2017factor, dellaert4factor"></d-cite>. -->
+      Inference is the process of forming the posterior distribution to determine properties of the unknown variables, given the observations, such as their most probable values or their full marginal distributions.
+    </p>
+
+    <p>
+      There are various possible algorithms for probabilistic inference, many of which take advantage of specific problem structure for fast performance.
+      Efficient inference on models represented by large, dynamic and highly inter-connected graphs however remains computationally challenging and is already a limiting factor in real embodied systems.
+      Inference on such graphs will only become more important as general purpose perception systems strive towards more heterogeneous and dynamic representations containing abstractions (such as objects or concepts) with continually changing relationships <d-cite key="bengio2017consciousness, davison2018futuremapping"></d-cite>
+      <d-footnote>
+        In AI, there has been a recent trend towards sparse representations and graphs which are well-suited for representing sparse high dimensional data.
+        Part of this trend has been driven by the fact that graphs are a natural representation in certain domains, and evidence of this is the rise of graph neural networks and graph-based probabilistic inference frameworks <d-cite key="dellaert2017factor, davison2018futuremapping"></d-cite>.
+        Another trend is driven by the idea that massive sparsity is required to scale AI compute and evidence of this is the scaling of neural networks with gated computation <d-cite key="shazeer2017outrageously, fedus2021switch"></d-cite> and the development of novel AI processors specifically for high performance on sparse representations <d-cite key="Lacey:IPUBenchmarks2019"></d-cite>.
+        We believe that inference on large scale and dynamic probabilistic graphs will be an important part of this trend towards sparse computing to scale AI compute. 
+      </d-footnote>.
+    </p>
+
+    <h4>The Bitter Lesson </h4>
+
+    <p>
+      As we search for the best algorithms for probabilistic inference, we should recall the "Bitter Lesson" of machine learning (ML) research: <i>"general methods that leverage computation are ultimately the most effective, and by a large margin"</i> <d-cite key="Sutton:BitterLesson2019"></d-cite>. 
+      A reminder of this is the success of CNN-driven deep learning, which is well suited to GPUs, the most powerful widely-available processors in recent years.
+    </p>
+
+    <p>
+      Looking to the future, we anticipate a long-term trend towards a "hardware jungle" <d-cite key="Sutter:Jungle2011"></d-cite> of parallel, heterogeneous, distributed and asynchronous computing systems which communicate in a peer-to-peer manner.
+      This will be at several levels: across networks of multiple smart devices operating in the same environment; across the many sensors, actuators and processors within individual embodied devices; and even within single processor chips themselves
+      <d-footnote>For single processor chips, a trend towards multicore designs with distributed on-core memory and ad-hoc communication is rapidly emerging <d-cite key="Lacey:IPUBenchmarks2019, gui2019survey"></d-cite>. This design has the key aim of increasing performance while reducing power usage by minimizing the "bits x millimetres" of data movement during computation <d-cite key="Sze:Survey2017"></d-cite>.</d-footnote>.
+    </p>
+    
+    <p>
+      <!-- If we imagine probabilistic problems spread in complex, multi-scale, dynamic inter-connected webs across such processing resources, we need inference methods which can operate with distributed, local processing and storage, and message passing communication.  -->
+      To scale arbitrarily and leverage all available computation in this "hardware jungle", our key hypothesis is that <b>we need inference methods which can operate with distributed local processing / storage and message passing communication</b>, without the need for a global view or coordination of the whole model <d-footnote>The opposite proposition would be a global centralized inference method, for example via a monolithic cloud-based processor. This centralized approach would not leverage most of the available compute resources and even if feasible may not be desirable, for communication bandwidth or privacy reasons.</d-footnote>.
+    </p>
+
+    <h4>Gaussian Belief Propagation </h4>
+
+    <p>
+      Fortunately, a well-known inference algorithm exists which has these properties: Loopy Belief Propagation <d-cite key="Pearl:book1988, kschischang2001factor, Murphy:etal:1999"></d-cite>.
+      Belief Progagation (BP) was invented in the 1980s <d-cite key="Pearl:book1988"></d-cite>, and is an algorithm for calculating the marginals of a joint distribution via local message passing between nodes in a factor graph. Factor graphs are a type of bipartite graphical model that connects variables via factors which represent independent relationships <d-cite key="dellaert2017factor, dellaert4factor"></d-cite>.
+    </p>
+    
+    <p>
+      BP guarantees exact marginal computation with one sequence of forward-backward message passing in tree-structured graphs <d-cite key="Bishop:Book2006"></d-cite>, but empirically produces good results when applied to "loopy" graphs with cycles <d-cite key="Murphy:etal:1999"></d-cite>. 
+      Unlike Graph neural networks <d-cite key="scarselli2008graph, bronstein2017geometric, battaglia2018relational"></d-cite> which learn edge and node updates that are applied over a fixed number of message passing steps, loopy BP applies probabilistic message passing updates with iterative convergent behaviour.
+      Although Loopy BP has been successful in a few applications such as error-correcting codes <d-cite key="mceliece1998turbo"></d-cite>, it has not as of yet been applied to broader machine learning problems. 
+    </p>
+
+    <p>
+      One issue that has precluded the use of general Loopy BP is that it lacks convergence guarantees.
+      However, a second and perhaps more relevant issue given modern hardware trends, is that its computational properties have not fitted the dominant processing paradigms of recent decades, CPUs and GPUs. 
+      Consequently, other factor graph inference algorithms have been preferred which take advantage of global problem structure to operate much more rapidly and robustly than loopy BP on a CPU.
+    </p>
+
+    <p>
+      We believe that now is the right time to re-evaluate the properties of loopy BP given the rise of graph-like computing hardware and sparse models.
+      Indeed there has been a recent resurgence in interest in the algorithm <d-cite key="george2017generative, satorras2021neural, kuck2020belief, Ortiz:etal:CVPR2020, opipari2021differentiable"></d-cite>; in particular, one notable work <d-cite key="Ortiz:etal:CVPR2020"></d-cite> demonstrated that BP on novel graph processor hardware can achieve a 24x speed improvement over standard methods for bundle adjustment.
+      <!-- and the ambitions for more heterogeneous and dynamic representations with less fixed structure. -->
+      We focus on the special case of Gaussian Belief Propagation (GBP) <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>, in which all factors are Gaussian functions of their dependent variables, and we also infer Gaussian-distributed marginals. 
+      GBP has both more extensive mathematical guarantees <d-cite key="du2018convergence"></d-cite> and stronger empirical performance <d-cite key="Bickson:PhDThesis:2008"></d-cite> than general loopy BP.
+      It is also simple to implement, with all messages between nodes taking the form of usually low-dimensional Gaussians, which can be represented by small vectors and matrices. 
+      <!-- We will show later that GBP can handle non-linear Gaussian factors and robust energy functions, and with these additions it becomes very broadly applicable to practical problems. -->
+    </p>
+
+    <!-- <p>
+      The lack of understanding and use of GBP is rather mysterious, given the ubiquity of Gaussian-based estimation in probabilistic computing.
+      There are a number of standard libraries for geometric estimation in computer vision and robotics <d-cite key="CeresManual, Dellaert:TechReport2012, kummerle2011g20"></d-cite> that are uniquely focused on Gaussian-based estimation.
+    </p> -->
+
+    <p>
+      In this article, we give an introduction to Gaussian Belief Propagation as a strong general purpose algorithmic and representational framework for large scale distributed inference.
+      Throughout, we present a range of examples across 1D and 2D geometric estimation and image processing in the form of interactive simulations which allow the reader to experiment with and understand the properties of GBP.
+      We hope that these simulations emphasize the key properties of GBP which we summarize below.
+    </p>
+
+    <d-figure id="key_properties"></d-figure>
+
+    <p>
+      In the remainder of the article, we first introduce the GBP algorithm and show that it is intimately linked to solving a linear system of equations $Ax = b$. 
+      We then explore 4 key practical details for applying GBP to real problems: extending GBP to handle <a href="#non-linear-relationships">non-linear relationships</a> and <a href="#non-gaussian-data-distributions">non-Gaussian data distributions</a>, using <a href="#local-updates-and-scheduling">local message schedules</a> and lastly how <a href="#multiscale-learning">hierarchical structure</a> can help convergence. 
+
+    </p>
+
+    <h2 id="technical-introduction">Technical Introduction </h2>
+
+    <h3 id="probabilistic-inference">Probabilistic Inference </h3>
+
+    <p>
+      Inference is the problem of estimating statistical properties of unknown variables $X$ from known or observed quantities $D$ (the data).
+      For example, one might be interested in inferring tomorrow's weather (X) from historic data (D), or the 3D structure of an environment (X) from a video sequence (D).
+    </p>
+    <p>
+      Bayesian inference proceeds by first defining a probabilistic model $p(X, D)$ that describes the relationships between data and variables, and then using the sum and product rules of probability
+      <d-footnote>
+      The sum rule is $p(X) = \sum_Y p(X, Y)$ and the product rule is $p(X, Y) = p(Y \rvert X) p(X)$. 
+      </d-footnote>
+      to form the posterior distribution $p(X \rvert D) = \frac{p(X, D)}{p(D)}$. The posterior summarizes our belief about $X$ after seeing $D$ and can be used for decision making or other downstream tasks. 
+    </p>
+    <p> Given the posterior, we can compute various properties of $X$, for example:
+    </p>
+      <ol> 
+        <li>
+          The most likely configuration of the variables $X_{\text{MAP}} = \text{arg max}_X p(X \rvert D)$, or
+        </li>
+        <li>
+          The marginal posteriors $p(x_i \rvert D) = \sum_{X \setminus x_i} p(X \rvert D)$, which summarize our belief about each individual variable given $D$. 
+        </li>
+      </ol>
+    <p>
+      These two calculations are known as <b>maximum a posteriori (MAP) inference</b> and <b>marginal inference</b> respectively.
+      An important difference is that MAP inference produces a point estimate while marginal inference retains information about uncertainty.
+    </p>
+
+    <h3 id="factor-graphs">Factor Graphs </h3>
+
+    <p>
+      The <a href="https://en.wikipedia.org/wiki/Hammersley%E2%80%93Clifford_theorem" target="_blank">Hammersley-Clifford theorem</a> tells us that any positive joint distribution $p(X)$ can be represented as a product of factors $f_i$, one per clique, where a clique is a subset of variables $X_i$ in which each variable is connected to all others: 
+    </p>
+    <d-math block="">
+      p(X) = \prod_i f_i(X_i)
+      ~.
+    </d-math>
+    <g>
+      <d-figure class="right-d-figure" id="factor_graph"></d-figure>
+    <p>
+      <!-- A node, edge and triangle are examples of 1-, 2- and 3-cliques, respectively.  -->
+      Factorized representations can be very convenient as they expose structure in a model.
+      <b>Factor graphs</b> are the natural visual representation of this factorization and can be very useful for reasoning about problems <d-cite key="dellaert2017factor"></d-cite>.
+    </p>
+    <p>
+      In the factor graphs in this article, circles and squares represent variable and factor nodes respectively, with edges connecting each factor to the variables it depends on.
+      An example of a simple factor graph is shown in the <a href="#factor_graph">diagram</a> on the right.
+      By explicitly representing the factors as nodes in the graph, factor graphs clearly emphasize the conditional independence structure of the problem
+      - the lack of a factor directly connecting two variables means they are conditionally independent 
+      <d-footnote>
+        Mathematically, two variables $x_i$ and $x_j$ are conditionally independent given all other variables $X_{-ij}$ if:
+        <d-math block="">
+          p(x_i, x_j | X_{-ij}) = p(x_i | X_{-ij}) p(x_j | X_{-ij})
+          ~.
+        </d-math>
+        An equivalent way condition is: 
+        <d-math block="">
+          p(x_i | x_j, X_{-ij}) = p(x_i | X_{-ij}) 
+          ~.
+        </d-math>
+        Intuitively, if $X_{-ij}$ causes both $x_i$ and $x_j$, then if we know $X_{-ij}$ we don't need to know about $x_i$ to predict $x_j$ or about $x_j$ to predict $x_i$.
+        Conditional independence is often written in shorthand as: $x_i \bot x_j | X_{-ij}$.
+      </d-footnote>. 
+    </p>
+    <p>
+      Factor graphs can also be presented as energy based models <d-cite key="lecun2006:EBM"></d-cite> where each factor $f_i$ defines an energy $E_i \geq 0$ associated with a subset of the variables $X_i$ 
+      <d-footnote>
+        This formalism is closely related to the Boltzmann distribution in statistical physics which gives the probability of a state $i$ as a function of the energy of the state and the temperature of the system:
+        <d-math block="">
+          p_i = \frac{e^{-E_i / k T}}{ \sum_j e^{-E_j / k T}}
+          ~,
+        </d-math>
+        where $k$ is the Boltzmann constant, $T$ is the temperature of the system and $j$ sums over all available states.
+      </d-footnote>:
+
+      <d-math block="">
+        f_i(X_i)
+        \propto
+        e^{ - E_i(X_i)}
+        ~.
+      </d-math>
+
+      <!--
+      For example, in our <a href="#factor_graph">diagram</a>, the first factor might represent our prior belief that $x_1$ should be close to some value $x_p$:
+      
+      <d-math block="">
+        E_1(x_1)
+        =
+        \frac{1}{2} (x_1-x_p)^{\top} \Sigma_1^{-1} (x_1-x_p)
+        ~.
+      </d-math>
+
+      Alternatively, the factor connecting $x_1$ and $x_2$ might encourage them to have some difference $d$, where $d$ is an observed variable and not shown in the graph:
+      
+      <d-math block="">
+        E_3(x_1, x_2)
+        =
+        \frac{1}{2} 
+        (x_1 - x_2 - d)^\top
+        \Sigma_3^{-1}
+        (x_1 - x_2 - d)
+        ~.
+      </d-math>
+    </p>
+    -->
+    <p>
+      In energy based models, finding the most likely variable configuration is equivalent to minimizing the negative log probability or the sum of factor energies:
+      <d-math block="">
+        X_{\text{MAP}} = \text{arg min}_X - \log p(X) = \text{arg min}_X \sum_i E_i(X_i)
+        ~.
+      </d-math>
+    </p>
+    </g>
+    
+    <h3 id="the-belief-propagation-algorithm">The Belief Propagation Algorithm</h2>
+
+      <p>
+        Belief propagation (BP) is an algorithm for marginal inference, i.e. it computes the marginal posterior distribution for each variable from the set of factors that make up the joint posterior.
+        BP is intimately linked to factor graphs by the following property: <b>BP can be implemented as iterative message passing on the posterior factor graph</b>. 
+        The algorithm operates by iteratively updating a node's locally stored belief by sending and receiving messages from neighbouring nodes. Each iteration consists of 3 phases: 
+      </p>
+
+      <d-figure id="phases"></d-figure>
+
+      <p>
+        <b>Belief Update:</b> The variable node beliefs are updated by taking a product of the incoming messages from all adjacent factors, each of which represents that factor's belief on the receiving node's variables.
+        <br>
+        <b>Factor-to-variable message:</b> To send a message to an adjacent variable node, a factor aggregates messages from all other adjacent variable nodes and marginalizes over all the other nodes' variables to produce a message that expresses the factor's belief over the receiving node's variables. 
+        <br>
+        <b>Variable-to-factor message:</b> A variable-to-factor message tells the factor what the belief of the variable would be if the receiving factor node did not exist. This is computed by taking the product of the messages the variable node has received from all other factor nodes.
+        <br>
+        These 3 operations fully define the algorithm and their equations are presented <a href="#bp_equations">below</a>.
+      </p>
+
+      <d-figure id="bp_equations" class="subgrid"></d-figure>
+
+      <g>
+      <d-figure id="mp_videos"class="right-d-figure">
+        <video style="width: 48%" loop controls muted>
+          <source src="diagrams/tree_bp.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <video style="width: 48%;" loop controls muted>
+          <source src="diagrams/loopy_bp.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <figcaption style="text-align: left">
+          Green curves represent variable belief distributions. <b>Left</b>: BP on a tree. <b>Right</b>:  BP with synchronous updates applied to a graph with a loop. 
+        </figcaption>
+      </d-figure>
+
+      <p>
+        Belief propagation was originally developed for graphs that are trees        
+        <d-footnote>
+          For <a href="https://en.wikipedia.org/wiki/Tree_(graph_theory)#:~:text=In%20graph%20theory%2C%20a%20tree,a%20connected%20acyclic%20undirected%20graph." target="_">tree</a> graphs, any two nodes are connected by exactly one path.
+        </d-footnote>
+        and the updates were designed such that the beliefs converge to the exact marginals after one sweep of messages from a root node to the leaf nodes and back <d-cite key="Pearl:book1988"></d-cite>. 
+        For models with arbitrary conditional independence structure, including cycles or "loops", loopy BP <d-cite key="Murphy:etal:1999"></d-cite> iteratively applies the same message passing rules to all nodes.
+        The simplest variant of loopy BP sends messages from all nodes at every iteration in a synchronous fashion.
+        The <a href="#mp_videos">videos</a> on the right illustrate how BP is applied to trees and graphs with loops.
+      </p>
+
+      <p>
+        As BP was originally developed for trees, its application to loopy graphs was at first empirical <d-cite key="Murphy:etal:1999"></d-cite>. 
+        Theoretical grounds for applying the same update rules to loopy graphs were later developed <d-cite key="yedidia2000generalized, Weiss:Freeman:NIPS2000, wainwright2008graphical"></d-cite> that explain loopy BP as an approximate variational inference method in which inference is cast as an optimization problem.
+        Instead of directly minimizing the factor energies (as is done in MAP inference), loopy BP minimizes the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> between the posterior and a variational distribution which we use as a proxy for the marginals after optimization.
+        <!-- The dissimilarity is usually measured by the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_">KL divergence</a> and approximations of this divergence are often known as free energies.  -->
+        Loopy BP can be derived via constrained minimization of an approximation of the KL divergence known as the Bethe free energy <d-cite key="yedidia2000generalized"></d-cite> (see <a href="#derivation">Appendix A</a> for the derivation).
+      </p>
+      <p>
+        As the Bethe free energy is non-convex, loopy BP is not guaranteed to converge and even when it does it may converge to the wrong marginals.
+        Empirically, however BP generally converges to the true marginals although for very loopy graphs it can fail <d-cite key="Murphy:etal:1999, wainwright2008graphical"></d-cite>. 
+      </p>
+      </g>
+
+      <p>
+        Most interesting problems have loopy structures and so for the remainder of the article we will use BP to refer to loopy BP.
+        So far, although we have outlined the BP equations, we have not specified the form of the factors, messages or beliefs. 
+        From here, we focus on Gaussian belief propagation which is a special form of continuous BP for Gaussian models. 
+      </p>
+
+      <h3 id="gaussian-models">Gaussian Models</h2>
+
+        <p>
+          We are interested in <b>Gaussian models</b> in which all factors and therefore the joint posterior are univariate / multivariate Gaussian distributions. Gaussians are a convenient choice for a number of reasons: (1) they accurately represent the distribution for many real world events <d-cite key="Jaynes:probability2003"></d-cite>, (2) they have a simple analytic form, (3) complex operations can be expressed with simple formulae and (4) they are closed under marginalization, conditioning and taking products (up to normalization). 
+        </p>
+    
+        <p>
+          A Gaussian factor or in general any Gaussian distribution can be written in the exponential form $p(x) \propto e^{-E(x)}$ with a quadratic energy function. 
+          There are two ways to write the quadratic energy which correspond to the two common parameterizations of multivariate Gaussian distributions: the <b>moments form</b><d-footnote>It's called the moments form as it is parameterized by the first moment and second central moments of the distribution.</d-footnote> and the <b>canonical form</b>. The key properties of each of these parameterizations are summarized in the <a href="#gaussian_equations">table</a> below. 
+        </p>
+    
+        <d-figure id="gaussian_equations" ></d-figure>
+    
+        <p>
+          The canonical form is often preferred when performing inference, for two main reasons. Firstly, taking a product is simple in the canonical form, so it is easy to form the posterior from the factors. Secondly, the precision matrix is sparse and relates closely to the structure of the factor graph. 
+        </p>
+        <p>
+          The precision matrix describes direct associations or conditional dependence between variables. 
+          If entry $(i,j)$ of the precision matrix is zero then equivalently, there is no factor that directly connects $x_i$ and $x_j$ in the graph. 
+          You can see this in the default preset graph in the <a href="#gaussian_gm">figure</a> below where $\Lambda_{13}=\Lambda_{31}=0$ and $x_1$ and $x_3$ have no factor directly connecting them.
+        </p>
+        <p>
+          On the other hand, the covariance matrix describes induced correlations between variables and is dense as long as the graph is one single connected component. 
+          Unlike the canonical form, the moments form is unable to represent unconstrained distributions, as can be seen by selecting the unanchored preset graph in which there is only relative positional information. 
+          We encourage the reader to check out the other preset graphs and edit the graph to explore Gaussian models and the relationship with the canonical form.
+        </p>
+    
+        <d-figure id="gaussian_gm" class="subgrid"></d-figure>
+    
+        <h3 id="from-gaussian-inference-to-linear-algebra">From Gaussian Inference to Linear Algebra</h2>
+    
+        <p>
+          The joint distribution corresponding to a factor graph in which all factors are Gaussian can be represented as a single multivariate Gaussian distribution (since the energy terms are additive) in the canonical form:
+          <d-math block="">
+            P(X) \propto \exp( - \frac{1}{2} X^\top \Lambda X + \eta^\top X)
+            ~.
+          </d-math>
+          <b>MAP inference</b> corresponds to computing the parameters $X_{\text{MAP}}$ that maximize the above joint distribution. As usual, we can compute the gradient of the log-probability (the total energy):
+
+          <d-math block="">
+            \nabla_X E = \nabla_X \log P(X) = - \Lambda X + \eta
+            ~,
+          </d-math>
+
+          and solve for $\nabla_X E = 0$. From here, we see that MAP inference in a Gaussian system reduces simply to solving $X_{\text{MAP}} = \Lambda^{-1} \eta = \mu$, which as expected is equal to the mean. 
+          <!-- Note that maximizing the posterior is also equivalent to minimizing a least squares energy objective: -->
+          <!-- <d-math block="">
+            X_{\text{MAP}} = \text{arg min}_X  \; - \log p(X) = \text{arg min}_X \; (X - \mu)^\top \Sigma^{-1} (X - \mu) = \mu
+          </d-math> -->
+        </p>
+        <p>
+          <b>Marginal inference</b> computes the per-variable marginal posterior distributions.
+          In the moments form, the marginal distribution of $x_i$ is:
+          <d-math block="">
+            p(x_i) = \int p(X) dX_{-i}  \propto \exp\big( -\frac{1}{2}(x_i - \mu_i)^\top \Sigma_{ii}^{-1} (x_i - \mu_i) \big)
+            ~,
+          </d-math>
+          where the mean parameter $\mu_i$ is the $i^{th}$ element of the joint mean vector and the covariance $\Sigma_{ii}$ is entry $(i,i)$ of the joint covariance matrix.
+          The vector of marginal means for all variables is therefore the joint mean vector $ \mu = \Lambda^{-1} \eta$ = $X_{\text{MAP}}$ and the marginal variances the diagonal entries of the joint covariance matrix $\Sigma = \Lambda^{-1}$.
+        </p>
+  
+        <p>
+          We can therefore summarize inference in Gaussian models as solving the linear system of equations $Ax=b \Leftrightarrow
+           \Lambda \mu = \eta$. 
+          <!-- The precision matrix $\Lambda$ is a real, square, symmetric, positive definite matrix with known sparsity structure. -->
+          <b>MAP inference</b> solves for $\mu$ while <b>marginal inference</b> solves for both  $\mu$ and the block diagonal elements of $\Lambda^{-1}$.
+        </p>
+      
+        <!-- <p>
+          Directly solving the linear system for $x_{\text{\tiny MAP}}$ by inverting $\Lambda$ gives the uncertainty which is the marginal variances or the diagonal elements of the joint covariance matrix $\Sigma = \Lambda^{-1}$. 
+          For large systems, this inversion can be very expensive and Gaussian Belief Propagation is an iterative methods that estimates the full marginal distributions, giving both the MAP estimate (the marginal means) and the uncertainty (the marginal variances). We discuss related linear solvers and non-linear least squares optimization methods <a href="#related-methods">later on</a>.    
+        </p> -->
+
+    <h3 id="gaussian-belief-propagation-ti">Gaussian Belief Propagation</h2>
+
+    <p>
+      Having introduced Gaussian models, we now discuss <b>Gaussian Belief Propagation (GBP)</b> a form of BP applied to Gaussian models.
+      Due to the closure properties of Gaussians, the beliefs and messages are also Gaussians and GBP operates by storing and passing around information vectors and precision matrices.
+    </p>
+    <p>
+      Unlike general loopy BP, GBP is guaranteed to compute the exact marginal means on convergence, although the same is unfortunately not true for the variances which often converge to the true marginal variances, but are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
+      Although GBP does not in general have convergence guarantees, there some convergence conditions <d-cite key="Bickson:PhDThesis:2008, du2018convergence, su2015convergence"></d-cite> as well as methods to improve chances of convergence (see chapter 22 in <d-cite key="murphy2012machine"></d-cite>). 
+    </p>
+    <p>  
+      The interactive <a href="#gbp_intuition">figure</a> below aims to build intuition for GBP by exploring the effect of individual messages.
+      For easy visualization and interpretation of the beliefs, we examine 3 spatial estimation problems with increasing "loopiness": a chain, a loop and a grid.
+      Click on a variable node to send messages to its adjacent variables and observe how neighbouring beliefs are updated.
+      You will see that GBP converges to the true marginals regardless of the order in which messages are passed.
+    </p>
+
+    <d-figure id="gbp_intuition"></d-figure>
+
+    <h2 id="beyond-the-standard-algorithm">Beyond the standard algorithm </h2>
+
+    <p>
+      We have introduced Gaussian Belief Propagation in its basic form as a probabilistic inference algorithm for Gaussian estimation problems. However, to solve real practical problems with GBP, we often need a number of extra details and tricks which we discuss in this section.
+    </p>
+
+    <h3 id="non-gaussian-factors">Non-Gaussian factors</h3>
+
+    <p>
+      Although requiring all factors to be Gaussian is a convenient assumption, most interesting problems involve <b>non-linear relationships</b> and / or <b>non-Gaussian data distributions</b>, both of which result in non-Gaussian factors. 
+      GBP can be extended to handle these problems by linearizing the non-linear relationships and using covariance scaling to handle non-Gaussian data distributions. 
+      <!-- We will show that with these additions GBP becomes more useful and generally applicable to real problems. -->
+    </p>
+
+    <h4 id="non-linear-relationships">Non-linear Relationships</h4>
+
+    <p>
+      <!-- To understand how to handle these cases, we first look into how the form of factors is specified.  -->
+      A factor is usually created given some observed data $d$ that we model as $d \sim h(X) + \epsilon$, where $h$ simulates the data generation process from the subset of variables $X$ <d-footnote>We are overloading $X$ here by using it to denote a subset of the variables for ease of notation.</d-footnote> and $\epsilon \sim \mathcal{N}(0, \Sigma_n)$ is Gaussian noise.
+      Rearranging, we see that the residual is Gaussian distributed $r = d - h(X) \sim \mathcal{N}(0, \Sigma_n)$, allowing us to form the factor with energy:
+      <d-math block="">
+        E(X) = \frac{1}{2}(h(X) - d)^\top \Sigma_n^{-1} (h(X) - d)
+        ~.
+      </d-math>
+    </p>
+
+    <p>
+      For linear functions $h(X) = \mathtt{J} X + c$, the energy is quadratic in $X$ and we can rearrange the energy so that the factor is in the Gaussian canonical form as:
+      <d-math block="">
+        E(X) = \frac{1}{2} X^\top \Lambda X - \eta^\top X
+        \;\;\;\;
+        \text{, where} \;
+        \eta = \mathtt{J}^\top \Sigma_n^{-1} (d - c) 
+        \; \text{and} \;
+        \Lambda = \mathtt{J}^\top \Sigma_n^{-1} \mathtt{J}
+        ~.
+      </d-math>
+    </p>
+
+    <p>
+      If $h$ is non-linear <d-footnote>The function $h$ could be any non-linear function, for example a trained neural network <d-cite key="czarnowski2020deepfactors"></d-cite> or a Gaussian process <d-cite key="mukadam2018continuous"></d-cite>.</d-footnote>, the energy is no longer quadratic in $X$ meaning the factor is not Gaussian-distributed. 
+      To restore the Gaussian form, it is standard to use a first-order Taylor expansion about the current estimate $X_{0}$ to approximate the factor as a Gaussian:
+    <d-math block="">
+      h(X) \approx h(X_{0}) + \mathtt{J} (X - X_{0})
+      ~.
+    </d-math>
+      Here $\mathtt{J}$ is now the Jacobian matrix and the factor can be written in the same form as above but with $c = h(X_{0}) - \mathtt{J} X_{0}$ <d-cite key="Davison:Ortiz:ARXIV2019"></d-cite>.
+    </p>
+
+    <p>
+      After linearization, the posterior is a Gaussian approximation of the true posterior and inference is performed by successively solving linearized versions of the underlying non-linear problem (as in non-linear least squares optimization).
+    </p>
+    <p>
+      To see how this linearization works, consider a robot moving in a plane that measures the 2D distance and angle to a landmark also in the plane, where the current estimates for the position of the robot and landmark are $r_0$ and $l_0$ respectively, and the observed measurement $d = h(r_0, l_0)$. 
+      In the interactive figure below, we show both the true non-linear factor and the Gaussian approximated factor with $r$ held constant at $r_0$. 
+    </p>
+
+    <d-figure id="factor_linearisation"></d-figure>
+
+    <p>
+      The accuracy of the approximate Gaussian factor depends on the linearity of the function $h$ at the linearization point.
+      As $h$ reasonably is smooth, the linear approximation is good close to the linearization point $l_0$, while further away, the approximation can degrade.
+      In practice, during optimization we can avoid this region of poor approximation by relinearizing frequently.
+      As GBP is local, a just-in-time approach to linearization <d-cite key="Ranganathan:etal:IJCAI2007"></d-cite> can be used in which factors are relinearized individually when the current estimate of the adjacent variables strays significantly from the linearization point.
+    </p>
+
+    <h4 id="non-gaussian-data-distributions">Non-Gaussian data distributions</h4>
+
+    <g>
+    <d-figure class="small-right-d-figure" id="scaling"></d-figure>
+
+    <p>
+      A second cause of non-Gaussian factors is non-Gaussian data distributions.
+      We usually model observed data as coming from a Gaussian distribution: $d \sim h(X) + \epsilon$, by choosing $\epsilon$ to be Gaussian noise.
+      Although this is generally sensible <d-cite key="Jaynes:probability2003"></d-cite>, true data distributions often have stronger tails or are more tightly peaked.
+      In these cases, to retain the Gaussian form for GBP, we use an approximate Gaussian data distribution via covariance scaling <d-cite key="Agarwal:etal:ICRA2013, Davison:Ortiz:ARXIV2019"></d-cite>. 
+      The covariance of the approximate Gaussian is chosen such that the quadratic energy matches the true non-Gaussian energy at that residual, as shown in the <a href="#scaling">figure</a> on the right.
+    </p>
+
+    <p>
+      Robust data distributions (or <a href="https://en.wikipedia.org/wiki/M-estimator" target="_blank">M-estimators</a>), such as the Huber energy <d-cite key="Huber:AMS:1964, Huber:1981"></d-cite>, are a common class of non-Gaussian data distributions which have greater probability mass in the tails to reduce sensitivity to outliers.
+      The Huber energy is a continuous function that is quadratic close to the mean and transitions to a linear function for large residuals to reduce the energy cost of outliers
+      <d-footnote>
+        The distribution induced by the Huber energy is a Gaussian distribution close to the mean and a Laplace distribution in the tails.
+        The probability density function for the Laplace distribution is:
+        <d-math block="">
+          p(x ; \mu, \beta) = \frac{1}{2b} \exp\big(\frac{-|x - \mu|}{b}\big)
+          ~.
+        </d-math> 
+      </d-footnote>:
+      <d-math block="">
+        E_{\text{huber}}(r) =     
+        \begin{cases}
+          \frac{1}{2} r^\top \Sigma_n^{-1} r, & \text{if}\ \rvert r\rvert  < t \\
+          A \;+ \;  B \rvert r \rvert, & \text{otherwise} ~.
+        \end{cases}
+      </d-math> 
+      The approximate quadratic energy for the Huber distribution can be found by solving $\frac{1}{2} r^\top \Sigma_{\text{sc}}^{-1} r = E_{\text{huber}}(r)$ to give the diagonal scaled covariance:
+      <d-math block="">
+        \Sigma_{\text{sc}} =
+        \begin{cases}
+          \Sigma_n , & \text{if}\ \rvert r\rvert  < t \\
+          \frac{2 E_{\text{huber}}(r)}{ r^\top \Sigma_n^{-1} r} \Sigma_n, & \text{otherwise} ~.
+        \end{cases}
+      </d-math> 
+    </p>
+
+    <p>
+      Robust energy functions can make GBP much more generally useful - for example, they are crucial for bundle adjustment <d-cite key="Ortiz:etal:CVPR2020"></d-cite> and for sharp image denoising (as we will see in a <a href="#attentiongl">later figure</a>).
+      More generally, our interpretation is that robust factors can play a similar role to non-linearities in neural networks, activating or deactivating messages in the graph.
+    </p>
+
+    </g>
+
+    <p>
+      The interactive <a href="#gbp1d_robust">figure</a> below gives intuition for the effect of robust factors for the task of 1D line fitting.
+      The variables we are estimating are the $y$ values at fixed intervals along the $x$ axis and the blue circles and lines show the mean and standard deviation of the beliefs. 
+      The red squares are measurements that produce data factors in the graph and there are also smoothness factors between all adjacent variable nodes encouraging the $y$ values to be close.
+      You can add your own data factors by clicking on the canvas and a diagram of the factor graph is in the bottom right of the <a href="#gbp1d_robust">figure</a>.
+      Press play to run synchronous GBP and observe that a Huber energy can disregard outliers and retain step discontinuities in the data unlike the standard squared loss.
+    </p>
+
+    <d-figure id="gbp1d_robust" class="subgrid"></d-figure>
+
+    <h3 id="local-updates-and-scheduling">Local updates and Scheduling</h3>
+    
+    <p>
+      So far, we have assumed that all variable and factor nodes broadcast messages at each iteration in a synchronous fashion, where all nodes absorb and broadcast messages in parallel. 
+      In fact, this is far from a requirement and as GBP is entirely local, messages can be sent arbitrarily and asynchronously. 
+    </p>
+
+    <p>
+      It turns out that the message schedule can have a dramatic effect on the rate of convergence. For example, swapping synchronous updates for random message passing tends to improve convergence, while a fixed "round-robin" schedule can do even better <d-cite key="koller2009probabilistic"></d-cite>.
+      Better yet, if each message requires some unit of computation (and therefore energy), it's possible to prioritize sending messages that we think will contribute most to the overall convergence of the system (there is evidence that the brain may apply a similar economical principle <d-cite key="Evans:Burgess:NIPS2019"></d-cite>).
+      This is the idea behind residual belief propagation (RBP) <d-cite key="Elidan:etal:UAI2006"></d-cite> and similar variants <d-cite key="Sutton:McCallum:UAI2007, Ranganathan:etal:IJCAI2007"></d-cite>, which form a message queue according to the norm of the difference from the previous message.
+    </p>
+
+    <p>
+      In the <a href="#gbp1d">figure</a> below, we explore message scheduling using the 1D line fitting task once again.
+      The underlying factor graph is a chain (no loops) and so will converge after one sweep of messages from left to right and back again.
+      You can send messages through the graph using the preset schedules (synchronous, random or sweep) or create your own schedule by clicking on a variable node to send messages outwards.
+    </p>
+
+    <d-figure id="gbp1d" class="subgrid"></d-figure>
+
+    <p>
+      Playing around with different schedules for surface estimation highlights two important properties of GBP.
+      First, GBP can converge with an arbitrary message passing schedule. 
+      As a consequence, GBP can readily operate in systems with no global clock and varying local compute budgets such as on neuromorphic hardware or between a group of distributed devices <d-cite key="micusik2020ego"></d-cite>.
+    </p>
+
+    <p>
+      The second property is that GBP can achieve approximate local convergence without global convergence. 
+      Due to the factorized structure of GBP <d-cite key="diehl2018factorized"></d-cite>, global inference is achieved by jointly solving many interdependent local subproblems.
+      There are many instances in which we might only be interested in local solutions - in these cases, GBP can operate in a <b>just-in-time</b> or <b>attention-driven</b> fashion, focusing processing on parts of the graph to solve local subproblems as the task demands. 
+      Local message passing can yield accurate relative local solutions which estimate the marginals up to global corrections that come from more distant parts of the graph <d-footnote>One simple example is mapping two connected rooms. An accurate local map of one room can be constructed by focusing processing on the part of the factor graph in that room. For some applications this may be sufficient while for others it may be important to build a map with an accurate absolute position which may require longer range message passing between the parts of the graph corresponding to each separate room. </d-footnote>.
+      This attention-driven scheduling can be very economical with compute and energy, only sending the most task-critical messages. 
+
+      <!-- Sometimes, if we are only interested in a particular local set of marginals, solving the graph locally without global convergence may be enough to give accurate relative estimates. -->
+    </p>
+
+
+    <p>
+      In the <a href="#attentiongl">figure</a> below we explore attention-driven message passing for image denoising <d-footnote>As there are no long-range connections in the image denoising graph, local message passing can produce the true local marginals as the effect of more distant parts of the graph is negligible.</d-footnote>. 
+      Image denoising is the 2D equivalent of the surface estimation problem from the previous <a href="#gbp1d">figure</a>. 
+      The only difference is that previously although variable nodes were at discrete locations the data factors were at any location, while now the data factors are at the same discrete locations as the variable nodes with one per node.
+      We also revisit the use of robust energy functions with GBP via covariance scaling which is crucial for sharp denoising. 
+    </p>
+
+    <d-figure id="attentiongl" class="subgrid"></d-figure>
+
+    <h3 id="multiscale-learning">Multiscale Learning</h3>
+
+    <p>
+      Propagating information from one node to another with GBP takes the same number of iterations as the number of hops between the nodes. 
+      For nearby nodes in a local region, information can be communicated in a small number of iterations and consensus can be reached quickly, while for distant nodes, a global consensus can take many more iterations to be established. 
+      This is an inherent property of local algorithms and can be summarized as low frequency errors decay more slowly than the high frequency errors.
+    </p>
+
+    <p>
+      Regular grid structured graphs appear a lot in computer vision (e.g. image segmentation) and in discretized boundary value problems (e.g. solving for the temperature profile along a rod).
+      Accelerating convergence in such grid graphs has been well-studied in the field of Multigrid methods <d-cite key="briggs2000multigrid"></d-cite>.
+      One simple approach is to coarsen the grid which transforms low frequency errors into higher frequency errors that decay faster. 
+      After convergence in the coarsened grid, the solution is used to initialize inference in the original grid which now has smaller low frequency errors. 
+      This is the idea behind coarse-to-fine optimization which is used in many grid-based problems where it is simple to build a coarser graph. In one notable work <d-cite key="felzenszwalb2006efficient"></d-cite>, the authors demonstrate much faster inference for stereo, optical flow and image restoration with multiscale BP. 
+    </p>
+
+    <g>
+
+    <!-- <d-figure class="right-d-figure">
+      <video style="width: 100%;" loop controls muted>
+        <source src="diagrams/tree_bp.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      <figcaption>
+        Stereo disparity estimation energy curves. Using a stereo pair from <d-cite key="scharstein2002taxonomy"></d-cite>.
+        <br/><br/> 
+        <p style="text-align: center">
+          <a target="_"
+            href="https://colab.research.google.com/drive/1YNEv3w4ySKIDEKgjFcoUZP8YoUezmnlv#scrollTo=etl3Irlbu1t8"
+            class="colab-root">
+            Reproduce in a <span class="colab-span" style="background-image: url(./images/colab.svg);">Notebook</span>
+          </a>
+        </p>
+      </figcaption>
+    </d-figure> -->
+
+    <!-- <p>
+      In experiments, we explored coarse-to-fine GBP for stereo disparity estimation of rectified images using a photometric loss.
+      This task is very similar to image stitching and optical flow estimation.
+      The <a href="#coarse_to_fine">figure</a> on the right compares the energy in the graph with coarse-to-fine GBP and GBP immediately at the finest level.
+    </p> -->
+    
+    <p>
+      Mulitgrid methods can only be applied to graphs with a grid-like structure where it is possible to build equivalent coarsened representations. 
+      In general, most problems are more unstructured and it is not clear how to build a coarsened or abstracted representation of the original problem.
+      In the general case, we see two possible ways to build hierarchy into a model. A network could be trained to directly predict specific abstractions that form long range connections when included in the graph. Second, the graph could contain additional constraints that define a generic hierarchical structure (much like a neural network) and then the abstractions themselves are also inferred <d-cite key="george2017generative"></d-cite>.
+      <!-- In the these general cases, abstractions or long range connections into the original graph which represent more global features and act as shortcuts for propagating global information. -->
+      <!-- This is tackled in <span class="note">(fix ref)<d-cite key="Ortiz:planes2021"></d-cite></span> which adds nodes for planes on top of a point-based SLAM factor graph, allowing global information to propagate more quickly through these higher-level nodes. -->
+    </p>
+    </g>
+
+    <h2 id="related-methods">Related Methods</h2>
+
+    <p>
+      Solving real non-linear problems with GBP is done by iteratively solving linearized Gaussian versions of the true non-linear problem. 
+      This general pattern of successively solving linearized problems underpins many different non-linear inference methods.
+      There are efficient libraries <d-cite key="CeresManual, Dellaert:TechReport2012, kummerle2011g20"></d-cite> for non-linear inference which use trust region methods like Gauss-Newton or line search to guide the repeated linear steps <d-footnote>Trust region methods approximate the energy using a model within a trust region. For example, the Gauss-Newton method uses a quadratic model meaning the factors are approximated as Gaussians as in GBP. Line search methods choose a descent direction and then step size at each iteration. In trust region methods, the most expensive step is solving the linear system, while for line search methods choosing the direction is the most expensive part.</d-footnote>.
+    </p>
+    <p>
+      GBP is just one of many possible algorithms that can be used to solve the linearized Gaussian model.
+      To place GBP amongst other methods, we present an overview of a number of related methods for MAP and marginal inference for Gaussian models in the <a href="#related">table</a> below. 
+      As a reminder, inference in Gaussian models is equivalent to solving the linear system $\Lambda \mu = \eta$, for $\mu$ in MAP inference and for $\mu$ and the diagonal elements of $\Lambda^{-1}$ in marginal inference.
+      You can hover over the circles in the figure to explore how GBP relates to other methods. 
+    </p>
+
+    <d-figure id="related" class="wider"></d-figure>
+
+    <!-- <p>
+      Among these algorithmic choices, our key argument in this article is that local, probabilistic and iterative algorithms will scale more favourably and be able to more gracefully exploit the structure of future problems in machine learning. 
+    </p> -->
+
+    <p>
+      With so many different inference methods, choosing which method to use can be a challenge in itself. 
+      Judging the speed of each method is complex and depends on both the sparsity structure of $\Lambda$ and on the implementation on the available hardware. 
+      Our key argument in this article is that we want a general method that is local, probabilistic and iterative which led us towards Gaussian Belief Propagation.
+    </p>
+    <p>
+      Other notable candidate methods that are local, probabilistic and iterative are Expectation Propagation (EP) <d-cite key="minka2013ep"></d-cite> and Barfoot's algorithm <d-cite key="barfoot2020fundamental"></d-cite>.
+      EP is generally not node-wise parallel and simplifies to GBP in the special case when it is node-wise parallel, while Barfoot's algorithm involves extra communication edges and is yet to be applied to real problems. 
+      For these reasons GBP stands out as the extreme case that maximizes parallelism and minimizes communication - two principles that are at the core of scalable and low-power computation.
+    </p>
+    <!--
+      <p>
+        Approximate inference algorithms: rejection sampling, monte carlo (Gibbs sampling, metropolis hastings), particle filters, 
+      </p>
+    -->
+
+    <h2 id="conclusions">Conclusions</h2>
+  
+    <p>
+      We envisage that ML systems of the future will be large scale, heterogeneous and distributed and as such will require flexible and scalable probabilistic inference algorithms.
+      In this article, we argued that Gaussian Belief Propagation is a strong candidate algorithm as it is local, probabilistic, iterative and asynchronous.
+      Additionally, we showed 1) how GBP is much more general with a prescription for handling non-linear factors and robust energy functions, 2) how GBP can operate in an attention-driven fashion and 3) how hierarchical structure can help convergence.
+      We hope that this visual introduction will enourage more researchers and practitioners to look into GBP as an alternative to existing inference algorithms.
+    </p>
+
+    <p>
+      We see many exciting directions for future research around GBP and provide a <a href="https://colab.research.google.com/drive/1-nrE95X4UC9FBLR0-cTnsIP_XhA_PZKW?usp=sharing" target="_">GBP Library<span class="colab-span" style="background-image: url(./images/colab.svg);">Notebook</span></a> as a starting point for the interested reader. 
+      Some directions we are most excited about are improving theoretical guarantees, using learned factors <d-cite key="czarnowski2020deepfactors, mukadam2018continuous, opipari2021differentiable"></d-cite>, introducing discrete variables, combining GBP with GNNs <d-cite key="satorras2021neural, kuck2020belief"></d-cite>, incrementally abstracting factor graphs, investigating numerical precision for messages, using GBP for distributed learning in overparameterized networks and lastly unifying iterative inference with test-time self-supervised learning.
+    </p>
+
+    <!-- <p class="note">
+      Concluding remark? Return to bitter lesson, or sparsity or web of inter-connected devices?
+    </p> -->
+
+    <!-- <p class="note">
+      As computer vision researchers, we would like to end by drawing a speculative comparison between Gaussian belief propagation and transformers, once again drawing on Sutton's "bitter lesson" <d-cite key="Sutton:BitterLesson2019"></d-cite>. 
+      In vision, transformers have recently demonstrated state-of-the-art performance without the inductive biases of CNNs by leveraging massive datasets and training times. In probabilistic inference, much like CNNs, most inference methods achieve fast performance by handcrating the algorithm to exploit specific structure in a problem. This handcrating however means these methods are not scalable and, unlike GBP and transformers, are not general enough to leverage all available compute. We hope therefore, that in the same way that transformers have been scaled to achieve SOTA performance, GBP has the right properties to be arbitrarily scaled and act as a computational glue for future heterogeneous ML systems.
+    </p> -->
+
+    <h2 id="supp-playground">Supplementary Playground</h2>
+
+    <p>
+      We encourage the interested reader to explore our supplementary <a href="#playground">GBP playground</a>.
+      The playground consists of 2 interative diagrams based around 2D pose graphs.
+      In the first you can construct your own pose graph, set the initialization and then choose how messages are passed through the graph.
+      The second is a simulation of a robot exploring a 2D environment with landmarks. 
+    </p>
+
+    <d-figure id="playground" class="subgrid"></d-figure>
+
+
+  </d-article>
+
+
+  <d-appendix>
+<!--     <h3>Acknowledgments</h3>
+    <p>
+      We are grateful to many researchers with whom we have discussed some of the ideas in this paper, especially from the Dyson Robotics Lab and Robot Vision Group at Imperial College London.
+      We would particularly like to thank Xiaofan Mu, Raluca Scona, Riku Murai, Edgar Sucar, Seth Nabarro, Tristan Laidlow, Nanfeng Liu, Shuaifeng Zhi, Kentara Wada and Stefan Leutenegger.
+    </p> -->
+
+    <h3 id="derivation">Appendix A: <br> Variational BP Derivation</h3>
+
+    <p>
+      This standard derivation of the belief propagation equations follows Yedida et al <d-cite key="yedidia2000generalized"></d-cite> in showing that the BP update rules follow from constrained minimization of an approximate free energy known as the Bethe free energy. 
+
+    </p>
+
+    <p>
+      We begin by writing the posterior as a product of the factors:
+      <d-math block="">
+        p(X) = \frac{1}{Z} \prod_a f_a(X_a) = \frac{1}{Z} \prod_a e^{-E(X_a)}
+        ~.
+      </d-math>
+      The goal of variational inference is to find a variational distribution $q(X)$ that approximates the posterior well by minimizing the Kullback-Leibler divergence between the variational distribution and the posterior.
+      The KL divergence is a non-negative asymmetric similarity metric that has a minimum of 0 when $p = q$.
+      <d-math block="">
+        \begin{aligned}
+          KL(q \lvert \rvert p) &= \sum_{X} q(X) \log \frac{q(X)}{p(X)} \\
+            &= \sum_{X} q(X) \log q(X) - \sum_{X} q(X) \log p(X) \\
+            &= -H_q(X) - \mathop{\mathbb{E}}_q [\log p(X)] \\
+            &= -H_q(X) - \sum_{a} \mathop{\mathbb{E}}_q [\log f_a(X_a)] + \log(Z) \\
+            <!-- &= -H_q(X) + \sum_{a} \mathop{\mathbb{E}}_q [E(X_a)] + \log(Z) \\ -->
+            &= F(p, q) + \log(Z)
+        \end{aligned}
+      </d-math>
+      Above, we defined the free energy: <d-math block="">F(p, q) = -H_q(X) - \sum_{a} \mathop{\mathbb{E}}_q [\log f_a(X_a)] ~,</d-math> where the first term is the negative of the entropy and the second term is known as the average energy because $-\log f_a(X_a) = E(X_a)$. The free energy has a minimum value of $-\log(Z)$ and by minimizing this free energy we can also minimizing the KL divergence. 
+    </p>
+
+    <p>
+      We first consider the form of the free energy for a tree. For tree graphs, the distribution $q(X)$ can be written in the form:
+      <d-math block="">
+        q(X) = \prod_{i} b_i(x_i)^{1 - d_i} \prod_{a} b_{a}(X_a) 
+        <!-- = \prod_{r \in V} b_r(x_r) \prod_{(s, t) \in E} \frac{b_{st}(x_s, x_t)}{b_s(x_s) b_t(x_t)} -->
+        ~,
+      </d-math>
+      where the first product is over variables and the second is over the factors.
+      $b_i(x_i)$ is the marginal distribution over variable $x_i$, $b_a(X_a)$ is the joint marginal distribution over variables $X_a$ that connect to factor $f_a$, and $d_i$ is the degree of variable node $i$ (the number of nodes neighbouring node $i$). 
+      Plugging this into the expression for the entropy, we get: 
+      <d-math block="">
+        H_{tree}(X) 
+        <!-- &= -\sum_{X} \prod_{i} b_i(x_i)^{1-d_i} \prod_{a} b_{a}(X_a) \log \big\{ \prod_{i} b_i(x_i)^{1-d_i} \prod_{a} b_{a}(X_a) \big\} \\ -->
+        = -\sum_{i} (1 - d_i)  \sum_{x_i} b_i(x_i) \log b_i(x_i) - \sum_{a} \sum_{X_a} b_{a}(X_a) \log b_{a}(X_a) ~.
+      </d-math>
+      Similarly, the average energy can be written as: 
+      <d-math block="">
+        - \sum_{i} \mathop{\mathbb{E}}_q [\log f_i(X_i)] = - \sum_{a} b_a(X_a) \log f_a(X_a)
+      </d-math>
+      Putting this together gives the free energy for tree graphs: 
+      <d-math block="">
+        F_{tree} = - \sum_{i} (d_i-1) \sum_{x_i} b_i(x_i) \log b_i(x_i) + \sum_{a} \sum_{X_a} b_{a}(X_a) \log \frac{b_{a}(X_a)}{ f_{a}(X_a)} ~.
+      </d-math> 
+      For general factor graphs with loops, the $F \neq F_{tree}$.
+      The Bethe approximation is to use the free energy for a tree to approximate the free energy for arbitrary loopy graphs. The resulting approximate free energy is known as the Bethe free energy. 
+    </p>
+    <p>
+      Belief propagation can be derived via minimization of the Bethe free energy subject to two constraints.
+      The first is a marginalization constraint: $b_i(x_i) = \sum_{X_a \setminus i} b_{a}(X_a)$, and the second is a normalization constraint: $\sum_i b_i(x_i) = 1$.
+      With these constraints, we can form the Lagrangian and then set the derivates with respect to the parameters to zero: 
+      <d-math block="">
+        L = F_{Bethe} + \sum_i \gamma_i \bigg\{ 1 - \sum_{x_i} b_i(x_i) \bigg\} + \sum_a \sum_{i \in N(a)} \sum_{x_i} \lambda_{ai}(x_i) \bigg\{ b_i(x_i) - \sum_{X_a \setminus i} b_{a}(X_a) \bigg\}
+      </d-math> 
+      <!-- <d-math block="">
+        \frac{\partial L}{\partial b_{i}(x_i)} = (1 - d_i) (\log b_i(x_i) + 1) + \gamma_i + \sum_{a \in N(i)}\lambda_{ai}(x_i)  = 0
+        ~,
+      </d-math> -->
+      <d-math block="">
+        \frac{\partial L}{\partial b_{i}(x_i)} = 0 \;\;\;\;\;\;
+        \Rightarrow b_{i}(x_i) \propto \prod_{a \in N(i)} \exp \big(\lambda_{ai}(x_i) \big)
+      </d-math>
+      <!-- <d-math block="">
+        \frac{\partial L}{\partial b_{a}(X_a)} = \log \frac{b_{a}(X_a)}{ f_{a}(X_a)} + 1 + \sum_{i \in N(a)}\lambda_{ai}(x_i) = 0
+        ~,
+      </d-math> -->
+      <d-math block="">
+        \frac{\partial L}{\partial b_{a}(X_a)} = 0 \;\;\;\;
+        \Rightarrow b_{a}(X_a) \propto f_{a}(X_a) \prod_{i \in N(a)}\exp \big( \lambda_{ai}(x_i) \big)
+      </d-math>
+
+    </p>
+
+    <p>
+      We now choose the lagrange multiplier to be $\exp(\lambda_{ai}(x_i)) = m_{x_i \rightarrow f_a}(x_i) = \prod_{c \in N(i) \setminus a} m_{f_c \rightarrow x_i}(x_i)$. This is the familiar variable-to-factor message equation and substituting this into the above equations yields the belief propagation fixed point equations (the first of which the reader will recognize as the belief update rule).
+      <d-math block="">
+        b_i(x_i) \propto \prod_{a \in N(i)} m_{x_i \rightarrow f_a} (x_i) \propto
+        <!-- (d_i-1)  -->
+        \prod_{a \in N(i)} m_{f_a \rightarrow x_i}(x_i)
+      </d-math>
+      <d-math block="">
+        b_a(X_a) \propto f_a(X_a) \prod_{i \in N(a)} m_{x_i \rightarrow f_a}(x_i) = f_a(X_a) \prod_{i \in N(a)} \prod_{c \in N(i) \setminus a} m_{f_c \rightarrow x_i} (x_i)
+      </d-math>
+    </p>
+
+    <p>
+      Using the marginalization condition , we can derive an equation for the messages in terms of other messages and produce the factor-to-variable message equation:
+      <d-math block="">
+        \begin{aligned}
+          m_{f_a \rightarrow x_i}(x_i) &= \sum_{X_a \setminus x_i} f_a(X_a) \prod_{j \in N(a) \setminus i} \; \prod_{b \in N(j) \setminus a} m_{f_b \rightarrow x_j}(x_j) \\
+          &= \sum_{X_a \setminus x_i} f_a(X_a) \prod_{j \in N(a) \setminus i} m_{x_j \rightarrow f_a}(x_j)
+        \end{aligned}  
+      </d-math>
+    </p>
+
+    <p>
+      This result tells us that the fixed-points of loopy belief propagation are local stationary points of the Bethe free energy and because the Bethe energy is bounded from below, BP always has a fixed point.
+    </p>
+
+    <p>
+      BP variants have been developed using more accurate or convex approximations of the free energy <d-cite key="yedidia2000generalized"></d-cite>, however a detailed discussion of the theory behind BP is beyond the scope of this article and we refer the reader to <d-cite key="wainwright2008graphical"></d-cite> for a in depth review. 
+    </p>
+
+    <d-footnote-list></d-footnote-list>
+    <d-citation-list></d-citation-list>
+
+<!--     <h3 id="updates-and-corrections">Updates and Corrections</h3>
+    <p>
+      If you see mistakes or want to suggest changes, please <a target="_" href="https://github.com/gaussianBP/gaussianBP.github.io/issues/new">create an issue on GitHub</a>. 
+    </p>
+
+    <h3 id="reuse">Reuse</h3>
+    <p>Diagrams and text are licensed under Creative Commons Attribution <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY 4.0</a> with the <a class="github" href="https://github.com/gaussianBP">source available on GitHub</a>, unless noted otherwise.</p>
+
+    <h3 id="citation">Citation</h3>
+    <p>For attribution in academic contexts, please cite this work as</p>
+    <pre class="citation short">J. Ortiz, T. Evans, A. Davison. A visual introduction to Gaussian Belief Propagation, 2021.</pre>
+    <p>BibTeX citation</p>
+    <pre class="citation">@article{Ortiz2021visualGBP,
+  title = {A visual introduction to Gaussian Belief Propagation},
+  author = {Ortiz, Joseph and Evans, Talfan and Davison, Andrew J.},
+  journal={arXiv preprint arXiv:2107.02308},
+  year = {2021},
+}</pre>
+ -->
+  </d-appendix>
+
+  <!-- bibliography will be inlined during Distill pipeline's pre-rendering -->
+  <d-bibliography src="bibliography.bib"></d-bibliography>
+
+<script type="text/javascript" src="index.bundle.js"></script></body>
