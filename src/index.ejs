@@ -421,7 +421,32 @@
     </p>
     <p>
       Unlike general loopy BP, GBP is guaranteed to compute the exact marginal means on convergence, although the same is unfortunately not true for the variances which often converge to the true marginal variances, but are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
-      Although GBP does not in general have convergence guarantees, there some convergence conditions <d-cite key="Bickson:PhDThesis:2008, du2018convergence, su2015convergence"></d-cite> as well as methods to improve chances of convergence (see chapter 22 in <d-cite key="murphy2012machine"></d-cite>). 
+      Although GBP does not in general have convergence guarantees, there some convergence conditions <d-cite key="Bickson:PhDThesis:2008, du2018convergence, su2015convergence"></d-cite> as well as methods to improve chances of convergence
+      <d-footnote>
+        Message damping is commonly used to speed up and improve chances of convergence in very loopy graphs. 
+        Message damping both empirically <d-cite key="Murphy:etal:1999"></d-cite> and theoretically <d-cite key="su2015convergence"></d-cite> improves convergence without affecting the fixed points of GBP.
+        The idea behind message damping is to use momentum to reduce chances of oscillation by replacing the message at time $t$ with a combination of the message at time $t$ and time $t-1$:
+        <d-math block="">
+          \tilde{m}_{t} = m_{t}^\beta \tilde{m}_{t-1}^{(1 - \beta)}
+          ~,
+        </d-math>
+        which is a weighted sum in log-space:
+        <d-math block="">
+          \log \tilde{m}_{t} = \beta \, \log m_{t} + (1 - \beta) \, \log \tilde{m}_{t-1}
+          ~.
+        </d-math>
+
+        Standard BP is recovered when the damping parameter $\beta = 1$ and $\beta = 0$ corresponds to not updating the message and sending the message from the previous iteration.
+        Message damping can be applied to both the variable-to-factor messages and factor-to-variable messages, however we find that applying it just to factor-to-variable messages is sufficient.
+        For GBP, message damping corresponds to damping the information vector and precision matrix as a weighted sum: 
+        <d-math block="">
+          \tilde{\eta}_{t} = \beta \, \eta_{t} + (1 - \beta) \, \tilde{\eta}_{t-1} 
+          \;\;\; \text{and} \;\;\;
+          \tilde{\Lambda}_{t} = \beta \, \Lambda_{t} + (1 - \beta) \, \tilde{\Lambda}_{t-1} 
+          ~.
+        </d-math>
+      </d-footnote>
+      (see chapter 22 in <d-cite key="murphy2012machine"></d-cite>). 
     </p>
     <p>  
       The interactive <a href="#gbp_intuition">figure</a> below aims to build intuition for GBP by exploring the effect of individual messages.

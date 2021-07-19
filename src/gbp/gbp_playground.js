@@ -7,6 +7,25 @@ const seedrandom = require('seedrandom');
 r.use(seedrandom('foobar'));
 
 
+function print(m) {
+  console.log("mat", m.rows, m.columns)
+  if (m.columns == 1) {
+    let row = [];
+    for (var i=0; i < m.rows; ++i){
+      row.push(m.get(i, 0));
+    }
+    console.log(row);
+  } else {
+    for (var i=0; i < m.rows; ++i){
+      let row = [];
+      for (var j=0; j < m.columns; ++j) {
+        row.push(m.get(i, j));
+      }
+      console.log(row);
+    }
+  }
+}
+
 export class FactorGraph {
   constructor() {
     this.var_nodes = [];
@@ -542,26 +561,40 @@ export class LinearFactor {
     const block = lono.mmul(m.inverse(lnono));
     message.eta = new m.Matrix(eo.sub(block.mmul(eno)));
     message.lam = new m.Matrix(loo.sub(block.mmul(lnoo)));
+
     if (this.messages[i].eta.get(0,0) != 0.) {  // Do not damp on first iteration
+      let old_eta = this.messages[i].eta.clone();
+      let old_lam = this.messages[i].lam.clone();
       message.eta.mul(1 - this.damping);
-      message.eta.add(this.messages[i].eta.mul(this.damping));
+      message.eta.add(old_eta.mul(this.damping));
       message.lam.mul(1 - this.damping);
-      message.lam.add(this.messages[i].lam.mul(this.damping));
+      message.lam.add(old_lam.mul(this.damping));
     }
+
     return message;
   }
 
   send_message_to(graph, ids) {
+    let latest_messages = [];
     for (var i = 0; i < this.adj_ids.length; i++) {
       if (ids.includes(this.adj_ids[i])) {
-        this.messages[i] = this.comp_mess(i);
+        const mess = this.comp_mess(i);
+        latest_messages.push(mess);
+      }
+    }
+    for (var i = 0; i < this.adj_ids.length; i++) {
+      if (ids.includes(this.adj_ids[i])) {
+        const new_mess = latest_messages.shift();
+        this.messages[i].eta.set(0,0, new_mess.eta.get(0,0));
+        this.messages[i].eta.set(1,0, new_mess.eta.get(1,0));
+        this.messages[i].lam.set(0,0, new_mess.lam.get(0,0));
+        this.messages[i].lam.set(1,1, new_mess.lam.get(1,1));
       }
     }
   }
 
   send_both_messages(graph) {
-    this.send_message_to(graph, [this.adj_ids[0]]);
-    this.send_message_to(graph, [this.adj_ids[1]]);
+    this.send_message_to(graph, this.adj_ids)
   }
 
 }
