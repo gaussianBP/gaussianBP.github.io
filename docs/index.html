@@ -1137,7 +1137,7 @@ d-contents nav>ul>li>a:hover {
         <d-figure id="gaussian_equations" ></d-figure>
     
         <p>
-          The canonical form is often preferred when performing inference, for two main reasons. Firstly, taking a product is simple in the canonical form, so it is easy to form the posterior from the factors. Secondly, the precision matrix is sparse and relates closely to the structure of the factor graph. Having <a href="#bp_equations">earlier</a> introduced the belief propagation equations in the general case, we present the specific GBP equations using the canonical form in <a href="#gbp_equations">Appendix B</a>.
+          The canonical form is often preferred when performing inference, for two main reasons. Firstly, taking a product is simple in the canonical form, so it is easy to form the posterior from the factors. Secondly, the precision matrix is sparse and relates closely to the structure of the factor graph.
         </p>
         <p>
           The precision matrix describes direct associations or conditional dependence between variables. 
@@ -1200,7 +1200,7 @@ d-contents nav>ul>li>a:hover {
 
     <p>
       Having introduced Gaussian models, we now discuss <b>Gaussian Belief Propagation (GBP)</b> a form of BP applied to Gaussian models.
-      Due to the closure properties of Gaussians, the beliefs and messages are also Gaussians and GBP operates by storing and passing around information vectors and precision matrices.
+      Due to the closure properties of Gaussians, the beliefs and messages are also Gaussians and GBP operates by storing and passing around information vectors and precision matrices. The GBP equations are a specific case of the BP equations presented <a href="#bp_equations">earlier</a> and we provide details on the GBP equations in <a href="#gbp_equations">Appendix B</a>.
     </p>
     <p>
       Unlike general loopy BP, GBP is guaranteed to compute the exact marginal means on convergence, although the same is unfortunately not true for the variances which often converge to the true marginal variances, but are sometimes overconfident for very loopy graphs <d-cite key="Weiss:Freeman:NIPS2000"></d-cite>. 
