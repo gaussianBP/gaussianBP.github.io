@@ -358,7 +358,7 @@
         <d-figure id="gaussian_equations" ></d-figure>
     
         <p>
-          The canonical form is often preferred when performing inference, for two main reasons. Firstly, taking a product is simple in the canonical form, so it is easy to form the posterior from the factors. Secondly, the precision matrix is sparse and relates closely to the structure of the factor graph. 
+          The canonical form is often preferred when performing inference, for two main reasons. Firstly, taking a product is simple in the canonical form, so it is easy to form the posterior from the factors. Secondly, the precision matrix is sparse and relates closely to the structure of the factor graph. Having <a href="#bp_equations">earlier</a> introduced the belief propagation equations in the general case, we present the specific GBP equations using the canonical form in <a href="#gbp_equations">Appendix B</a>.
         </p>
         <p>
           The precision matrix describes direct associations or conditional dependence between variables. 
@@ -372,7 +372,7 @@
         </p>
     
         <d-figure id="gaussian_gm" class="subgrid"></d-figure>
-    
+
         <h3 id="from-gaussian-inference-to-linear-algebra">From Gaussian Inference to Linear Algebra</h2>
     
         <p>
@@ -578,7 +578,19 @@
     <p>
       The interactive <a href="#gbp1d_robust">figure</a> below gives intuition for the effect of robust factors for the task of 1D line fitting.
       The variables we are estimating are the $y$ values at fixed intervals along the $x$ axis and the blue circles and lines show the mean and standard deviation of the beliefs. 
-      The red squares are measurements that produce data factors in the graph and there are also smoothness factors between all adjacent variable nodes encouraging the $y$ values to be close.
+      The red squares are measurements that produce data factors in the graph and there are also smoothness factors between all adjacent variable nodes encouraging the $y$ values to be close
+      <d-footnote>
+        There are two types of factors in this example: smoothness factors and data factors. Smoothness factors encourage neighbouring nodes to take similar values and the measurement function is simply the difference between the values:
+        <d-math block="">
+          h(y_i, y_j) = y_i - y_j
+          ~.
+        </d-math>
+        For a measurement at $(x_m, y_m)$ which is spatially in between the nodes at $x_i$ and $x_j$, the measurement function for the data factor is:
+        <d-math block="">
+          h(y_i, y_j) = (1 - \lambda) y_i + \lambda y_j \:\:\:\:\text{where}\:\:\: \lambda = \frac{x_m - x_i}{x_j - x_i}
+          ~.
+        </d-math>
+      </d-footnote>.
       You can add your own data factors by clicking on the canvas and a diagram of the factor graph is in the bottom right of the <a href="#gbp1d_robust">figure</a>.
       Press play to run synchronous GBP and observe that a Huber energy can disregard outliers and retain step discontinuities in the data unlike the standard squared loss.
     </p>
@@ -874,6 +886,123 @@
       BP variants have been developed using more accurate or convex approximations of the free energy <d-cite key="yedidia2000generalized"></d-cite>, however a detailed discussion of the theory behind BP is beyond the scope of this article and we refer the reader to <d-cite key="wainwright2008graphical"></d-cite> for a in depth review. 
     </p>
 
+    <h3 id="gbp_equations">Appendix B: <br> GBP Equations</h3>
+
+    <p>
+      Here we present the Gaussian belief propagation equations, where messages and beliefs are parameterized with the Gaussian canonical form. The GBP equations are a specific case of the <a href="#bp_equations">BP equations</a> presented in the main paper.
+    </p>
+
+    <h4>Belief Update</h4>
+
+    <p>
+      To compute the belief at a variable node, you take the product of incoming messages from all adjacent factors:
+      <d-math block="">
+        b_{i}(x_i) = \prod_{s \in N(i)} m_{f_s \rightarrow x_i}
+        ~,
+      </d-math>
+      where $N(i)$ denotes the neighbours of nodes $i$.
+      A Gaussian message has the canonical form:
+      <d-math block="">
+        m = \mathcal{N}^{-1}(x; \eta, \Lambda) \propto \exp(-\frac{1}{2} x^\top \Lambda x + \eta^\top x)
+        ~,
+      </d-math>
+      and so taking products of these messages is equivalent to summing the respective information vectors and precision matrices. The belief parameters $\eta_{b_i}$ and $\Lambda_{b_i}$ are therefore:
+      <d-math block="">
+        \eta_{b_i} = \sum_{s \in N(i)} \eta_{f_s \rightarrow x_i}
+        \:\:\:\:\text{and}\:\:\:\:
+        \Lambda_{b_i} = \sum_{s \in N(i)} \Lambda_{f_s \rightarrow x_i}
+        ~.
+      </d-math>
+    </p>
+
+    <h4>Variable to factor message passing</h4>
+
+    <p>
+      To send a message at a variable node to an adjacent factor, the variable node takes the product of the messages from all other adjacent factors:
+      <d-math block="">
+        m_{x_i \rightarrow f_j} = \prod_{s \in N(i) \setminus j} m_{f_s \rightarrow x_i}
+        ~.
+      </d-math>
+      Similar to the belief update step, the outgoing message parameters can be computed simply by summing the message parameters from all other adjacent factors:
+      <d-math block="">
+        \eta_{x_i \rightarrow f_j} = \sum_{s \in N(i) \setminus j} \eta_{f_s \rightarrow x_i}
+        \:\:\:\:\text{and}\:\:\:\:
+        \Lambda_{x_i \rightarrow f_j} = \sum_{s \in N(i) \setminus j} \Lambda_{f_s \rightarrow x_i}
+        ~.
+      </d-math>
+    </p>
+
+    <h4>Factor to variable message passing</h4>
+
+    <p>
+      To send a message from a factor node to a variable node, the factor aggregates messages from all other adjacent variable nodes before marginalising out all other adjacent variable nodes:
+      <d-math block="">
+        m_{f_j \rightarrow x_i} = \sum_{X_j \setminus x_i} f_j(X_j) \prod_{k \in N(j) \setminus i} m_{x_k \rightarrow f_j}
+        ~.
+      </d-math>
+    </p>
+    <p>
+      To see how this computation is implemented for Gaussian models with the canonical form, consider a factor $f$ connected to 3 variable nodes $[x_1, x_2, x_3]$ where we are computing the message to variable $x_1$. The factor $f([x_1, x_2, x_3]) = \mathcal{N}^{-1}([x_1, x_2, x_3]; \eta_f, \Lambda_f)$ is a Gaussian over the variables and can be divided up as follows:
+      <d-math block="">
+        \eta_{f} =
+        \begin{bmatrix}
+          \eta_{f\_1} \\
+          \eta_{f\_2} \\
+          \eta_{f\_3}
+        \end{bmatrix}
+        \:\:\:\:\text{and}\:\:\:\:
+        \Lambda_{f} =
+        \begin{bmatrix}
+          \Lambda_{f\_11} & \Lambda_{f\_12} & \Lambda_{f\_13} \\
+          \Lambda_{f\_21} & \Lambda_{f\_22} & \Lambda_{f\_23} \\
+          \Lambda_{f\_31} & \Lambda_{f\_32} & \Lambda_{f\_33}
+          \end{bmatrix}
+        ~.
+      </d-math>
+
+      The first part of the computation for the message to $x_1$, is to take the product of the factor distribution and messages coming from the other adjacent variables nodes ($x_2$ and $x_3$). This yields a Gaussian with the following parameters:
+      <d-math block="">
+        \eta^\prime_{f} =
+        \begin{bmatrix}
+          \eta_{f\_1} \\
+          \eta_{f\_2} + \eta_{x_2 \rightarrow f} \\
+          \eta_{f\_3} + \eta_{x_3 \rightarrow f}
+        \end{bmatrix}
+        \:\:\:\:\text{and}\:\:\:\:
+        \Lambda^\prime_{f} =
+        \begin{bmatrix}
+          \Lambda_{f\_11} & \Lambda_{f\_12} & \Lambda_{f\_13} \\
+          \Lambda_{f\_21} & \Lambda_{f\_22} + \Lambda_{x_2 \rightarrow f} & \Lambda_{f\_23} \\
+          \Lambda_{f\_31} & \Lambda_{f\_32} & \Lambda_{f\_33} + \Lambda_{x_3 \rightarrow f}
+          \end{bmatrix}
+        ~.
+      </d-math>
+
+      To complete message passing from this factor, we must marginalise out all variables apart from the variable $x_1$ which is the recipient of the message. The formula for marginalising a Gaussian in the canonical form is given in Eustice et al <d-cite key="Eustice:etal:ICRA2005"></d-cite>. For the joint Gaussian distribution over variables $a$ and $b$ parameterized by:
+      <d-math block="">
+        \eta =
+        \begin{bmatrix}
+          \eta_{a} \\
+          \eta_{b}
+        \end{bmatrix}
+        \:\:\:\:\text{and}\:\:\:\:
+        \Lambda =
+        \begin{bmatrix}
+          \Lambda_{aa} & \Lambda_{ab} \\
+          \Lambda_{ba} & \Lambda_{bb}
+        \end{bmatrix}
+        ~,
+      </d-math>
+      the marginal distribution over $a$ after marginalising out $b$, has parameters:
+      <d-math block="">
+        \eta_{Ma} = \eta_{a} - \Lambda_{ab} \Lambda_{bb}^{-1} \eta_{b}
+        \:\:\:\:\text{and}\:\:\:\:
+        \Lambda_{Ma} = \Lambda_{aa} - \Lambda_{ab} \Lambda_{bb}^{-1} \Lambda_{ba}
+        ~.
+      </d-math>
+      To apply these formula to the partitioned joint Gaussian parameterized by $\eta^\prime_{f}$ and $\Lambda^\prime_{f}$, we first reorder the vector and matrix to bring the output variable to the top (in our example the recipient variable $x_1$ is already at the top, so we do not need to reorder). Then we identify the subblocks $a = x_1$ and $b = [x_2, x_3]$ and apply the above marginalization equations to form the parameters of the outgoing message.
+    </p>
+  
     <d-footnote-list></d-footnote-list>
     <d-citation-list></d-citation-list>
 
