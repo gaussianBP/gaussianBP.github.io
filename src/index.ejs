@@ -298,13 +298,19 @@
       <d-figure id="phases"></d-figure>
 
       <p>
-        <b>Belief Update:</b> The variable node beliefs are updated by taking a product of the incoming messages from all adjacent factors, each of which represents that factor's belief on the receiving node's variables.
+        <b>Belief Update</b>
+          <d-footnote>
+            Although the belief update is listed here as a phase of BP, the variable beliefs are ephemeral properties of the graph that can be computed at any time from the most recent factor-to-variable messages in the graph.
+            BP can proceed simply by alternative variable-to-factor and factor-to-variable message passing, however in practice all implementations compute the belief at each iteration as a third phase for two reasons: 1) it is useful to track convergence, 2) the beliefs can be sent instead of variable-to-factor messages, as the true variable-to-factor message can be recovered at the factor node by dividing the belief by the latest factor-to-variable message.
+          </d-footnote>
+          : The variable node beliefs are updated by taking a product of the incoming messages from all adjacent factors, each of which represents that factor's belief on the receiving node's variables.
         <br>
-        <b>Factor-to-variable message:</b> To send a message to an adjacent variable node, a factor aggregates messages from all other adjacent variable nodes and marginalizes over all the other nodes' variables to produce a message that expresses the factor's belief over the receiving node's variables. 
+        <b>Factor-to-variable message</b>: To send a message to an adjacent variable node, a factor aggregates messages from all other adjacent variable nodes and marginalizes over all the other nodes' variables to produce a message that expresses the factor's belief over the receiving node's variables. 
         <br>
-        <b>Variable-to-factor message:</b> A variable-to-factor message tells the factor what the belief of the variable would be if the receiving factor node did not exist. This is computed by taking the product of the messages the variable node has received from all other factor nodes.
+        <b>Variable-to-factor message</b>: A variable-to-factor message tells the factor what the belief of the variable would be if the receiving factor node did not exist. This is computed by taking the product of the messages the variable node has received from all other factor nodes.
         <br>
-        These 3 operations fully define the algorithm and their equations are presented <a href="#bp_equations">below</a>.
+        These 3 operations fully define the algorithm and their equations are presented <a href="#bp_equations">below</a>
+        <d-footnote>The equations below assume discrete random variables for the simpler notational of using summation rather than integration in the factor-to-variable message passing equation, and for consistency with Bishop's textbook <d-cite key="Bishop:Book2006"></d-cite>. </d-footnote>.
       </p>
 
       <d-figure id="bp_equations" class="subgrid"></d-figure>
